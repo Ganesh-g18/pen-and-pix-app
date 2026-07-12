@@ -50,10 +50,11 @@ export function CanvasEditor({ strokes, paper, onAddStroke, onUndo, onClear, onE
       return;
     }
     const opacity = tool === "highlighter" ? 0.35 : 1;
+    const strokeTool: Stroke["tool"] = tool === "highlighter" ? "highlighter" : tool === "marker" ? "marker" : "pen";
     drawingRef.current = {
       id: Math.random().toString(36).slice(2, 10),
-      tool: tool === "eraser" ? "pen" : tool,
-      color: tool === "highlighter" ? color : color,
+      tool: strokeTool,
+      color,
       size: tool === "highlighter" ? size * 4 : tool === "marker" ? size * 2 : size,
       opacity,
       points: [pt.x, pt.y, pt.p],
