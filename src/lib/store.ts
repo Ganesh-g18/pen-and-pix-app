@@ -1,0 +1,196 @@
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+
+export type PaperType = "blank" | "grid" | "dots" | "lined";
+export type NoteMode = "text" | "canvas";
+
+export interface Stroke {
+  id: string;
+  tool: "pen" | "highlighter" | "marker";
+  color: string;
+  size: number;
+  opacity: number;
+  points: number[]; // flat [x,y,pressure, x,y,pressure, ...]
+}
+
+export interface Note {
+  id: string;
+  title: string;
+  emoji?: string;
+  mode: NoteMode;
+  paper: PaperType;
+  content: string; // tiptap HTML
+  strokes: Stroke[];
+  folderId: string | null;
+  tags: string[];
+  pinned: boolean;
+  favorite: boolean;
+  trashed: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface Folder {
+  id: string;
+  name: string;
+  emoji: string;
+  color: string;
+}
+
+interface State {
+  notes: Record<string, Note>;
+  folders: Folder[];
+  activeFolderId: string | null;
+  query: string;
+  theme: "light" | "dark";
+  createNote: (partial?: Partial<Note>) => string;
+  updateNote: (id: string, patch: Partial<Note>) => void;
+  deleteNote: (id: string, permanent?: boolean) => void;
+  restoreNote: (id: string) => void;
+  togglePin: (id: string) => void;
+  toggleFavorite: (id: string) => void;
+  addFolder: (name: string, emoji?: string) => string;
+  deleteFolder: (id: string) => void;
+  setActiveFolder: (id: string | null) => void;
+  setQuery: (q: string) => void;
+  toggleTheme: () => void;
+  addStroke: (id: string, stroke: Stroke) => void;
+  undoStroke: (id: string) => void;
+  clearStrokes: (id: string) => void;
+}
+
+const uid = () => Math.random().toString(36).slice(2, 10);
+
+const seedFolders: Folder[] = [
+  { id: "f-personal", name: "Personal", emoji: "🌿", color: "#7c9cff" },
+  { id: "f-work", name: "Work", emoji: "💼", color: "#ffb37c" },
+  { id: "f-study", name: "Study", emoji: "📚", color: "#a97cff" },
+];
+
+export const useStore = create<State>()(
+  persist(
+    (set, get) => ({
+      notes: {},
+      folders: seedFolders,
+      activeFolderId: null,
+      query: "",
+      theme: "dark",
+
+      createNote: (partial) => {
+        const id = uid();
+        const now = Date.now();
+        const note: Note = {
+          id,
+          title: "Untitled note",
+          emoji: "✍️",
+          mode: "text",
+          paper: "blank",
+          content: "",
+          strokes: [],
+          folderId: get().activeFolderId,
+          tags: [],
+          pinned: false,
+          favorite: false,
+          trashed: false,
+          createdAt: now,
+          updatedAt: now,
+          ...partial,
+        };
+        set((s) => ({ notes: { ...s.notes, [id]: note } }));
+        return id;
+      },
+
+      updateNote: (id, patch) =>
+        set((s) => {
+          const n = s.notes[id];
+          if (!n) return s;
+          return { notes: { ...s.notes, [id]: { ...n, ...patch, updatedAt: Date.now() } } };
+        }),
+
+      deleteNote: (id, permanent) =>
+        set((s) => {
+          if (permanent) {
+            const { [id]: _, ...rest } = s.notes;
+            return { notes: rest };
+          }
+          const n = s.notes[id];
+          if (!n) return s;
+          return { notes: { ...s.notes, [id]: { ...n, trashed: true, updatedAt: Date.now() } } };
+        }),
+
+      restoreNote: (id) =>
+        set((s) => {
+          const n = s.notes[id];
+          if (!n) return s;
+          return { notes: { ...s.notes, [id]: { ...n, trashed: false } } };
+        }),
+
+      togglePin: (id) =>
+        set((s) => {
+          const n = s.notes[id];
+          if (!n) return s;
+          return { notes: { ...s.notes, [id]: { ...n, pinned: !n.pinned } } };
+        }),
+
+      toggleFavorite: (id) =>
+        set((s) => {
+          const n = s.notes[id];
+          if (!n) return s;
+          return { notes: { ...s.notes, [id]: { ...n, favorite: !n.favorite } } };
+        }),
+
+      addFolder: (name, emoji = "📁") => {
+        const id = "f-" + uid();
+        set((s) => ({ folders: [...s.folders, { id, name, emoji, color: "#8ab4ff" }] }));
+        return id;
+      },
+
+      deleteFolder: (id) =>
+        set((s) => ({
+          folders: s.folders.filter((f) => f.id !== id),
+          notes: Object.fromEntries(
+            Object.entries(s.notes).map(([nid, n]) => [
+              nid,
+              n.folderId === id ? { ...n, folderId: null } : n,
+            ]),
+          ),
+        })),
+
+      setActiveFolder: (id) => set({ activeFolderId: id }),
+      setQuery: (q) => set({ query: q }),
+      toggleTheme: () => set((s) => ({ theme: s.theme === "dark" ? "light" : "dark" })),
+
+      addStroke: (id, stroke) =>
+        set((s) => {
+          const n = s.notes[id];
+          if (!n) return s;
+          return {
+            notes: {
+              ...s.notes,
+              [id]: { ...n, strokes: [...n.strokes, stroke], updatedAt: Date.now() },
+            },
+          };
+        }),
+
+      undoStroke: (id) =>
+        set((s) => {
+          const n = s.notes[id];
+          if (!n || n.strokes.length === 0) return s;
+          return {
+            notes: {
+              ...s.notes,
+              [id]: { ...n, strokes: n.strokes.slice(0, -1), updatedAt: Date.now() },
+            },
+          };
+        }),
+
+      clearStrokes: (id) =>
+        set((s) => {
+          const n = s.notes[id];
+          if (!n) return s;
+          return { notes: { ...s.notes, [id]: { ...n, strokes: [], updatedAt: Date.now() } } };
+        }),
+    }),
+    { name: "inkflow-store-v1" },
+  ),
+);
