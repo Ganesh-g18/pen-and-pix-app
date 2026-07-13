@@ -43,6 +43,9 @@ interface State {
   activeFolderId: string | null;
   query: string;
   theme: "light" | "dark";
+  guestMode: boolean;
+  signInReminderDismissedAt: number | null;
+  signInReminderShown: boolean;
   createNote: (partial?: Partial<Note>) => string;
   updateNote: (id: string, patch: Partial<Note>) => void;
   deleteNote: (id: string, permanent?: boolean) => void;
@@ -57,6 +60,11 @@ interface State {
   addStroke: (id: string, stroke: Stroke) => void;
   undoStroke: (id: string) => void;
   clearStrokes: (id: string) => void;
+  setGuestMode: (v: boolean) => void;
+  dismissSignInReminder: () => void;
+  markSignInReminderShown: () => void;
+  hydrateFromCloud: (notes: Note[], folders: Folder[]) => void;
+  clearAll: () => void;
 }
 
 const uid = () => Math.random().toString(36).slice(2, 10);
