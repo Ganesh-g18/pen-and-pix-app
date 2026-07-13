@@ -17,6 +17,9 @@ import {
 import { useMemo, useState } from "react";
 import { useStore } from "@/lib/store";
 import { CommandPalette } from "@/components/command-palette";
+import { ProfileMenu } from "@/components/profile-menu";
+import { CloudStatusBadge } from "@/components/cloud-status-badge";
+import { SignInReminder } from "@/components/signin-reminder";
 import { formatDistanceToNow } from "date-fns";
 
 type Filter = "all" | "pinned" | "favorites" | "trash" | { folder: string };
@@ -149,6 +152,7 @@ export function Dashboard() {
             />
           </div>
           <div className="ml-auto flex items-center gap-2">
+            <CloudStatusBadge />
             <button
               onClick={() => handleCreate("text")}
               className="hidden sm:inline-flex items-center gap-2 rounded-xl border border-border/60 px-3 py-2 text-sm hover:bg-accent transition"
@@ -162,8 +166,10 @@ export function Dashboard() {
             >
               <Plus className="h-4 w-4" /> New note
             </button>
+            <ProfileMenu />
           </div>
         </header>
+        <SignInReminder />
 
         <section className="px-6 py-8">
           <motion.div
