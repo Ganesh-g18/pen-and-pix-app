@@ -15,7 +15,9 @@ let unsub: (() => void) | null = null;
 export function subscribeStatus(fn: (s: CloudStatus) => void) {
   listeners.add(fn);
   fn(status);
-  return () => listeners.delete(fn);
+  return () => {
+    listeners.delete(fn);
+  };
 }
 export function getLastSync() {
   return lastSyncAt;
