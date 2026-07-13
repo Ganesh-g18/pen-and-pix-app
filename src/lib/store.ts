@@ -83,6 +83,23 @@ export const useStore = create<State>()(
       activeFolderId: null,
       query: "",
       theme: "dark",
+      guestMode: false,
+      signInReminderDismissedAt: null,
+      signInReminderShown: false,
+
+      setGuestMode: (v) => set({ guestMode: v }),
+      dismissSignInReminder: () => set({ signInReminderDismissedAt: Date.now() }),
+      markSignInReminderShown: () => set({ signInReminderShown: true }),
+      hydrateFromCloud: (notes, folders) =>
+        set((s) => {
+          const merged = { ...s.notes };
+          for (const n of notes) merged[n.id] = n;
+          const folderIds = new Set(s.folders.map((f) => f.id));
+          const mergedFolders = [...s.folders];
+          for (const f of folders) if (!folderIds.has(f.id)) mergedFolders.push(f);
+          return { notes: merged, folders: mergedFolders };
+        }),
+      clearAll: () => set({ notes: {}, folders: seedFolders, guestMode: false }),
 
       createNote: (partial) => {
         const id = uid();
