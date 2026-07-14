@@ -127,6 +127,45 @@ const seedFolders: Folder[] = [
   { id: "f-study", name: "Study", emoji: "📚", color: "#a97cff" },
 ];
 
+const defaultSettings: Settings = {
+  themeMode: "dark",
+  accentColor: "#7c5cff",
+  fontSize: "md",
+  density: "comfortable",
+  animations: true,
+  glassmorphism: true,
+  defaultPen: "pen",
+  defaultPenColor: "#111827",
+  defaultPenThickness: 2,
+  defaultHighlighter: "#fde68a",
+  defaultPaper: "blank",
+  defaultPageSize: "A4",
+  autoSaveInterval: 5,
+  infiniteCanvas: false,
+  shapeRecognition: false,
+  handwritingSmoothing: true,
+  rememberLastTool: true,
+  notifyEmail: true,
+  notifyProductUpdates: true,
+  notifySharedNotes: true,
+  notifyCollabInvites: true,
+  notifySecurity: true,
+  notifySyncStatus: false,
+  language: "en-US",
+  timeZone: "auto",
+  dateFormat: "YYYY-MM-DD",
+  timeFormat: "24",
+  units: "metric",
+  privateProfile: false,
+  allowCollabRequests: true,
+  anonymousAnalytics: true,
+  crashReports: true,
+  personalization: false,
+  displayName: "",
+  username: "",
+  avatarUrl: "",
+};
+
 export const useStore = create<State>()(
   persist(
     (set, get) => ({
