@@ -37,6 +37,54 @@ export interface Folder {
   color: string;
 }
 
+export type ThemeMode = "light" | "dark" | "system";
+export type Density = "compact" | "comfortable" | "spacious";
+export type FontSize = "sm" | "md" | "lg";
+
+export interface Settings {
+  themeMode: ThemeMode;
+  accentColor: string; // hex
+  fontSize: FontSize;
+  density: Density;
+  animations: boolean;
+  glassmorphism: boolean;
+  // Note prefs
+  defaultPen: "pen" | "highlighter" | "marker";
+  defaultPenColor: string;
+  defaultPenThickness: number;
+  defaultHighlighter: string;
+  defaultPaper: PaperType;
+  defaultPageSize: "A4" | "Letter" | "Legal" | "Infinite";
+  autoSaveInterval: number; // seconds
+  infiniteCanvas: boolean;
+  shapeRecognition: boolean;
+  handwritingSmoothing: boolean;
+  rememberLastTool: boolean;
+  // Notifications
+  notifyEmail: boolean;
+  notifyProductUpdates: boolean;
+  notifySharedNotes: boolean;
+  notifyCollabInvites: boolean;
+  notifySecurity: boolean;
+  notifySyncStatus: boolean;
+  // Locale
+  language: string;
+  timeZone: string;
+  dateFormat: string;
+  timeFormat: "12" | "24";
+  units: "metric" | "imperial";
+  // Privacy
+  privateProfile: boolean;
+  allowCollabRequests: boolean;
+  anonymousAnalytics: boolean;
+  crashReports: boolean;
+  personalization: boolean;
+  // Profile
+  displayName: string;
+  username: string;
+  avatarUrl: string;
+}
+
 interface State {
   notes: Record<string, Note>;
   folders: Folder[];
@@ -46,6 +94,7 @@ interface State {
   guestMode: boolean;
   signInReminderDismissedAt: number | null;
   signInReminderShown: boolean;
+  settings: Settings;
   createNote: (partial?: Partial<Note>) => string;
   updateNote: (id: string, patch: Partial<Note>) => void;
   deleteNote: (id: string, permanent?: boolean) => void;
@@ -65,7 +114,10 @@ interface State {
   markSignInReminderShown: () => void;
   hydrateFromCloud: (notes: Note[], folders: Folder[]) => void;
   clearAll: () => void;
+  updateSettings: (patch: Partial<Settings>) => void;
+  resetSettings: () => void;
 }
+
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 
@@ -74,6 +126,45 @@ const seedFolders: Folder[] = [
   { id: "f-work", name: "Work", emoji: "💼", color: "#ffb37c" },
   { id: "f-study", name: "Study", emoji: "📚", color: "#a97cff" },
 ];
+
+const defaultSettings: Settings = {
+  themeMode: "dark",
+  accentColor: "#7c5cff",
+  fontSize: "md",
+  density: "comfortable",
+  animations: true,
+  glassmorphism: true,
+  defaultPen: "pen",
+  defaultPenColor: "#111827",
+  defaultPenThickness: 2,
+  defaultHighlighter: "#fde68a",
+  defaultPaper: "blank",
+  defaultPageSize: "A4",
+  autoSaveInterval: 5,
+  infiniteCanvas: false,
+  shapeRecognition: false,
+  handwritingSmoothing: true,
+  rememberLastTool: true,
+  notifyEmail: true,
+  notifyProductUpdates: true,
+  notifySharedNotes: true,
+  notifyCollabInvites: true,
+  notifySecurity: true,
+  notifySyncStatus: false,
+  language: "en-US",
+  timeZone: "auto",
+  dateFormat: "YYYY-MM-DD",
+  timeFormat: "24",
+  units: "metric",
+  privateProfile: false,
+  allowCollabRequests: true,
+  anonymousAnalytics: true,
+  crashReports: true,
+  personalization: false,
+  displayName: "",
+  username: "",
+  avatarUrl: "",
+};
 
 export const useStore = create<State>()(
   persist(
@@ -86,6 +177,10 @@ export const useStore = create<State>()(
       guestMode: false,
       signInReminderDismissedAt: null,
       signInReminderShown: false,
+      settings: defaultSettings,
+
+      updateSettings: (patch) => set((s) => ({ settings: { ...s.settings, ...patch } })),
+      resetSettings: () => set({ settings: defaultSettings }),
 
       setGuestMode: (v) => set({ guestMode: v }),
       dismissSignInReminder: () => set({ signInReminderDismissedAt: Date.now() }),
