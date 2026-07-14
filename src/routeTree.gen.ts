@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WelcomeRouteImport } from './routes/welcome'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as NoteIdRouteImport } from './routes/note.$id'
@@ -17,6 +18,11 @@ import { Route as NoteIdRouteImport } from './routes/note.$id'
 const WelcomeRoute = WelcomeRouteImport.update({
   id: '/welcome',
   path: '/welcome',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -38,12 +44,14 @@ const NoteIdRoute = NoteIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/settings': typeof SettingsRoute
   '/welcome': typeof WelcomeRoute
   '/note/$id': typeof NoteIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/settings': typeof SettingsRoute
   '/welcome': typeof WelcomeRoute
   '/note/$id': typeof NoteIdRoute
 }
@@ -51,20 +59,22 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/settings': typeof SettingsRoute
   '/welcome': typeof WelcomeRoute
   '/note/$id': typeof NoteIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/welcome' | '/note/$id'
+  fullPaths: '/' | '/auth' | '/settings' | '/welcome' | '/note/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/welcome' | '/note/$id'
-  id: '__root__' | '/' | '/auth' | '/welcome' | '/note/$id'
+  to: '/' | '/auth' | '/settings' | '/welcome' | '/note/$id'
+  id: '__root__' | '/' | '/auth' | '/settings' | '/welcome' | '/note/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
+  SettingsRoute: typeof SettingsRoute
   WelcomeRoute: typeof WelcomeRoute
   NoteIdRoute: typeof NoteIdRoute
 }
@@ -76,6 +86,13 @@ declare module '@tanstack/react-router' {
       path: '/welcome'
       fullPath: '/welcome'
       preLoaderRoute: typeof WelcomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -105,6 +122,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
+  SettingsRoute: SettingsRoute,
   WelcomeRoute: WelcomeRoute,
   NoteIdRoute: NoteIdRoute,
 }
