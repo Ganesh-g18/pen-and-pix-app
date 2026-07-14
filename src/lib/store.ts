@@ -138,6 +138,10 @@ export const useStore = create<State>()(
       guestMode: false,
       signInReminderDismissedAt: null,
       signInReminderShown: false,
+      settings: defaultSettings,
+
+      updateSettings: (patch) => set((s) => ({ settings: { ...s.settings, ...patch } })),
+      resetSettings: () => set({ settings: defaultSettings }),
 
       setGuestMode: (v) => set({ guestMode: v }),
       dismissSignInReminder: () => set({ signInReminderDismissedAt: Date.now() }),
