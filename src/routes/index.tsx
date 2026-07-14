@@ -61,7 +61,7 @@ function Index() {
     return () => window.removeEventListener("keydown", onKey);
   }, [navigate, createNote]);
 
-  if (!user && !guestMode) return null;
+  if (!ready || (!user && !guestMode)) return null;
 
   return (
     <>
