@@ -37,6 +37,54 @@ export interface Folder {
   color: string;
 }
 
+export type ThemeMode = "light" | "dark" | "system";
+export type Density = "compact" | "comfortable" | "spacious";
+export type FontSize = "sm" | "md" | "lg";
+
+export interface Settings {
+  themeMode: ThemeMode;
+  accentColor: string; // hex
+  fontSize: FontSize;
+  density: Density;
+  animations: boolean;
+  glassmorphism: boolean;
+  // Note prefs
+  defaultPen: "pen" | "highlighter" | "marker";
+  defaultPenColor: string;
+  defaultPenThickness: number;
+  defaultHighlighter: string;
+  defaultPaper: PaperType;
+  defaultPageSize: "A4" | "Letter" | "Legal" | "Infinite";
+  autoSaveInterval: number; // seconds
+  infiniteCanvas: boolean;
+  shapeRecognition: boolean;
+  handwritingSmoothing: boolean;
+  rememberLastTool: boolean;
+  // Notifications
+  notifyEmail: boolean;
+  notifyProductUpdates: boolean;
+  notifySharedNotes: boolean;
+  notifyCollabInvites: boolean;
+  notifySecurity: boolean;
+  notifySyncStatus: boolean;
+  // Locale
+  language: string;
+  timeZone: string;
+  dateFormat: string;
+  timeFormat: "12" | "24";
+  units: "metric" | "imperial";
+  // Privacy
+  privateProfile: boolean;
+  allowCollabRequests: boolean;
+  anonymousAnalytics: boolean;
+  crashReports: boolean;
+  personalization: boolean;
+  // Profile
+  displayName: string;
+  username: string;
+  avatarUrl: string;
+}
+
 interface State {
   notes: Record<string, Note>;
   folders: Folder[];
@@ -46,6 +94,7 @@ interface State {
   guestMode: boolean;
   signInReminderDismissedAt: number | null;
   signInReminderShown: boolean;
+  settings: Settings;
   createNote: (partial?: Partial<Note>) => string;
   updateNote: (id: string, patch: Partial<Note>) => void;
   deleteNote: (id: string, permanent?: boolean) => void;
@@ -65,7 +114,10 @@ interface State {
   markSignInReminderShown: () => void;
   hydrateFromCloud: (notes: Note[], folders: Folder[]) => void;
   clearAll: () => void;
+  updateSettings: (patch: Partial<Settings>) => void;
+  resetSettings: () => void;
 }
+
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 
