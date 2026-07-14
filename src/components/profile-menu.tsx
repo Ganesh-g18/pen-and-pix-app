@@ -110,7 +110,7 @@ export function ProfileMenu() {
 
             {user ? (
               <>
-                <MenuItem icon={<Settings className="h-4 w-4" />} label="Account settings" onClick={() => alert("Coming soon")} />
+                <MenuItem icon={<Settings className="h-4 w-4" />} label="Account settings" onClick={() => { setOpen(false); navigate({ to: "/settings" }); }} />
                 <MenuItem icon={<RefreshCw className="h-4 w-4" />} label="Sync now" onClick={handleSyncNow} />
                 <MenuItem icon={<Download className="h-4 w-4" />} label="Export notes" onClick={exportNotes} />
                 <div className="my-1 h-px bg-border/60" />
