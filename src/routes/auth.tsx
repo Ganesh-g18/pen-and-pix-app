@@ -9,12 +9,16 @@ import { useTheme } from "@/hooks/use-theme";
 import { GoogleIcon } from "@/components/icons";
 
 export const Route = createFileRoute("/auth")({
+  validateSearch: (s: Record<string, unknown>) => ({
+    next: typeof s.next === "string" && s.next.startsWith("/") && !s.next.startsWith("//") ? s.next : undefined,
+  }),
   component: AuthPage,
 });
 
 function AuthPage() {
   useTheme();
   const navigate = useNavigate();
+  const { next } = Route.useSearch();
   const { user } = useAuth();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
@@ -24,8 +28,11 @@ function AuthPage() {
   const [info, setInfo] = useState<string | null>(null);
 
   useEffect(() => {
-    if (user) navigate({ to: "/" });
-  }, [user, navigate]);
+    if (user) {
+      if (next) window.location.href = next;
+      else navigate({ to: "/" });
+    }
+  }, [user, navigate, next]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,11 +40,12 @@ function AuthPage() {
     setInfo(null);
     setLoading(true);
     try {
+      const returnTo = next ? window.location.origin + next : window.location.origin;
       if (mode === "signup") {
         const { error } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: window.location.origin },
+          options: { emailRedirectTo: returnTo },
         });
         if (error) throw error;
         setInfo("Check your email to confirm your account, then sign in.");
@@ -55,9 +63,8 @@ function AuthPage() {
 
   const handleGoogle = async () => {
     setLoading(true);
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
-    });
+    const redirect_uri = next ? window.location.origin + next : window.location.origin;
+    const result = await lovable.auth.signInWithOAuth("google", { redirect_uri });
     if (result.error) {
       setError("Google sign-in failed.");
       setLoading(false);
