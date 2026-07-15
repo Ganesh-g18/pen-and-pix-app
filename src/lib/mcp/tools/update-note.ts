@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { defineTool, type ToolContext } from "@lovable.dev/mcp-js";
 import { z } from "zod";
-import type { Database } from "@/integrations/supabase/types";
+import type { Database, TablesUpdate } from "@/integrations/supabase/types";
 
 function supabaseForUser(ctx: ToolContext) {
   return createClient<Database>(
@@ -35,8 +35,10 @@ export default defineTool({
     if (!ctx.isAuthenticated()) {
       return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
     }
-    const cleaned: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(patch)) if (v !== undefined) cleaned[k] = v;
+    const cleaned: TablesUpdate<"notes"> = {};
+    for (const [k, v] of Object.entries(patch)) {
+      if (v !== undefined) (cleaned as Record<string, unknown>)[k] = v;
+    }
     if (Object.keys(cleaned).length === 0) {
       return { content: [{ type: "text", text: "No fields to update" }], isError: true };
     }
