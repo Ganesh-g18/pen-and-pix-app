@@ -39,16 +39,18 @@ export function CanvasEditor({ strokes, paper, onAddStroke, onUndo, onClear, onE
   };
 
   const onPointerDown = (e: React.PointerEvent) => {
-    if (e.pointerType === "touch") return; // let touch pan
+    // Only ignore mouse right-click; allow touch, pen, and mouse for drawing
+    if (e.button && e.button !== 0) return;
+    e.preventDefault();
     (e.target as Element).setPointerCapture?.(e.pointerId);
     const pt = getPoint(e);
 
     if (tool === "eraser") {
-      // hit-test done on move
       drawingRef.current = null;
       hitErase(pt.x, pt.y);
       return;
     }
+
     const opacity = tool === "highlighter" ? 0.35 : 1;
     const strokeTool: Stroke["tool"] = tool === "highlighter" ? "highlighter" : tool === "marker" ? "marker" : "pen";
     drawingRef.current = {
