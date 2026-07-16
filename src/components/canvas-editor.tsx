@@ -65,8 +65,10 @@ export function CanvasEditor({ strokes, paper, onAddStroke, onUndo, onClear, onE
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
-    if (e.buttons === 0) return;
+    if (e.buttons === 0 && !drawingRef.current && tool !== "eraser") return;
+    e.preventDefault();
     const pt = getPoint(e);
+
     if (tool === "eraser") {
       hitErase(pt.x, pt.y);
       return;
