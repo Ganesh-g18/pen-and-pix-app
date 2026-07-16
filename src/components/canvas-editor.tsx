@@ -23,6 +23,8 @@ export function CanvasEditor({ strokes, paper, onAddStroke, onUndo, onClear, onE
   const [size, setSize] = useState(3);
   const svgRef = useRef<SVGSVGElement>(null);
   const drawingRef = useRef<Stroke | null>(null);
+  const activePointersRef = useRef<Set<number>>(new Set());
+  const drawingPointerIdRef = useRef<number | null>(null);
   const [, force] = useState(0);
 
   const paperClass =
@@ -38,11 +40,29 @@ export function CanvasEditor({ strokes, paper, onAddStroke, onUndo, onClear, onE
     };
   };
 
+  const cancelActiveStroke = (e?: React.PointerEvent) => {
+    drawingRef.current = null;
+    drawingPointerIdRef.current = null;
+    if (e) {
+      try { (e.target as Element).releasePointerCapture?.(e.pointerId); } catch { /* noop */ }
+    }
+    force((n) => n + 1);
+  };
+
   const onPointerDown = (e: React.PointerEvent) => {
-    // Only ignore mouse right-click; allow touch, pen, and mouse for drawing
     if (e.button && e.button !== 0) return;
-    e.preventDefault();
+    activePointersRef.current.add(e.pointerId);
+
+    // Second (or more) pointer down — cancel any in-progress drawing and let the browser handle gesture
+    if (activePointersRef.current.size >= 2) {
+      cancelActiveStroke();
+      return;
+    }
+
+    // Only touch requires preventDefault to start drawing; leave pen/mouse alone
+    if (e.pointerType === "touch") e.preventDefault();
     (e.target as Element).setPointerCapture?.(e.pointerId);
+    drawingPointerIdRef.current = e.pointerId;
     const pt = getPoint(e);
 
     if (tool === "eraser") {
@@ -65,8 +85,12 @@ export function CanvasEditor({ strokes, paper, onAddStroke, onUndo, onClear, onE
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
-    if (e.buttons === 0 && !drawingRef.current && tool !== "eraser") return;
-    e.preventDefault();
+    // Ignore moves from pointers other than the one that started drawing
+    if (drawingPointerIdRef.current !== null && e.pointerId !== drawingPointerIdRef.current) return;
+    if (activePointersRef.current.size >= 2) return;
+    if (tool !== "eraser" && !drawingRef.current) return;
+
+    if (e.pointerType === "touch") e.preventDefault();
     const pt = getPoint(e);
 
     if (tool === "eraser") {
@@ -75,7 +99,6 @@ export function CanvasEditor({ strokes, paper, onAddStroke, onUndo, onClear, onE
     }
     const s = drawingRef.current;
     if (!s) return;
-    // Coalesced events for smoother lines
     const events = (e.nativeEvent as PointerEvent).getCoalescedEvents?.() ?? [e.nativeEvent as PointerEvent];
     const svg = svgRef.current!;
     const r = svg.getBoundingClientRect();
@@ -85,12 +108,28 @@ export function CanvasEditor({ strokes, paper, onAddStroke, onUndo, onClear, onE
     force((n) => n + 1);
   };
 
-  const onPointerUp = () => {
+  const onPointerUp = (e: React.PointerEvent) => {
+    activePointersRef.current.delete(e.pointerId);
+    if (drawingPointerIdRef.current !== null && e.pointerId !== drawingPointerIdRef.current) {
+      // A non-drawing finger lifted; keep state as-is
+      return;
+    }
     const s = drawingRef.current;
     drawingRef.current = null;
+    drawingPointerIdRef.current = null;
     if (s && s.points.length >= 3) onAddStroke(s);
     force((n) => n + 1);
   };
+
+  const onPointerCancel = (e: React.PointerEvent) => {
+    activePointersRef.current.delete(e.pointerId);
+    if (drawingPointerIdRef.current === e.pointerId) {
+      drawingRef.current = null;
+      drawingPointerIdRef.current = null;
+      force((n) => n + 1);
+    }
+  };
+
 
   const hitErase = useCallback(
     (x: number, y: number) => {
@@ -136,13 +175,15 @@ export function CanvasEditor({ strokes, paper, onAddStroke, onUndo, onClear, onE
       <div className={`absolute inset-0 ${paperClass}`}>
         <svg
           ref={svgRef}
-          className="w-full h-full touch-none select-none"
-          style={{ cursor: tool === "eraser" ? "crosshair" : "crosshair" }}
+          className="w-full h-full select-none"
+          style={{ cursor: tool === "eraser" ? "crosshair" : "crosshair", touchAction: "pinch-zoom" }}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
-          onPointerCancel={onPointerUp}
+          onPointerCancel={onPointerCancel}
+          onPointerLeave={onPointerUp}
         >
+
           {strokes.map((s) => (
             <path
               key={s.id}
