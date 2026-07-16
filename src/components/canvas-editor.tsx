@@ -175,13 +175,15 @@ export function CanvasEditor({ strokes, paper, onAddStroke, onUndo, onClear, onE
       <div className={`absolute inset-0 ${paperClass}`}>
         <svg
           ref={svgRef}
-          className="w-full h-full touch-none select-none"
-          style={{ cursor: tool === "eraser" ? "crosshair" : "crosshair" }}
+          className="w-full h-full select-none"
+          style={{ cursor: tool === "eraser" ? "crosshair" : "crosshair", touchAction: "pinch-zoom" }}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
-          onPointerCancel={onPointerUp}
+          onPointerCancel={onPointerCancel}
+          onPointerLeave={onPointerUp}
         >
+
           {strokes.map((s) => (
             <path
               key={s.id}
