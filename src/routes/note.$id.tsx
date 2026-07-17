@@ -114,7 +114,9 @@ function NotePage() {
           onClearStrokes={() => clearStrokes(id)}
           onEraseStroke={eraseStroke}
           onReplaceStrokes={(strokes) => updateNote(id, { strokes })}
+          onCommitErase={(prev, next) => commitErase(id, prev, next)}
         />
+
       </motion.div>
     </div>
   );
