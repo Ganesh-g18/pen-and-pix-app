@@ -352,7 +352,9 @@ export function UnifiedEditor({
         eraserMode={eraserMode}
         onEraserModeChange={setEraserMode}
         onUndo={onUndoStroke}
+        onRedo={onRedoStroke}
         onClear={onClearStrokes}
+
       />
     </div>
   );

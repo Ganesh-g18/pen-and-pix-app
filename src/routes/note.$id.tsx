@@ -22,6 +22,8 @@ function NotePage() {
   const deleteNote = useStore((s) => s.deleteNote);
   const addStroke = useStore((s) => s.addStroke);
   const undoStroke = useStore((s) => s.undoStroke);
+  const redoStroke = useStore((s) => s.redoStroke);
+
   const clearStrokes = useStore((s) => s.clearStrokes);
   const commitErase = useStore((s) => s.commitErase);
 
@@ -111,6 +113,8 @@ function NotePage() {
           onContentChange={(html) => updateNote(id, { content: html })}
           onAddStroke={(s) => addStroke(id, s)}
           onUndoStroke={() => undoStroke(id)}
+          onRedoStroke={() => redoStroke(id)}
+
           onClearStrokes={() => clearStrokes(id)}
           onEraseStroke={eraseStroke}
           onReplaceStrokes={(strokes) => updateNote(id, { strokes })}
