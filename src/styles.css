@@ -140,6 +140,10 @@
   scrollbar-color: var(--color-border) transparent;
 }
 
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+
 /* Tiptap */
 .tiptap {
   outline: none;
