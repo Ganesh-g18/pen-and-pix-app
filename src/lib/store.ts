@@ -4,9 +4,12 @@ import { persist } from "zustand/middleware";
 export type PaperType = "blank" | "grid" | "dots" | "lined";
 export type NoteMode = "text" | "canvas";
 
+export type PenStyle = "ballpoint" | "fountain" | "marker" | "pencil";
+
 export interface Stroke {
   id: string;
   tool: "pen" | "highlighter" | "marker";
+  penStyle?: PenStyle;
   color: string;
   size: number;
   opacity: number;
