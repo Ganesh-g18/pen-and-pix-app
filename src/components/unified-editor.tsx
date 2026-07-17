@@ -17,7 +17,9 @@ interface Props {
   onClearStrokes: () => void;
   onEraseStroke: (id: string) => void;
   onReplaceStrokes?: (strokes: Stroke[]) => void;
+  onCommitErase?: (prev: Stroke[], next: Stroke[]) => void;
 }
+
 
 const MIN_DOC_HEIGHT = 2400;
 
