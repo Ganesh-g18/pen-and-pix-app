@@ -188,20 +188,55 @@ export function UnifiedEditor({
   const hitErase = useCallback(
     (x: number, y: number) => {
       const threshold = 12;
-      for (let i = strokes.length - 1; i >= 0; i--) {
-        const s = strokes[i];
+      if (eraserMode === "stroke") {
+        for (let i = strokes.length - 1; i >= 0; i--) {
+          const s = strokes[i];
+          const pts = s.points;
+          for (let j = 0; j < pts.length; j += 3) {
+            const dx = pts[j] - x;
+            const dy = pts[j + 1] - y;
+            if (dx * dx + dy * dy < (threshold + s.size) ** 2) {
+              onEraseStroke(s.id);
+              return;
+            }
+          }
+        }
+        return;
+      }
+      // Spot eraser: split strokes at hit points
+      if (!onReplaceStrokes) return;
+      let changed = false;
+      const next: Stroke[] = [];
+      for (const s of strokes) {
         const pts = s.points;
+        const radius = threshold + s.size;
+        const segments: number[][] = [];
+        let current: number[] = [];
+        let hit = false;
         for (let j = 0; j < pts.length; j += 3) {
           const dx = pts[j] - x;
           const dy = pts[j + 1] - y;
-          if (dx * dx + dy * dy < (threshold + s.size) ** 2) {
-            onEraseStroke(s.id);
-            return;
+          if (dx * dx + dy * dy < radius * radius) {
+            hit = true;
+            if (current.length >= 6) segments.push(current);
+            current = [];
+          } else {
+            current.push(pts[j], pts[j + 1], pts[j + 2]);
+          }
+        }
+        if (current.length >= 6) segments.push(current);
+        if (!hit) {
+          next.push(s);
+        } else {
+          changed = true;
+          for (const seg of segments) {
+            next.push({ ...s, id: Math.random().toString(36).slice(2, 10), points: seg });
           }
         }
       }
+      if (changed) onReplaceStrokes(next);
     },
-    [strokes, onEraseStroke],
+    [strokes, onEraseStroke, onReplaceStrokes, eraserMode],
   );
 
   // Keyboard shortcuts (tool switching only when not typing)
