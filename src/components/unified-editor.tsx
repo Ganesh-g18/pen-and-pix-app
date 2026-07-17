@@ -127,9 +127,11 @@ export function UnifiedEditor({
     drawingPointerIdRef.current = e.pointerId;
     const pt = getPoint(e);
     if (tool === "eraser") {
+      eraseSessionRef.current = { prev: strokes, working: [...strokes], changed: false };
       hitErase(pt.x, pt.y);
       return;
     }
+
     const isHi = tool === "highlighter";
     const activeColor = isHi ? highlighterColor : color;
     const penSize =
