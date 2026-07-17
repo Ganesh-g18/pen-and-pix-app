@@ -112,6 +112,8 @@ interface State {
   addStroke: (id: string, stroke: Stroke) => void;
   undoStroke: (id: string) => void;
   clearStrokes: (id: string) => void;
+  commitErase: (id: string, prev: Stroke[], next: Stroke[]) => void;
+
   setGuestMode: (v: boolean) => void;
   dismissSignInReminder: () => void;
   markSignInReminderShown: () => void;
