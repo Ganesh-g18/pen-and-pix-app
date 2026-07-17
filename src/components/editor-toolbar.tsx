@@ -53,7 +53,7 @@ export function EditorToolbar({
   }, []);
 
   const btn = (active: boolean) =>
-    `grid h-7 w-7 place-items-center rounded-lg transition ${
+    `grid h-6 w-6 shrink-0 place-items-center rounded-md transition ${
       active ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-accent hover:text-foreground"
     }`;
 
