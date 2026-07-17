@@ -33,7 +33,9 @@ export function UnifiedEditor({
   onClearStrokes,
   onEraseStroke,
   onReplaceStrokes,
+  onCommitErase,
 }: Props) {
+
   const [tool, setTool] = useState<EditorTool>("text");
   const [penStyle, setPenStyle] = useState<PenStyle>("ballpoint");
   const [color, setColor] = useState("#0b0b0f");
