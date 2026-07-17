@@ -49,8 +49,11 @@ export function UnifiedEditor({
   const drawingRef = useRef<Stroke | null>(null);
   const activePointersRef = useRef<Set<number>>(new Set());
   const drawingPointerIdRef = useRef<number | null>(null);
+  const eraseSessionRef = useRef<{ prev: Stroke[]; working: Stroke[]; changed: boolean } | null>(null);
+  const [erasePreview, setErasePreview] = useState<Stroke[] | null>(null);
   const [, force] = useState(0);
   const [docHeight, setDocHeight] = useState(MIN_DOC_HEIGHT);
+
 
   const editor = useEditor({
     extensions: [
