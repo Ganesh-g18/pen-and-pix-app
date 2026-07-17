@@ -128,7 +128,7 @@ const seedFolders: Folder[] = [
 ];
 
 const defaultSettings: Settings = {
-  themeMode: "dark",
+  themeMode: "light",
   accentColor: "#7c5cff",
   fontSize: "md",
   density: "comfortable",
