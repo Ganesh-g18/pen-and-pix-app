@@ -23,6 +23,8 @@ function NotePage() {
   const addStroke = useStore((s) => s.addStroke);
   const undoStroke = useStore((s) => s.undoStroke);
   const clearStrokes = useStore((s) => s.clearStrokes);
+  const commitErase = useStore((s) => s.commitErase);
+
   const [paletteOpen, setPaletteOpen] = useState(false);
 
   useEffect(() => {
@@ -112,7 +114,9 @@ function NotePage() {
           onClearStrokes={() => clearStrokes(id)}
           onEraseStroke={eraseStroke}
           onReplaceStrokes={(strokes) => updateNote(id, { strokes })}
+          onCommitErase={(prev, next) => commitErase(id, prev, next)}
         />
+
       </motion.div>
     </div>
   );

@@ -17,7 +17,9 @@ interface Props {
   onClearStrokes: () => void;
   onEraseStroke: (id: string) => void;
   onReplaceStrokes?: (strokes: Stroke[]) => void;
+  onCommitErase?: (prev: Stroke[], next: Stroke[]) => void;
 }
+
 
 const MIN_DOC_HEIGHT = 2400;
 
@@ -31,7 +33,9 @@ export function UnifiedEditor({
   onClearStrokes,
   onEraseStroke,
   onReplaceStrokes,
+  onCommitErase,
 }: Props) {
+
   const [tool, setTool] = useState<EditorTool>("text");
   const [penStyle, setPenStyle] = useState<PenStyle>("ballpoint");
   const [color, setColor] = useState("#0b0b0f");
@@ -45,8 +49,11 @@ export function UnifiedEditor({
   const drawingRef = useRef<Stroke | null>(null);
   const activePointersRef = useRef<Set<number>>(new Set());
   const drawingPointerIdRef = useRef<number | null>(null);
+  const eraseSessionRef = useRef<{ prev: Stroke[]; working: Stroke[]; changed: boolean } | null>(null);
+  const [erasePreview, setErasePreview] = useState<Stroke[] | null>(null);
   const [, force] = useState(0);
   const [docHeight, setDocHeight] = useState(MIN_DOC_HEIGHT);
+
 
   const editor = useEditor({
     extensions: [
@@ -120,9 +127,11 @@ export function UnifiedEditor({
     drawingPointerIdRef.current = e.pointerId;
     const pt = getPoint(e);
     if (tool === "eraser") {
+      eraseSessionRef.current = { prev: strokes, working: [...strokes], changed: false };
       hitErase(pt.x, pt.y);
       return;
     }
+
     const isHi = tool === "highlighter";
     const activeColor = isHi ? highlighterColor : color;
     const penSize =
@@ -177,26 +186,43 @@ export function UnifiedEditor({
     drawingRef.current = null;
     drawingPointerIdRef.current = null;
     if (s && s.points.length >= 3) onAddStroke(s);
+    const es = eraseSessionRef.current;
+    if (es) {
+      eraseSessionRef.current = null;
+      setErasePreview(null);
+      if (es.changed) {
+        if (onCommitErase) onCommitErase(es.prev, es.working);
+        else if (onReplaceStrokes) onReplaceStrokes(es.working);
+      }
+    }
     force((n) => n + 1);
   };
 
   const onPointerCancel = (e: React.PointerEvent) => {
     activePointersRef.current.delete(e.pointerId);
     if (drawingPointerIdRef.current === e.pointerId) cancelActiveStroke();
+    if (eraseSessionRef.current) {
+      eraseSessionRef.current = null;
+      setErasePreview(null);
+    }
   };
 
   const hitErase = useCallback(
     (x: number, y: number) => {
+      const es = eraseSessionRef.current;
+      if (!es) return;
       const threshold = 12;
       if (eraserMode === "stroke") {
-        for (let i = strokes.length - 1; i >= 0; i--) {
-          const s = strokes[i];
+        for (let i = es.working.length - 1; i >= 0; i--) {
+          const s = es.working[i];
           const pts = s.points;
           for (let j = 0; j < pts.length; j += 3) {
             const dx = pts[j] - x;
             const dy = pts[j + 1] - y;
             if (dx * dx + dy * dy < (threshold + s.size) ** 2) {
-              onEraseStroke(s.id);
+              es.working.splice(i, 1);
+              es.changed = true;
+              setErasePreview([...es.working]);
               return;
             }
           }
@@ -204,10 +230,9 @@ export function UnifiedEditor({
         return;
       }
       // Spot eraser: split strokes at hit points
-      if (!onReplaceStrokes) return;
       let changed = false;
       const next: Stroke[] = [];
-      for (const s of strokes) {
+      for (const s of es.working) {
         const pts = s.points;
         const radius = threshold + s.size;
         const segments: number[][] = [];
@@ -234,10 +259,15 @@ export function UnifiedEditor({
           }
         }
       }
-      if (changed) onReplaceStrokes(next);
+      if (changed) {
+        es.working = next;
+        es.changed = true;
+        setErasePreview([...next]);
+      }
     },
-    [strokes, onEraseStroke, onReplaceStrokes, eraserMode],
+    [eraserMode],
   );
+
 
   // Keyboard shortcuts (tool switching only when not typing)
   useEffect(() => {
@@ -297,8 +327,9 @@ export function UnifiedEditor({
             onPointerCancel={onPointerCancel}
             onPointerLeave={onPointerUp}
           >
-            {strokes.map((s) => renderStrokePath(s, false))}
+            {(erasePreview ?? strokes).map((s) => renderStrokePath(s, false))}
             {drawingRef.current && renderStrokePath(drawingRef.current, true)}
+
           </svg>
         </div>
       </div>

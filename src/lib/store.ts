@@ -112,6 +112,8 @@ interface State {
   addStroke: (id: string, stroke: Stroke) => void;
   undoStroke: (id: string) => void;
   clearStrokes: (id: string) => void;
+  commitErase: (id: string, prev: Stroke[], next: Stroke[]) => void;
+
   setGuestMode: (v: boolean) => void;
   dismissSignInReminder: () => void;
   markSignInReminderShown: () => void;
@@ -123,6 +125,10 @@ interface State {
 
 
 const uid = () => Math.random().toString(36).slice(2, 10);
+
+// Ephemeral per-note stroke history for grouped undo (erase / clear batches).
+const eraseHistory: Map<string, Stroke[][]> = new Map();
+
 
 const seedFolders: Folder[] = [
   { id: "f-personal", name: "Personal", emoji: "🌿", color: "#7c9cff" },
@@ -298,7 +304,18 @@ export const useStore = create<State>()(
       undoStroke: (id) =>
         set((s) => {
           const n = s.notes[id];
-          if (!n || n.strokes.length === 0) return s;
+          if (!n) return s;
+          const stack = eraseHistory.get(id);
+          if (stack && stack.length > 0) {
+            const prev = stack.pop()!;
+            return {
+              notes: {
+                ...s.notes,
+                [id]: { ...n, strokes: prev, updatedAt: Date.now() },
+              },
+            };
+          }
+          if (n.strokes.length === 0) return s;
           return {
             notes: {
               ...s.notes,
@@ -307,12 +324,33 @@ export const useStore = create<State>()(
           };
         }),
 
+      commitErase: (id, prev, next) =>
+        set((s) => {
+          const n = s.notes[id];
+          if (!n) return s;
+          const stack = eraseHistory.get(id) ?? [];
+          stack.push(prev);
+          if (stack.length > 50) stack.shift();
+          eraseHistory.set(id, stack);
+          return {
+            notes: {
+              ...s.notes,
+              [id]: { ...n, strokes: next, updatedAt: Date.now() },
+            },
+          };
+        }),
+
       clearStrokes: (id) =>
         set((s) => {
           const n = s.notes[id];
           if (!n) return s;
+          const stack = eraseHistory.get(id) ?? [];
+          stack.push(n.strokes);
+          if (stack.length > 50) stack.shift();
+          eraseHistory.set(id, stack);
           return { notes: { ...s.notes, [id]: { ...n, strokes: [], updatedAt: Date.now() } } };
         }),
+
     }),
     { name: "inkflow-store-v1" },
   ),
