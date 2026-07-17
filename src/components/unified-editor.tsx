@@ -152,7 +152,7 @@ export function UnifiedEditor({
     if (!inkActive) return;
     if (drawingPointerIdRef.current !== null && e.pointerId !== drawingPointerIdRef.current) return;
     if (activePointersRef.current.size >= 2) return;
-    if (tool !== "eraser" && !drawingRef.current) return;
+    if (tool === "eraser" ? drawingPointerIdRef.current !== e.pointerId : !drawingRef.current) return;
     if (e.pointerType === "touch") e.preventDefault();
     const pt = getPoint(e);
     if (tool === "eraser") {
