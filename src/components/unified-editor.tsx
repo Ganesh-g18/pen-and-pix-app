@@ -4,8 +4,8 @@ import Placeholder from "@tiptap/extension-placeholder";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import { useEffect, useRef, useState, useCallback } from "react";
-import type { Stroke, PaperType } from "@/lib/store";
-import { EditorToolbar, type EditorTool } from "./editor-toolbar";
+import type { Stroke, PaperType, PenStyle } from "@/lib/store";
+import { EditorToolbar, type EditorTool, type EraserMode } from "./editor-toolbar";
 
 interface Props {
   content: string;
@@ -16,6 +16,7 @@ interface Props {
   onUndoStroke: () => void;
   onClearStrokes: () => void;
   onEraseStroke: (id: string) => void;
+  onReplaceStrokes?: (strokes: Stroke[]) => void;
 }
 
 const MIN_DOC_HEIGHT = 2400;
@@ -29,9 +30,13 @@ export function UnifiedEditor({
   onUndoStroke,
   onClearStrokes,
   onEraseStroke,
+  onReplaceStrokes,
 }: Props) {
   const [tool, setTool] = useState<EditorTool>("text");
+  const [penStyle, setPenStyle] = useState<PenStyle>("ballpoint");
   const [color, setColor] = useState("#0b0b0f");
+  const [highlighterColor, setHighlighterColor] = useState("#fde68a");
+  const [eraserMode, setEraserMode] = useState<EraserMode>("stroke");
   const [size, setSize] = useState(3);
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -118,14 +123,26 @@ export function UnifiedEditor({
       hitErase(pt.x, pt.y);
       return;
     }
-    const opacity = tool === "highlighter" ? 0.35 : 1;
-    const strokeTool: Stroke["tool"] = tool === "highlighter" ? "highlighter" : "pen";
+    const isHi = tool === "highlighter";
+    const activeColor = isHi ? highlighterColor : color;
+    const penSize =
+      isHi ? size * 4 :
+      penStyle === "marker" ? size * 2 :
+      penStyle === "pencil" ? Math.max(0.8, size * 0.7) :
+      size;
+    const penOpacity =
+      isHi ? 0.35 :
+      penStyle === "marker" ? 0.9 :
+      penStyle === "pencil" ? 0.75 :
+      1;
+    const strokeTool: Stroke["tool"] = isHi ? "highlighter" : penStyle === "marker" ? "marker" : "pen";
     drawingRef.current = {
       id: Math.random().toString(36).slice(2, 10),
       tool: strokeTool,
-      color,
-      size: tool === "highlighter" ? size * 4 : size,
-      opacity,
+      penStyle: isHi ? undefined : penStyle,
+      color: activeColor,
+      size: penSize,
+      opacity: penOpacity,
       points: [pt.x, pt.y, pt.p],
     };
     force((n) => n + 1);
@@ -171,20 +188,55 @@ export function UnifiedEditor({
   const hitErase = useCallback(
     (x: number, y: number) => {
       const threshold = 12;
-      for (let i = strokes.length - 1; i >= 0; i--) {
-        const s = strokes[i];
+      if (eraserMode === "stroke") {
+        for (let i = strokes.length - 1; i >= 0; i--) {
+          const s = strokes[i];
+          const pts = s.points;
+          for (let j = 0; j < pts.length; j += 3) {
+            const dx = pts[j] - x;
+            const dy = pts[j + 1] - y;
+            if (dx * dx + dy * dy < (threshold + s.size) ** 2) {
+              onEraseStroke(s.id);
+              return;
+            }
+          }
+        }
+        return;
+      }
+      // Spot eraser: split strokes at hit points
+      if (!onReplaceStrokes) return;
+      let changed = false;
+      const next: Stroke[] = [];
+      for (const s of strokes) {
         const pts = s.points;
+        const radius = threshold + s.size;
+        const segments: number[][] = [];
+        let current: number[] = [];
+        let hit = false;
         for (let j = 0; j < pts.length; j += 3) {
           const dx = pts[j] - x;
           const dy = pts[j + 1] - y;
-          if (dx * dx + dy * dy < (threshold + s.size) ** 2) {
-            onEraseStroke(s.id);
-            return;
+          if (dx * dx + dy * dy < radius * radius) {
+            hit = true;
+            if (current.length >= 6) segments.push(current);
+            current = [];
+          } else {
+            current.push(pts[j], pts[j + 1], pts[j + 2]);
+          }
+        }
+        if (current.length >= 6) segments.push(current);
+        if (!hit) {
+          next.push(s);
+        } else {
+          changed = true;
+          for (const seg of segments) {
+            next.push({ ...s, id: Math.random().toString(36).slice(2, 10), points: seg });
           }
         }
       }
+      if (changed) onReplaceStrokes(next);
     },
-    [strokes, onEraseStroke],
+    [strokes, onEraseStroke, onReplaceStrokes, eraserMode],
   );
 
   // Keyboard shortcuts (tool switching only when not typing)
@@ -245,29 +297,8 @@ export function UnifiedEditor({
             onPointerCancel={onPointerCancel}
             onPointerLeave={onPointerUp}
           >
-            {strokes.map((s) => (
-              <path
-                key={s.id}
-                d={strokeToPath(s)}
-                fill="none"
-                stroke={s.color}
-                strokeWidth={s.size}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                opacity={s.opacity}
-              />
-            ))}
-            {drawingRef.current && (
-              <path
-                d={strokeToPath(drawingRef.current)}
-                fill="none"
-                stroke={drawingRef.current.color}
-                strokeWidth={drawingRef.current.size}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                opacity={drawingRef.current.opacity}
-              />
-            )}
+            {strokes.map((s) => renderStrokePath(s, false))}
+            {drawingRef.current && renderStrokePath(drawingRef.current, true)}
           </svg>
         </div>
       </div>
@@ -275,14 +306,40 @@ export function UnifiedEditor({
       <EditorToolbar
         tool={tool}
         onToolChange={setTool}
+        penStyle={penStyle}
+        onPenStyleChange={setPenStyle}
         color={color}
         onColorChange={setColor}
+        highlighterColor={highlighterColor}
+        onHighlighterColorChange={setHighlighterColor}
         size={size}
         onSizeChange={setSize}
+        eraserMode={eraserMode}
+        onEraserModeChange={setEraserMode}
         onUndo={onUndoStroke}
         onClear={onClearStrokes}
       />
     </div>
+  );
+}
+
+function renderStrokePath(s: Stroke, isDrawing: boolean) {
+  const key = isDrawing ? "drawing" : s.id;
+  const dash = s.penStyle === "pencil"
+    ? `${Math.max(0.5, s.size * 0.6)} ${Math.max(0.6, s.size * 0.8)}`
+    : undefined;
+  return (
+    <path
+      key={key}
+      d={strokeToPath(s)}
+      fill="none"
+      stroke={s.color}
+      strokeWidth={s.size}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      opacity={s.opacity}
+      strokeDasharray={dash}
+    />
   );
 }
 

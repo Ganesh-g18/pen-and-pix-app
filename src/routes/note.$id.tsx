@@ -111,6 +111,7 @@ function NotePage() {
           onUndoStroke={() => undoStroke(id)}
           onClearStrokes={() => clearStrokes(id)}
           onEraseStroke={eraseStroke}
+          onReplaceStrokes={(strokes) => updateNote(id, { strokes })}
         />
       </motion.div>
     </div>
