@@ -173,7 +173,7 @@ export const useStore = create<State>()(
       folders: seedFolders,
       activeFolderId: null,
       query: "",
-      theme: "dark",
+      theme: "light",
       guestMode: false,
       signInReminderDismissedAt: null,
       signInReminderShown: false,
