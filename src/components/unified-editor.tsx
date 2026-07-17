@@ -14,6 +14,8 @@ interface Props {
   onContentChange: (html: string) => void;
   onAddStroke: (s: Stroke) => void;
   onUndoStroke: () => void;
+  onRedoStroke: () => void;
+
   onClearStrokes: () => void;
   onEraseStroke: (id: string) => void;
   onReplaceStrokes?: (strokes: Stroke[]) => void;
@@ -30,6 +32,8 @@ export function UnifiedEditor({
   onContentChange,
   onAddStroke,
   onUndoStroke,
+  onRedoStroke,
+
   onClearStrokes,
   onEraseStroke,
   onReplaceStrokes,
