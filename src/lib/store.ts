@@ -126,6 +126,10 @@ interface State {
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 
+// Ephemeral per-note stroke history for grouped undo (erase / clear batches).
+const eraseHistory: Map<string, Stroke[][]> = new Map();
+
+
 const seedFolders: Folder[] = [
   { id: "f-personal", name: "Personal", emoji: "🌿", color: "#7c9cff" },
   { id: "f-work", name: "Work", emoji: "💼", color: "#ffb37c" },
