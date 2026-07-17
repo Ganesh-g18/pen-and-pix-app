@@ -53,7 +53,7 @@ export function EditorToolbar({
   }, []);
 
   const btn = (active: boolean) =>
-    `grid h-6 w-6 shrink-0 place-items-center rounded-md transition ${
+    `grid h-9 w-9 shrink-0 place-items-center rounded-lg transition ${
       active ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-accent hover:text-foreground"
     }`;
 
@@ -62,7 +62,7 @@ export function EditorToolbar({
   const setActiveColor = tool === "highlighter" ? onHighlighterColorChange : onColorChange;
   const swatches = tool === "highlighter" ? HIGHLIGHT_COLORS : COLORS;
 
-  const popover = "fixed left-1/2 -translate-x-1/2 bottom-12 z-50";
+  const popover = "fixed left-1/2 -translate-x-1/2 bottom-16 z-50";
 
   return (
     <div
