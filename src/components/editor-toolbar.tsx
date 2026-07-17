@@ -29,14 +29,17 @@ interface Props {
   eraserMode: EraserMode;
   onEraserModeChange: (m: EraserMode) => void;
   onUndo: () => void;
+  onRedo: () => void;
   onClear: () => void;
+
 }
 
 export function EditorToolbar({
   tool, onToolChange, penStyle, onPenStyleChange,
   color, onColorChange, highlighterColor, onHighlighterColorChange,
-  size, onSizeChange, eraserMode, onEraserModeChange, onUndo, onClear,
+  size, onSizeChange, eraserMode, onEraserModeChange, onUndo, onRedo, onClear,
 }: Props) {
+
   const [penOpen, setPenOpen] = useState(false);
   const [colorOpen, setColorOpen] = useState(false);
   const [eraserOpen, setEraserOpen] = useState(false);
@@ -208,6 +211,10 @@ export function EditorToolbar({
         <button className={btn(false)} onClick={onUndo} title="Undo (⌘Z)" aria-label="Undo">
           <Undo2 className="h-4 w-4" />
         </button>
+        <button className={btn(false)} onClick={onRedo} title="Redo (⌘⇧Z)" aria-label="Redo">
+          <Redo2 className="h-4 w-4" />
+        </button>
+
         <button
           className={btn(false)}
           onClick={() => { if (confirm("Clear all ink strokes?")) onClear(); }}
