@@ -53,7 +53,7 @@ export function EditorToolbar({
   }, []);
 
   const btn = (active: boolean) =>
-    `grid h-6 w-6 shrink-0 place-items-center rounded-md transition ${
+    `grid h-9 w-9 shrink-0 place-items-center rounded-lg transition ${
       active ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-accent hover:text-foreground"
     }`;
 
@@ -62,7 +62,7 @@ export function EditorToolbar({
   const setActiveColor = tool === "highlighter" ? onHighlighterColorChange : onColorChange;
   const swatches = tool === "highlighter" ? HIGHLIGHT_COLORS : COLORS;
 
-  const popover = "fixed left-1/2 -translate-x-1/2 bottom-12 z-50";
+  const popover = "fixed left-1/2 -translate-x-1/2 bottom-16 z-50";
 
   return (
     <div
@@ -71,12 +71,12 @@ export function EditorToolbar({
       role="toolbar"
       aria-label="Editor tools"
     >
-      <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar px-1 py-0.5">
+      <div className="flex items-center gap-1 overflow-x-auto no-scrollbar px-2 py-1.5">
         <button className={btn(tool === "select")} onClick={() => onToolChange("select")} title="Select (V)" aria-label="Select">
-          <MousePointer2 className="h-3 w-3" />
+          <MousePointer2 className="h-4 w-4" />
         </button>
         <button className={btn(tool === "text")} onClick={() => onToolChange("text")} title="Text (T)" aria-label="Text">
-          <Type className="h-3 w-3" />
+          <Type className="h-4 w-4" />
         </button>
 
         {/* Pen with library popover */}
@@ -87,29 +87,29 @@ export function EditorToolbar({
             title={`Pen · ${penStyle} (P)`}
             aria-label="Pen"
           >
-            <Pen className="h-3 w-3" />
+            <Pen className="h-4 w-4" />
           </button>
           <button
-            className="grid h-6 w-2.5 place-items-center text-muted-foreground hover:text-foreground"
+            className="grid h-9 w-3 place-items-center text-muted-foreground hover:text-foreground"
             onClick={() => { onToolChange("pen"); setPenOpen((v) => !v); }}
             aria-label="Pen library"
           >
-            <ChevronDown className="h-2.5 w-2.5" />
+            <ChevronDown className="h-3 w-3" />
           </button>
           {penOpen && (
-            <div className={`${popover} w-56 rounded-xl glass-strong border border-border/60 p-1.5 shadow-float`}>
+            <div className={`${popover} w-60 rounded-xl glass-strong border border-border/60 p-2 shadow-float`}>
               {PEN_LIBRARY.map((p) => (
                 <button
                   key={p.id}
                   onClick={() => { onPenStyleChange(p.id); setPenOpen(false); }}
-                  className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition ${
+                  className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition ${
                     penStyle === p.id ? "bg-primary/15 text-primary" : "hover:bg-accent"
                   }`}
                 >
                   <PenPreview style={p.id} color={color} />
                   <div className="min-w-0 flex-1">
                     <div className="font-medium">{p.label}</div>
-                    <div className="text-[10px] text-muted-foreground">{p.desc}</div>
+                    <div className="text-xs text-muted-foreground">{p.desc}</div>
                   </div>
                 </button>
               ))}
@@ -118,7 +118,7 @@ export function EditorToolbar({
         </div>
 
         <button className={btn(tool === "highlighter")} onClick={() => onToolChange("highlighter")} title="Highlighter (H)" aria-label="Highlighter">
-          <Highlighter className="h-3 w-3" />
+          <Highlighter className="h-4 w-4" />
         </button>
 
         {/* Eraser with mode popover */}
@@ -129,27 +129,27 @@ export function EditorToolbar({
             title={`Eraser · ${eraserMode} (E)`}
             aria-label="Eraser"
           >
-            <Eraser className="h-3 w-3" />
+            <Eraser className="h-4 w-4" />
           </button>
           <button
-            className="grid h-6 w-2.5 place-items-center text-muted-foreground hover:text-foreground"
+            className="grid h-9 w-3 place-items-center text-muted-foreground hover:text-foreground"
             onClick={() => { onToolChange("eraser"); setEraserOpen((v) => !v); }}
             aria-label="Eraser mode"
           >
-            <ChevronDown className="h-2.5 w-2.5" />
+            <ChevronDown className="h-3 w-3" />
           </button>
           {eraserOpen && (
-            <div className={`${popover} w-48 rounded-xl glass-strong border border-border/60 p-1.5 shadow-float`}>
+            <div className={`${popover} w-52 rounded-xl glass-strong border border-border/60 p-2 shadow-float`}>
               {(["stroke", "spot"] as EraserMode[]).map((m) => (
                 <button
                   key={m}
                   onClick={() => { onEraserModeChange(m); setEraserOpen(false); }}
-                  className={`flex w-full flex-col rounded-lg px-2 py-1.5 text-left text-xs transition ${
+                  className={`flex w-full flex-col rounded-lg px-2.5 py-2 text-left text-sm transition ${
                     eraserMode === m ? "bg-primary/15 text-primary" : "hover:bg-accent"
                   }`}
                 >
                   <span className="font-medium capitalize">{m} eraser</span>
-                  <span className="text-[10px] text-muted-foreground">
+                  <span className="text-xs text-muted-foreground">
                     {m === "stroke" ? "Remove entire strokes on touch" : "Erase only the touched portion"}
                   </span>
                 </button>
@@ -158,7 +158,7 @@ export function EditorToolbar({
           )}
         </div>
 
-        <div className="mx-1 h-4 w-px shrink-0 bg-border" />
+        <div className="mx-1.5 h-5 w-px shrink-0 bg-border" />
 
         <input
           type="range"
@@ -167,24 +167,24 @@ export function EditorToolbar({
           step={0.5}
           value={size}
           onChange={(e) => onSizeChange(Number(e.target.value))}
-          className="h-1 w-16 shrink-0 accent-primary"
+          className="h-1.5 w-20 shrink-0 accent-primary"
           aria-label="Brush size"
           title={`Size ${size}px`}
         />
-        <div className="mx-1 grid h-5 w-5 shrink-0 place-items-center">
+        <div className="mx-1 grid h-6 w-6 shrink-0 place-items-center">
           <span
             className="rounded-full"
-            style={{ background: activeColor, width: Math.min(size + 2, 14), height: Math.min(size + 2, 14) }}
+            style={{ background: activeColor, width: Math.min(size + 2, 16), height: Math.min(size + 2, 16) }}
           />
         </div>
 
-        <div className="mx-1 h-4 w-px shrink-0 bg-border" />
+        <div className="mx-1.5 h-5 w-px shrink-0 bg-border" />
 
         {/* Spectrum color picker only */}
         <div className="relative flex shrink-0 items-center">
           <button
             onClick={() => setColorOpen((v) => !v)}
-            className="h-5 w-5 rounded-full ring-2 ring-border transition hover:scale-110"
+            className="h-6 w-6 rounded-full ring-2 ring-border transition hover:scale-110"
             style={{
               background:
                 "conic-gradient(from 0deg, #ef4444, #eab308, #22c55e, #06b6d4, #6366f1, #a855f7, #ec4899, #ef4444)",
@@ -203,10 +203,10 @@ export function EditorToolbar({
           )}
         </div>
 
-        <div className="mx-1 h-4 w-px shrink-0 bg-border" />
+        <div className="mx-1.5 h-5 w-px shrink-0 bg-border" />
 
         <button className={btn(false)} onClick={onUndo} title="Undo (⌘Z)" aria-label="Undo">
-          <Undo2 className="h-3 w-3" />
+          <Undo2 className="h-4 w-4" />
         </button>
         <button
           className={btn(false)}
@@ -214,7 +214,7 @@ export function EditorToolbar({
           title="Clear ink"
           aria-label="Clear ink"
         >
-          <Trash2 className="h-3 w-3" />
+          <Trash2 className="h-4 w-4" />
         </button>
       </div>
     </div>
