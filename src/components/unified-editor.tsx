@@ -297,29 +297,8 @@ export function UnifiedEditor({
             onPointerCancel={onPointerCancel}
             onPointerLeave={onPointerUp}
           >
-            {strokes.map((s) => (
-              <path
-                key={s.id}
-                d={strokeToPath(s)}
-                fill="none"
-                stroke={s.color}
-                strokeWidth={s.size}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                opacity={s.opacity}
-              />
-            ))}
-            {drawingRef.current && (
-              <path
-                d={strokeToPath(drawingRef.current)}
-                fill="none"
-                stroke={drawingRef.current.color}
-                strokeWidth={drawingRef.current.size}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                opacity={drawingRef.current.opacity}
-              />
-            )}
+            {strokes.map((s) => renderStrokePath(s, false))}
+            {drawingRef.current && renderStrokePath(drawingRef.current, true)}
           </svg>
         </div>
       </div>
@@ -327,14 +306,40 @@ export function UnifiedEditor({
       <EditorToolbar
         tool={tool}
         onToolChange={setTool}
+        penStyle={penStyle}
+        onPenStyleChange={setPenStyle}
         color={color}
         onColorChange={setColor}
+        highlighterColor={highlighterColor}
+        onHighlighterColorChange={setHighlighterColor}
         size={size}
         onSizeChange={setSize}
+        eraserMode={eraserMode}
+        onEraserModeChange={setEraserMode}
         onUndo={onUndoStroke}
         onClear={onClearStrokes}
       />
     </div>
+  );
+}
+
+function renderStrokePath(s: Stroke, isDrawing: boolean) {
+  const key = isDrawing ? "drawing" : s.id;
+  const dash = s.penStyle === "pencil"
+    ? `${Math.max(0.5, s.size * 0.6)} ${Math.max(0.6, s.size * 0.8)}`
+    : undefined;
+  return (
+    <path
+      key={key}
+      d={strokeToPath(s)}
+      fill="none"
+      stroke={s.color}
+      strokeWidth={s.size}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      opacity={s.opacity}
+      strokeDasharray={dash}
+    />
   );
 }
 
