@@ -128,8 +128,18 @@ interface State {
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 
-// Ephemeral per-note stroke history for grouped undo (erase / clear batches).
-const eraseHistory: Map<string, Stroke[][]> = new Map();
+// Ephemeral per-note stroke history for undo/redo (snapshot-based).
+const undoHistory: Map<string, Stroke[][]> = new Map();
+const redoHistory: Map<string, Stroke[][]> = new Map();
+
+const pushUndo = (id: string, snapshot: Stroke[]) => {
+  const stack = undoHistory.get(id) ?? [];
+  stack.push(snapshot);
+  if (stack.length > 100) stack.shift();
+  undoHistory.set(id, stack);
+  redoHistory.set(id, []); // any new action clears redo
+};
+
 
 
 const seedFolders: Folder[] = [
