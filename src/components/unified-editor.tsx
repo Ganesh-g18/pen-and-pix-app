@@ -283,6 +283,13 @@ export function UnifiedEditor({
           return;
         }
       }
+      if ((e.metaKey || e.ctrlKey) && (e.key.toLowerCase() === "y" || (e.key.toLowerCase() === "z" && e.shiftKey))) {
+        if (tool !== "text" && !(e.target as HTMLElement)?.closest("[contenteditable]")) {
+          e.preventDefault();
+          onRedoStroke();
+          return;
+        }
+      }
       if ((e.target as HTMLElement)?.closest("input, textarea, [contenteditable]")) return;
       if (e.key === "t" || e.key === "T") setTool("text");
       if (e.key === "p" || e.key === "P") setTool("pen");
@@ -292,7 +299,8 @@ export function UnifiedEditor({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onUndoStroke, tool]);
+  }, [onUndoStroke, onRedoStroke, tool]);
+
 
   const cursor =
     tool === "eraser" ? "crosshair" : tool === "pen" || tool === "highlighter" ? "crosshair" : "text";
