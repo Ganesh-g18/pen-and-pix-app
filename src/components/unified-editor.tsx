@@ -123,14 +123,26 @@ export function UnifiedEditor({
       hitErase(pt.x, pt.y);
       return;
     }
-    const opacity = tool === "highlighter" ? 0.35 : 1;
-    const strokeTool: Stroke["tool"] = tool === "highlighter" ? "highlighter" : "pen";
+    const isHi = tool === "highlighter";
+    const activeColor = isHi ? highlighterColor : color;
+    const penSize =
+      isHi ? size * 4 :
+      penStyle === "marker" ? size * 2 :
+      penStyle === "pencil" ? Math.max(0.8, size * 0.7) :
+      size;
+    const penOpacity =
+      isHi ? 0.35 :
+      penStyle === "marker" ? 0.9 :
+      penStyle === "pencil" ? 0.75 :
+      1;
+    const strokeTool: Stroke["tool"] = isHi ? "highlighter" : penStyle === "marker" ? "marker" : "pen";
     drawingRef.current = {
       id: Math.random().toString(36).slice(2, 10),
       tool: strokeTool,
-      color,
-      size: tool === "highlighter" ? size * 4 : size,
-      opacity,
+      penStyle: isHi ? undefined : penStyle,
+      color: activeColor,
+      size: penSize,
+      opacity: penOpacity,
       points: [pt.x, pt.y, pt.p],
     };
     force((n) => n + 1);
