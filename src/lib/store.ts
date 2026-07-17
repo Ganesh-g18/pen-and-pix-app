@@ -300,7 +300,18 @@ export const useStore = create<State>()(
       undoStroke: (id) =>
         set((s) => {
           const n = s.notes[id];
-          if (!n || n.strokes.length === 0) return s;
+          if (!n) return s;
+          const stack = eraseHistory.get(id);
+          if (stack && stack.length > 0) {
+            const prev = stack.pop()!;
+            return {
+              notes: {
+                ...s.notes,
+                [id]: { ...n, strokes: prev, updatedAt: Date.now() },
+              },
+            };
+          }
+          if (n.strokes.length === 0) return s;
           return {
             notes: {
               ...s.notes,
@@ -309,12 +320,33 @@ export const useStore = create<State>()(
           };
         }),
 
+      commitErase: (id, prev, next) =>
+        set((s) => {
+          const n = s.notes[id];
+          if (!n) return s;
+          const stack = eraseHistory.get(id) ?? [];
+          stack.push(prev);
+          if (stack.length > 50) stack.shift();
+          eraseHistory.set(id, stack);
+          return {
+            notes: {
+              ...s.notes,
+              [id]: { ...n, strokes: next, updatedAt: Date.now() },
+            },
+          };
+        }),
+
       clearStrokes: (id) =>
         set((s) => {
           const n = s.notes[id];
           if (!n) return s;
+          const stack = eraseHistory.get(id) ?? [];
+          stack.push(n.strokes);
+          if (stack.length > 50) stack.shift();
+          eraseHistory.set(id, stack);
           return { notes: { ...s.notes, [id]: { ...n, strokes: [], updatedAt: Date.now() } } };
         }),
+
     }),
     { name: "inkflow-store-v1" },
   ),
