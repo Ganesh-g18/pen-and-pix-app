@@ -18,15 +18,6 @@ interface Props {
   onEraseStroke: (id: string) => void;
   onReplaceStrokes?: (strokes: Stroke[]) => void;
 }
-  content: string;
-  strokes: Stroke[];
-  paper: PaperType;
-  onContentChange: (html: string) => void;
-  onAddStroke: (s: Stroke) => void;
-  onUndoStroke: () => void;
-  onClearStrokes: () => void;
-  onEraseStroke: (id: string) => void;
-}
 
 const MIN_DOC_HEIGHT = 2400;
 
@@ -39,9 +30,13 @@ export function UnifiedEditor({
   onUndoStroke,
   onClearStrokes,
   onEraseStroke,
+  onReplaceStrokes,
 }: Props) {
   const [tool, setTool] = useState<EditorTool>("text");
+  const [penStyle, setPenStyle] = useState<PenStyle>("ballpoint");
   const [color, setColor] = useState("#0b0b0f");
+  const [highlighterColor, setHighlighterColor] = useState("#fde68a");
+  const [eraserMode, setEraserMode] = useState<EraserMode>("stroke");
   const [size, setSize] = useState(3);
 
   const scrollRef = useRef<HTMLDivElement>(null);
