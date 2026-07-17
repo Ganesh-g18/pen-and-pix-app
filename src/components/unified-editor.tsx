@@ -327,8 +327,9 @@ export function UnifiedEditor({
             onPointerCancel={onPointerCancel}
             onPointerLeave={onPointerUp}
           >
-            {strokes.map((s) => renderStrokePath(s, false))}
+            {(erasePreview ?? strokes).map((s) => renderStrokePath(s, false))}
             {drawingRef.current && renderStrokePath(drawingRef.current, true)}
+
           </svg>
         </div>
       </div>
