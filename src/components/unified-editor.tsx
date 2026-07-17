@@ -186,26 +186,43 @@ export function UnifiedEditor({
     drawingRef.current = null;
     drawingPointerIdRef.current = null;
     if (s && s.points.length >= 3) onAddStroke(s);
+    const es = eraseSessionRef.current;
+    if (es) {
+      eraseSessionRef.current = null;
+      setErasePreview(null);
+      if (es.changed) {
+        if (onCommitErase) onCommitErase(es.prev, es.working);
+        else if (onReplaceStrokes) onReplaceStrokes(es.working);
+      }
+    }
     force((n) => n + 1);
   };
 
   const onPointerCancel = (e: React.PointerEvent) => {
     activePointersRef.current.delete(e.pointerId);
     if (drawingPointerIdRef.current === e.pointerId) cancelActiveStroke();
+    if (eraseSessionRef.current) {
+      eraseSessionRef.current = null;
+      setErasePreview(null);
+    }
   };
 
   const hitErase = useCallback(
     (x: number, y: number) => {
+      const es = eraseSessionRef.current;
+      if (!es) return;
       const threshold = 12;
       if (eraserMode === "stroke") {
-        for (let i = strokes.length - 1; i >= 0; i--) {
-          const s = strokes[i];
+        for (let i = es.working.length - 1; i >= 0; i--) {
+          const s = es.working[i];
           const pts = s.points;
           for (let j = 0; j < pts.length; j += 3) {
             const dx = pts[j] - x;
             const dy = pts[j + 1] - y;
             if (dx * dx + dy * dy < (threshold + s.size) ** 2) {
-              onEraseStroke(s.id);
+              es.working.splice(i, 1);
+              es.changed = true;
+              setErasePreview([...es.working]);
               return;
             }
           }
@@ -213,10 +230,9 @@ export function UnifiedEditor({
         return;
       }
       // Spot eraser: split strokes at hit points
-      if (!onReplaceStrokes) return;
       let changed = false;
       const next: Stroke[] = [];
-      for (const s of strokes) {
+      for (const s of es.working) {
         const pts = s.points;
         const radius = threshold + s.size;
         const segments: number[][] = [];
@@ -243,10 +259,15 @@ export function UnifiedEditor({
           }
         }
       }
-      if (changed) onReplaceStrokes(next);
+      if (changed) {
+        es.working = next;
+        es.changed = true;
+        setErasePreview([...next]);
+      }
     },
-    [strokes, onEraseStroke, onReplaceStrokes, eraserMode],
+    [eraserMode],
   );
+
 
   // Keyboard shortcuts (tool switching only when not typing)
   useEffect(() => {
