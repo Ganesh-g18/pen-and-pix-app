@@ -1,4 +1,4 @@
-import { Pen, Highlighter, Eraser, Type, MousePointer2, Undo2, Trash2, ChevronDown } from "lucide-react";
+import { Pen, Highlighter, Eraser, Type, MousePointer2, Undo2, Redo2, Trash2, ChevronDown } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { PenStyle } from "@/lib/store";
 
