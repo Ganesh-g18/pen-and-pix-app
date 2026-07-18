@@ -191,7 +191,6 @@ const defaultSettings: Settings = {
   crashReports: true,
   personalization: false,
   displayName: "",
-  displayName: "",
   username: "",
   avatarUrl: "",
   pinnedPens: [
