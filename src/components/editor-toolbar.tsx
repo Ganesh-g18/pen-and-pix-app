@@ -272,7 +272,7 @@ function SpectrumPicker({
   };
 
   return (
-    <div className="w-64 rounded-xl glass-strong border border-border/60 p-3 shadow-float">
+    <div className="w-64 rounded-xl bg-card text-card-foreground border border-border p-3 shadow-float">
       <div className="mb-2 flex items-center gap-2">
         <span className="h-7 w-7 rounded-lg border border-border" style={{ background: value }} />
         <input
