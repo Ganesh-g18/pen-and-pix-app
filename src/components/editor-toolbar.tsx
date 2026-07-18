@@ -100,7 +100,7 @@ export function EditorToolbar({
             <ChevronDown className="h-3 w-3" />
           </button>
           {penOpen && (
-            <div className={`${popover} w-60 rounded-xl glass-strong border border-border/60 p-2 shadow-float`}>
+            <div className={`${popover} w-60 rounded-xl bg-card text-card-foreground border border-border p-2 shadow-float`}>
               {PEN_LIBRARY.map((p) => (
                 <button
                   key={p.id}
@@ -142,7 +142,7 @@ export function EditorToolbar({
             <ChevronDown className="h-3 w-3" />
           </button>
           {eraserOpen && (
-            <div className={`${popover} w-52 rounded-xl glass-strong border border-border/60 p-2 shadow-float`}>
+            <div className={`${popover} w-52 rounded-xl bg-card text-card-foreground border border-border p-2 shadow-float`}>
               {(["stroke", "spot"] as EraserMode[]).map((m) => (
                 <button
                   key={m}
