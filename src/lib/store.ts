@@ -86,6 +86,14 @@ export interface Settings {
   displayName: string;
   username: string;
   avatarUrl: string;
+  pinnedPens: PinnedPen[];
+}
+
+export interface PinnedPen {
+  id: string;
+  style: PenStyle;
+  color: string;
+  size: number;
 }
 
 interface State {
@@ -185,6 +193,12 @@ const defaultSettings: Settings = {
   displayName: "",
   username: "",
   avatarUrl: "",
+  pinnedPens: [
+    { id: "pp-1", style: "ballpoint", color: "#0b0b0f", size: 2 },
+    { id: "pp-2", style: "fountain", color: "#1e3a8a", size: 2.5 },
+    { id: "pp-3", style: "marker", color: "#dc2626", size: 6 },
+    { id: "pp-4", style: "pencil", color: "#374151", size: 1.5 },
+  ],
 };
 
 export const useStore = create<State>()(
