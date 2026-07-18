@@ -1,9 +1,10 @@
 import {
   Pen, PenTool, Pencil, Paintbrush, Highlighter, Eraser, Type, MousePointer2,
-  Undo2, Redo2, Trash2, ChevronDown, Circle, CircleDashed,
+  Undo2, Redo2, Trash2, ChevronDown, CircleDashed, Pin, X, GripVertical, Plus,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { PenStyle } from "@/lib/store";
+import type { PenStyle, PinnedPen } from "@/lib/store";
+import { useStore } from "@/lib/store";
 
 export type EditorTool = "select" | "text" | "pen" | "highlighter" | "eraser";
 export type EraserMode = "stroke" | "spot";
@@ -24,6 +25,8 @@ const PEN_ICON: Record<PenStyle, typeof Pen> = {
   marker: Paintbrush,
   pencil: Pencil,
 };
+
+const LONG_PRESS_MS = 450;
 
 interface Props {
   tool: EditorTool;
@@ -49,10 +52,15 @@ export function EditorToolbar({
   size, onSizeChange, eraserMode, onEraserModeChange, onUndo, onRedo, onClear,
 }: Props) {
 
+  const pinnedPens = useStore((s) => s.settings.pinnedPens);
+  const updateSettings = useStore((s) => s.updateSettings);
+
   const [penOpen, setPenOpen] = useState(false);
   const [colorOpen, setColorOpen] = useState(false);
   const [eraserOpen, setEraserOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const lpTimer = useRef<number | null>(null);
+  const lpFired = useRef(false);
 
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
@@ -64,8 +72,20 @@ export function EditorToolbar({
     return () => document.removeEventListener("mousedown", onDoc);
   }, []);
 
+  const startLongPress = (fn: () => void) => {
+    lpFired.current = false;
+    if (lpTimer.current) window.clearTimeout(lpTimer.current);
+    lpTimer.current = window.setTimeout(() => {
+      lpFired.current = true;
+      fn();
+    }, LONG_PRESS_MS);
+  };
+  const cancelLongPress = () => {
+    if (lpTimer.current) { window.clearTimeout(lpTimer.current); lpTimer.current = null; }
+  };
+
   const btn = (active: boolean) =>
-    `grid h-7 w-7 shrink-0 place-items-center rounded-md transition ${
+    `grid h-8 w-8 shrink-0 place-items-center rounded-md transition ${
       active ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-accent hover:text-foreground"
     }`;
 
@@ -74,142 +94,270 @@ export function EditorToolbar({
   const setActiveColor = tool === "highlighter" ? onHighlighterColorChange : onColorChange;
   const swatches = tool === "highlighter" ? HIGHLIGHT_COLORS : COLORS;
 
-  const popover = "fixed left-1/2 -translate-x-1/2 bottom-14 z-50";
+  const popover = "fixed left-1/2 -translate-x-1/2 bottom-16 z-50";
 
   const PenIcon = useMemo(() => PEN_ICON[penStyle] ?? Pen, [penStyle]);
   const EraserIcon = eraserMode === "spot" ? CircleDashed : Eraser;
 
+  const applyPinned = (p: PinnedPen) => {
+    onToolChange("pen");
+    onPenStyleChange(p.style);
+    onColorChange(p.color);
+    onSizeChange(p.size);
+  };
+
+  const pinCurrent = () => {
+    const exists = pinnedPens.some(
+      (p) => p.style === penStyle && p.color.toLowerCase() === color.toLowerCase() && p.size === size,
+    );
+    if (exists) return;
+    const next: PinnedPen = {
+      id: "pp-" + Math.random().toString(36).slice(2, 8),
+      style: penStyle,
+      color,
+      size,
+    };
+    updateSettings({ pinnedPens: [...pinnedPens, next] });
+  };
+
+  const removePinned = (id: string) =>
+    updateSettings({ pinnedPens: pinnedPens.filter((p) => p.id !== id) });
+
+  // HTML5 drag-reorder
+  const dragId = useRef<string | null>(null);
+  const [dragOver, setDragOver] = useState<string | null>(null);
+  const onDragStart = (id: string) => (e: React.DragEvent) => {
+    dragId.current = id;
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", id);
+  };
+  const onDragOver = (id: string) => (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (dragOver !== id) setDragOver(id);
+  };
+  const onDrop = (targetId: string) => (e: React.DragEvent) => {
+    e.preventDefault();
+    const src = dragId.current;
+    dragId.current = null;
+    setDragOver(null);
+    if (!src || src === targetId) return;
+    const arr = [...pinnedPens];
+    const from = arr.findIndex((p) => p.id === src);
+    const to = arr.findIndex((p) => p.id === targetId);
+    if (from < 0 || to < 0) return;
+    const [moved] = arr.splice(from, 1);
+    arr.splice(to, 0, moved);
+    updateSettings({ pinnedPens: arr });
+  };
+  const onDragEnd = () => { dragId.current = null; setDragOver(null); };
+
   return (
     <div
       ref={rootRef}
-      className="pointer-events-auto fixed left-1/2 bottom-3 z-40 -translate-x-1/2 max-w-[calc(100vw-1rem)] rounded-lg glass-strong shadow-float backdrop-blur-xl"
+      className="pointer-events-auto fixed left-1/2 bottom-3 z-40 -translate-x-1/2 max-w-[calc(100vw-1rem)] rounded-xl glass-strong shadow-float backdrop-blur-xl"
       role="toolbar"
       aria-label="Editor tools"
     >
-      <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar px-1.5 py-1">
+      <div className="flex items-center gap-1 overflow-x-auto no-scrollbar px-2 py-1.5">
         <button className={btn(tool === "select")} onClick={() => onToolChange("select")} title="Select (V)" aria-label="Select">
-          <MousePointer2 className="h-3.5 w-3.5" />
+          <MousePointer2 className="h-4 w-4" />
         </button>
         <button className={btn(tool === "text")} onClick={() => onToolChange("text")} title="Text (T)" aria-label="Text">
-          <Type className="h-3.5 w-3.5" />
+          <Type className="h-4 w-4" />
         </button>
 
-        {/* Pen with dynamic icon + library popover */}
+        {/* Pen with long-press popover */}
         <div className="relative flex shrink-0 items-center">
           <button
             className={btn(isPen)}
-            onClick={() => { onToolChange("pen"); if (isPen) setPenOpen((v) => !v); }}
-            title={`Pen · ${penStyle}`}
+            onPointerDown={() => startLongPress(() => { onToolChange("pen"); setPenOpen(true); })}
+            onPointerUp={cancelLongPress}
+            onPointerLeave={cancelLongPress}
+            onClick={() => {
+              if (lpFired.current) { lpFired.current = false; return; }
+              onToolChange("pen");
+              if (isPen) setPenOpen((v) => !v);
+            }}
+            title={`Pen · ${penStyle} (long-press for options)`}
             aria-label={`Pen — ${penStyle}`}
           >
-            <PenIcon className="h-3.5 w-3.5 transition-all duration-200" />
+            <PenIcon className="h-4 w-4 transition-all duration-200" />
           </button>
           <button
-            className="grid h-7 w-2.5 place-items-center text-muted-foreground hover:text-foreground"
+            className="grid h-8 w-3 place-items-center text-muted-foreground hover:text-foreground"
             onClick={() => { onToolChange("pen"); setPenOpen((v) => !v); }}
             aria-label="Pen library"
           >
-            <ChevronDown className="h-2.5 w-2.5" />
+            <ChevronDown className="h-3 w-3" />
           </button>
           {penOpen && (
-            <div className={`${popover} w-60 rounded-xl bg-card text-card-foreground border border-border p-2 shadow-float`}>
+            <div className={`${popover} w-72 rounded-xl bg-card text-card-foreground border border-border p-2 shadow-float`}>
               {PEN_LIBRARY.map((p) => {
                 const Ico = PEN_ICON[p.id];
                 return (
                   <button
                     key={p.id}
-                    onClick={() => { onPenStyleChange(p.id); setPenOpen(false); }}
-                    className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition ${
+                    onClick={() => { onPenStyleChange(p.id); }}
+                    className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-sm transition ${
                       penStyle === p.id ? "bg-primary/15 text-primary" : "hover:bg-accent"
                     }`}
                   >
                     <Ico className="h-4 w-4 shrink-0" style={{ color }} />
                     <PenPreview style={p.id} color={color} />
                     <div className="min-w-0 flex-1">
-                      <div className="font-medium">{p.label}</div>
-                      <div className="text-xs text-muted-foreground">{p.desc}</div>
+                      <div className="text-[13px] font-medium">{p.label}</div>
+                      <div className="text-[11px] text-muted-foreground">{p.desc}</div>
                     </div>
                   </button>
                 );
               })}
+              <div className="mt-2 border-t border-border pt-2">
+                <div className="mb-1 flex items-center justify-between text-[11px] text-muted-foreground">
+                  <span>Thickness</span>
+                  <span className="font-mono">{size.toFixed(1)}px</span>
+                </div>
+                <input
+                  type="range" min={0.5} max={30} step={0.5} value={size}
+                  onChange={(e) => onSizeChange(Number(e.target.value))}
+                  className="h-1.5 w-full accent-primary"
+                />
+                <button
+                  onClick={pinCurrent}
+                  className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-border bg-accent/40 px-2 py-1.5 text-xs font-medium hover:bg-accent"
+                >
+                  <Pin className="h-3.5 w-3.5" /> Pin this pen
+                </button>
+              </div>
             </div>
           )}
         </div>
 
         <button className={btn(tool === "highlighter")} onClick={() => onToolChange("highlighter")} title="Highlighter (H)" aria-label="Highlighter">
-          <Highlighter className="h-3.5 w-3.5" />
+          <Highlighter className="h-4 w-4" />
         </button>
 
-        {/* Eraser with dynamic icon + mode popover */}
+        {/* Eraser with long-press popover */}
         <div className="relative flex shrink-0 items-center">
           <button
             className={btn(tool === "eraser")}
-            onClick={() => { onToolChange("eraser"); if (tool === "eraser") setEraserOpen((v) => !v); }}
-            title={`Eraser · ${eraserMode} (E)`}
+            onPointerDown={() => startLongPress(() => { onToolChange("eraser"); setEraserOpen(true); })}
+            onPointerUp={cancelLongPress}
+            onPointerLeave={cancelLongPress}
+            onClick={() => {
+              if (lpFired.current) { lpFired.current = false; return; }
+              onToolChange("eraser");
+              if (tool === "eraser") setEraserOpen((v) => !v);
+            }}
+            title={`Eraser · ${eraserMode} (long-press for options)`}
             aria-label={`Eraser — ${eraserMode}`}
           >
-            <EraserIcon className="h-3.5 w-3.5 transition-all duration-200" />
+            <EraserIcon className="h-4 w-4 transition-all duration-200" />
           </button>
           <button
-            className="grid h-7 w-2.5 place-items-center text-muted-foreground hover:text-foreground"
+            className="grid h-8 w-3 place-items-center text-muted-foreground hover:text-foreground"
             onClick={() => { onToolChange("eraser"); setEraserOpen((v) => !v); }}
             aria-label="Eraser mode"
           >
-            <ChevronDown className="h-2.5 w-2.5" />
+            <ChevronDown className="h-3 w-3" />
           </button>
           {eraserOpen && (
-            <div className={`${popover} w-56 rounded-xl bg-card text-card-foreground border border-border p-2 shadow-float`}>
+            <div className={`${popover} w-64 rounded-xl bg-card text-card-foreground border border-border p-2 shadow-float`}>
               {(["stroke", "spot"] as EraserMode[]).map((m) => {
                 const Ico = m === "spot" ? CircleDashed : Eraser;
                 return (
                   <button
                     key={m}
                     onClick={() => { onEraserModeChange(m); setEraserOpen(false); }}
-                    className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition ${
+                    className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-sm transition ${
                       eraserMode === m ? "bg-primary/15 text-primary" : "hover:bg-accent"
                     }`}
                   >
                     <Ico className="h-4 w-4 shrink-0" />
                     <div>
-                      <div className="font-medium capitalize">{m} eraser</div>
-                      <div className="text-xs text-muted-foreground">
+                      <div className="text-[13px] font-medium capitalize">{m} eraser</div>
+                      <div className="text-[11px] text-muted-foreground">
                         {m === "stroke" ? "Remove entire strokes on touch" : "Erase only the touched portion"}
                       </div>
                     </div>
                   </button>
                 );
               })}
+              <div className="mt-2 border-t border-border pt-2">
+                <div className="mb-1 flex items-center justify-between text-[11px] text-muted-foreground">
+                  <span>Eraser size</span>
+                  <span className="font-mono">{size.toFixed(1)}px</span>
+                </div>
+                <input
+                  type="range" min={2} max={40} step={0.5} value={size}
+                  onChange={(e) => onSizeChange(Number(e.target.value))}
+                  className="h-1.5 w-full accent-primary"
+                />
+              </div>
             </div>
           )}
         </div>
 
-        <div className="mx-1 h-4 w-px shrink-0 bg-border" />
+        <div className="mx-1 h-5 w-px shrink-0 bg-border" />
 
-        <input
-          type="range"
-          min={0.5}
-          max={30}
-          step={0.5}
-          value={size}
-          onChange={(e) => onSizeChange(Number(e.target.value))}
-          className="h-1 w-16 shrink-0 accent-primary"
-          aria-label="Brush size"
-          title={`Size ${size}px`}
-        />
-        <div className="mx-0.5 grid h-5 w-5 shrink-0 place-items-center">
-          <span
-            className="rounded-full"
-            style={{ background: activeColor, width: Math.min(size + 2, 14), height: Math.min(size + 2, 14) }}
-          />
-        </div>
+        {/* Pinned pens strip (drag to reorder) */}
+        {pinnedPens.length > 0 && (
+          <div className="flex items-center gap-1">
+            {pinnedPens.map((p) => {
+              const active =
+                isPen && p.style === penStyle &&
+                p.color.toLowerCase() === color.toLowerCase() && p.size === size;
+              return (
+                <div
+                  key={p.id}
+                  draggable
+                  onDragStart={onDragStart(p.id)}
+                  onDragOver={onDragOver(p.id)}
+                  onDrop={onDrop(p.id)}
+                  onDragEnd={onDragEnd}
+                  className={`group relative flex shrink-0 items-center ${
+                    dragOver === p.id ? "ring-2 ring-primary/40 rounded-md" : ""
+                  }`}
+                  title={`${p.style} · ${p.color} · ${p.size}px (drag to reorder)`}
+                >
+                  <button
+                    onClick={() => applyPinned(p)}
+                    className={`grid h-8 w-8 place-items-center rounded-md transition ${
+                      active ? "bg-primary/15" : "hover:bg-accent"
+                    }`}
+                    aria-label={`Pinned ${p.style}`}
+                  >
+                    <PinnedGlyph pen={p} />
+                  </button>
+                  <button
+                    onClick={() => removePinned(p.id)}
+                    className="absolute -right-1 -top-1 hidden h-3.5 w-3.5 place-items-center rounded-full bg-foreground/70 text-background group-hover:grid"
+                    aria-label="Remove pinned pen"
+                  >
+                    <X className="h-2.5 w-2.5" />
+                  </button>
+                  <GripVertical className="pointer-events-none absolute -left-1 top-1/2 h-2.5 w-2.5 -translate-y-1/2 text-muted-foreground/0 group-hover:text-muted-foreground/60" />
+                </div>
+              );
+            })}
+            <button
+              onClick={pinCurrent}
+              className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+              title="Pin current pen"
+              aria-label="Pin current pen"
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
 
-        <div className="mx-1 h-4 w-px shrink-0 bg-border" />
+        <div className="mx-1 h-5 w-px shrink-0 bg-border" />
 
         {/* Spectrum color picker */}
         <div className="relative flex shrink-0 items-center">
           <button
             onClick={() => setColorOpen((v) => !v)}
-            className="h-5 w-5 rounded-full ring-2 ring-border transition hover:scale-110"
+            className="h-6 w-6 rounded-full ring-2 ring-border transition hover:scale-110"
             style={{
               background:
                 "conic-gradient(from 0deg, #ef4444, #eab308, #22c55e, #06b6d4, #6366f1, #a855f7, #ec4899, #ef4444)",
@@ -229,13 +377,13 @@ export function EditorToolbar({
           )}
         </div>
 
-        <div className="mx-1 h-4 w-px shrink-0 bg-border" />
+        <div className="mx-1 h-5 w-px shrink-0 bg-border" />
 
         <button className={btn(false)} onClick={onUndo} title="Undo (⌘Z)" aria-label="Undo">
-          <Undo2 className="h-3.5 w-3.5" />
+          <Undo2 className="h-4 w-4" />
         </button>
         <button className={btn(false)} onClick={onRedo} title="Redo (⌘⇧Z)" aria-label="Redo">
-          <Redo2 className="h-3.5 w-3.5" />
+          <Redo2 className="h-4 w-4" />
         </button>
 
         <button
@@ -244,9 +392,25 @@ export function EditorToolbar({
           title="Clear ink"
           aria-label="Clear ink"
         >
-          <Trash2 className="h-3.5 w-3.5" />
+          <Trash2 className="h-4 w-4" />
         </button>
       </div>
+    </div>
+  );
+}
+
+function PinnedGlyph({ pen }: { pen: PinnedPen }) {
+  const Ico = PEN_ICON[pen.style];
+  return (
+    <div className="relative grid h-full w-full place-items-center">
+      <Ico className="h-4 w-4" style={{ color: pen.color }} />
+      <span
+        className="absolute -bottom-0.5 h-1 rounded-full"
+        style={{
+          background: pen.color,
+          width: Math.min(16, Math.max(4, pen.size * 1.5)),
+        }}
+      />
     </div>
   );
 }
@@ -369,12 +533,12 @@ function hexToHsl(hex: string): [number, number, number] {
 }
 
 function hslToHex(h: number, s: number, l: number): string {
-  s /= 100; l /= 100;
+  const S = s / 100, L = l / 100;
   const k = (n: number) => (n + h / 30) % 12;
-  const a = s * Math.min(l, 1 - l);
+  const a = S * Math.min(L, 1 - L);
   const f = (n: number) => {
-    const c = l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
-    return Math.round(255 * c).toString(16).padStart(2, "0");
+    const c = L - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+    return Math.round(c * 255).toString(16).padStart(2, "0");
   };
   return `#${f(0)}${f(8)}${f(4)}`;
 }
