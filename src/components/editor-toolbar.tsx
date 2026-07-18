@@ -52,7 +52,7 @@ export function EditorToolbar({
   size, onSizeChange, eraserMode, onEraserModeChange, onUndo, onRedo, onClear,
 }: Props) {
 
-  const pinnedPens = useStore((s) => s.settings.pinnedPens);
+  const pinnedPens = useStore((s) => s.settings.pinnedPens ?? []);
   const updateSettings = useStore((s) => s.updateSettings);
 
   const [penOpen, setPenOpen] = useState(false);
