@@ -164,6 +164,10 @@ export function UnifiedEditor({
 
   const onPointerMove = (e: React.PointerEvent) => {
     if (!inkActive) return;
+    if (tool === "eraser" && e.pointerType !== "touch") {
+      const pt = getPoint(e);
+      setEraserCursor({ x: pt.x, y: pt.y });
+    }
     if (drawingPointerIdRef.current !== null && e.pointerId !== drawingPointerIdRef.current) return;
     if (activePointersRef.current.size >= 2) return;
     if (tool === "eraser" ? drawingPointerIdRef.current !== e.pointerId : !drawingRef.current) return;
