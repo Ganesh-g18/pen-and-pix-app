@@ -55,6 +55,7 @@ export function UnifiedEditor({
   const drawingPointerIdRef = useRef<number | null>(null);
   const eraseSessionRef = useRef<{ prev: Stroke[]; working: Stroke[]; changed: boolean } | null>(null);
   const [erasePreview, setErasePreview] = useState<Stroke[] | null>(null);
+  const [eraserCursor, setEraserCursor] = useState<{ x: number; y: number } | null>(null);
   const [, force] = useState(0);
   const [docHeight, setDocHeight] = useState(MIN_DOC_HEIGHT);
 
@@ -163,6 +164,10 @@ export function UnifiedEditor({
 
   const onPointerMove = (e: React.PointerEvent) => {
     if (!inkActive) return;
+    if (tool === "eraser" && e.pointerType !== "touch") {
+      const pt = getPoint(e);
+      setEraserCursor({ x: pt.x, y: pt.y });
+    }
     if (drawingPointerIdRef.current !== null && e.pointerId !== drawingPointerIdRef.current) return;
     if (activePointersRef.current.size >= 2) return;
     if (tool === "eraser" ? drawingPointerIdRef.current !== e.pointerId : !drawingRef.current) return;
@@ -307,9 +312,14 @@ export function UnifiedEditor({
   }, [onUndoStroke, onRedoStroke, tool]);
 
 
+  useEffect(() => {
+    if (tool !== "eraser") setEraserCursor(null);
+  }, [tool]);
 
   const cursor =
-    tool === "eraser" ? "crosshair" : tool === "pen" || tool === "highlighter" ? "crosshair" : "text";
+    tool === "eraser" ? "none" : tool === "pen" || tool === "highlighter" ? "crosshair" : "text";
+
+  const eraserRadius = (eraserMode === "spot" ? 10 : 14) + size * 1.5;
 
   return (
     <div className="relative flex-1 min-h-0">
@@ -345,10 +355,22 @@ export function UnifiedEditor({
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
             onPointerCancel={onPointerCancel}
-            onPointerLeave={onPointerUp}
+            onPointerLeave={(e) => { setEraserCursor(null); onPointerUp(e); }}
           >
             {(erasePreview ?? strokes).map((s) => renderStrokePath(s, false))}
             {drawingRef.current && renderStrokePath(drawingRef.current, true)}
+            {tool === "eraser" && eraserCursor && (
+              <circle
+                cx={eraserCursor.x}
+                cy={eraserCursor.y}
+                r={eraserRadius}
+                fill="rgba(148,163,184,0.18)"
+                stroke="rgba(15,23,42,0.65)"
+                strokeWidth={1.25}
+                strokeDasharray="3 3"
+                pointerEvents="none"
+              />
+            )}
 
           </svg>
         </div>
