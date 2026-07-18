@@ -128,6 +128,18 @@ function scheduleFlush() {
   flushTimer = setTimeout(flushPending, 600);
 }
 
+/** Force an immediate flush of any pending changes to the cloud. */
+export async function flushNow() {
+  if (flushTimer) { clearTimeout(flushTimer); flushTimer = null; }
+  if (!currentUserId) return;
+  await flushPending();
+}
+
+export function isCloudActive() {
+  return currentUserId !== null;
+}
+
+
 /** Import local (guest) notes and folders into the cloud for the given user. */
 export async function importGuestData(userId: string) {
   setStatus("syncing");
