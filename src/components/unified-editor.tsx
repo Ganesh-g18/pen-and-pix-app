@@ -355,10 +355,22 @@ export function UnifiedEditor({
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
             onPointerCancel={onPointerCancel}
-            onPointerLeave={onPointerUp}
+            onPointerLeave={(e) => { setEraserCursor(null); onPointerUp(e); }}
           >
             {(erasePreview ?? strokes).map((s) => renderStrokePath(s, false))}
             {drawingRef.current && renderStrokePath(drawingRef.current, true)}
+            {tool === "eraser" && eraserCursor && (
+              <circle
+                cx={eraserCursor.x}
+                cy={eraserCursor.y}
+                r={eraserRadius}
+                fill="rgba(148,163,184,0.18)"
+                stroke="rgba(15,23,42,0.65)"
+                strokeWidth={1.25}
+                strokeDasharray="3 3"
+                pointerEvents="none"
+              />
+            )}
 
           </svg>
         </div>
