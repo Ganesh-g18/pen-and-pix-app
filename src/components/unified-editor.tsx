@@ -291,15 +291,21 @@ export function UnifiedEditor({
         }
       }
       if ((e.target as HTMLElement)?.closest("input, textarea, [contenteditable]")) return;
-      if (e.key === "t" || e.key === "T") setTool("text");
-      if (e.key === "p" || e.key === "P") setTool("pen");
-      if (e.key === "h" || e.key === "H") setTool("highlighter");
-      if (e.key === "e" || e.key === "E") setTool("eraser");
-      if (e.key === "v" || e.key === "V") setTool("select");
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const k = e.key.toLowerCase();
+      if (k === "t") setTool("text");
+      else if (k === "b") { setTool("pen"); setPenStyle("ballpoint"); }
+      else if (k === "m") { setTool("pen"); setPenStyle("marker"); }
+      else if (k === "p") { setTool("pen"); setPenStyle("pencil"); }
+      else if (k === "f") { setTool("pen"); setPenStyle("fountain"); }
+      else if (k === "h") setTool("highlighter");
+      else if (k === "e") setTool("eraser");
+      else if (k === "v") setTool("select");
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onUndoStroke, onRedoStroke, tool]);
+
 
 
   const cursor =
@@ -314,9 +320,11 @@ export function UnifiedEditor({
       >
         <div
           ref={surfaceRef}
+          data-editor-surface
           className={`relative w-full ${paperClass}`}
           style={{ height: docHeight, minHeight: "100%" }}
         >
+
           {/* Text layer */}
           <div className="absolute inset-0" style={{ pointerEvents: inkActive ? "none" : "auto" }}>
             {editor && <EditorContent editor={editor} />}
