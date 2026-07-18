@@ -1,12 +1,17 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useStore } from "@/lib/store";
 import { UnifiedEditor } from "@/components/unified-editor";
 import { CommandPalette } from "@/components/command-palette";
+import { flushNow, isCloudActive, subscribeStatus, type CloudStatus } from "@/lib/cloud-sync";
+import { exportAsPdf, exportAsMarkdown, exportAsText } from "@/lib/export-note";
+import { useAuth } from "@/lib/auth";
+import { toast } from "sonner";
 import {
   ArrowLeft, Pin, Star, Trash2, Grid3x3, LayoutGrid, Rows3, Square,
+  Save, Check, Download, FileText, FileType, FileDown, Loader2, CloudOff,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 export const Route = createFileRoute("/note/$id")({
   component: NotePage,
@@ -15,6 +20,7 @@ export const Route = createFileRoute("/note/$id")({
 function NotePage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const note = useStore((s) => s.notes[id]);
   const updateNote = useStore((s) => s.updateNote);
   const togglePin = useStore((s) => s.togglePin);
@@ -23,15 +29,95 @@ function NotePage() {
   const addStroke = useStore((s) => s.addStroke);
   const undoStroke = useStore((s) => s.undoStroke);
   const redoStroke = useStore((s) => s.redoStroke);
-
   const clearStrokes = useStore((s) => s.clearStrokes);
   const commitErase = useStore((s) => s.commitErase);
 
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [cloudStatus, setCloudStatus] = useState<CloudStatus>("idle");
+  const [dirty, setDirty] = useState(false);
+  const [savedFlash, setSavedFlash] = useState(false);
+  const editorRootRef = useRef<HTMLDivElement>(null);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => subscribeStatus(setCloudStatus), []);
 
   useEffect(() => {
     if (!note) navigate({ to: "/" });
   }, [note, navigate]);
+
+  // Track dirtiness relative to last sync (only meaningful when signed in).
+  const lastUpdatedRef = useRef<number>(note?.updatedAt ?? 0);
+  useEffect(() => {
+    if (!note) return;
+    if (note.updatedAt !== lastUpdatedRef.current) {
+      lastUpdatedRef.current = note.updatedAt;
+      if (isCloudActive()) setDirty(true);
+    }
+  }, [note?.updatedAt]);
+
+  useEffect(() => {
+    if (cloudStatus === "synced" && dirty) {
+      setDirty(false);
+      setSavedFlash(true);
+      const t = setTimeout(() => setSavedFlash(false), 1200);
+      return () => clearTimeout(t);
+    }
+  }, [cloudStatus, dirty]);
+
+  const doSave = async () => {
+    if (!isCloudActive()) {
+      // Guest / local-only: everything is already persisted to localStorage.
+      setSavedFlash(true);
+      setTimeout(() => setSavedFlash(false), 1200);
+      toast.success("Saved locally");
+      return;
+    }
+    try {
+      await flushNow();
+      setDirty(false);
+      setSavedFlash(true);
+      setTimeout(() => setSavedFlash(false), 1200);
+    } catch {
+      toast.error("Save failed");
+    }
+  };
+
+  // Flush immediately on unload / route change.
+  useEffect(() => {
+    const onUnload = () => {
+      if (isCloudActive()) flushNow();
+    };
+    window.addEventListener("beforeunload", onUnload);
+    window.addEventListener("pagehide", onUnload);
+    return () => {
+      window.removeEventListener("beforeunload", onUnload);
+      window.removeEventListener("pagehide", onUnload);
+      if (isCloudActive()) flushNow();
+    };
+  }, [id]);
+
+  // Cmd/Ctrl+S save, Cmd/Ctrl+P export PDF.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey)) return;
+      const k = e.key.toLowerCase();
+      if (k === "s") { e.preventDefault(); doSave(); }
+      if (k === "p") { e.preventDefault(); handleExport("pdf"); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
+  // Close export menu on outside click.
+  useEffect(() => {
+    if (!exportOpen) return;
+    const onDoc = (e: MouseEvent) => {
+      if (!exportMenuRef.current?.contains(e.target as Node)) setExportOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [exportOpen]);
 
   if (!note) return null;
 
@@ -39,6 +125,24 @@ function NotePage() {
     const filtered = note.strokes.filter((s) => s.id !== sid);
     updateNote(id, { strokes: filtered });
   };
+
+  const handleExport = async (kind: "pdf" | "md" | "txt") => {
+    setExportOpen(false);
+    try {
+      if (kind === "md") return exportAsMarkdown(note);
+      if (kind === "txt") return exportAsText(note);
+      const surface = editorRootRef.current?.querySelector("[data-editor-surface]") as HTMLElement | null;
+      if (!surface) return toast.error("Editor surface not found");
+      toast.loading("Rendering PDF…", { id: "pdf-export" });
+      await exportAsPdf(surface, note);
+      toast.success("PDF exported", { id: "pdf-export" });
+    } catch (err) {
+      console.error(err);
+      toast.error("Export failed", { id: "pdf-export" });
+    }
+  };
+
+  const saveStatus = getSaveStatus({ cloudActive: isCloudActive() && !!user, dirty, cloudStatus });
 
   return (
     <div className="flex h-dvh flex-col">
@@ -67,7 +171,13 @@ function NotePage() {
           />
         </div>
 
-        <div className="hidden sm:flex items-center rounded-xl bg-muted/60 p-0.5">
+        {/* Save status pill */}
+        <div className="hidden sm:flex items-center gap-1.5 rounded-full bg-muted/60 px-2.5 py-1 text-[11px] text-muted-foreground min-w-[92px] justify-center">
+          <saveStatus.Icon className={`h-3 w-3 ${saveStatus.spin ? "animate-spin" : ""} ${saveStatus.color}`} />
+          <span>{saveStatus.label}</span>
+        </div>
+
+        <div className="hidden md:flex items-center rounded-xl bg-muted/60 p-0.5">
           <PaperBtn active={note.paper === "blank"} onClick={() => updateNote(id, { paper: "blank" })} icon={<Square className="h-3.5 w-3.5" />} label="Blank" />
           <PaperBtn active={note.paper === "grid"} onClick={() => updateNote(id, { paper: "grid" })} icon={<Grid3x3 className="h-3.5 w-3.5" />} label="Grid" />
           <PaperBtn active={note.paper === "dots"} onClick={() => updateNote(id, { paper: "dots" })} icon={<LayoutGrid className="h-3.5 w-3.5" />} label="Dots" />
@@ -75,6 +185,63 @@ function NotePage() {
         </div>
 
         <div className="flex shrink-0 items-center gap-1">
+          {/* Save */}
+          <button
+            onClick={doSave}
+            disabled={isCloudActive() && !dirty && !savedFlash}
+            className={`relative grid h-9 w-9 place-items-center rounded-xl transition disabled:opacity-40 disabled:cursor-not-allowed ${
+              dirty ? "text-primary hover:bg-primary/10" : "text-muted-foreground hover:bg-accent"
+            }`}
+            title="Save (⌘S)"
+            aria-label="Save note"
+          >
+            <AnimatePresence mode="wait">
+              {savedFlash ? (
+                <motion.span
+                  key="ok"
+                  initial={{ scale: 0.5, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.6, opacity: 0 }}
+                  transition={{ type: "spring", stiffness: 500, damping: 24 }}
+                  className="text-emerald-500"
+                >
+                  <Check className="h-4 w-4" />
+                </motion.span>
+              ) : (
+                <motion.span key="save" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                  <Save className="h-4 w-4" />
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </button>
+
+          {/* Export menu */}
+          <div className="relative" ref={exportMenuRef}>
+            <button
+              onClick={() => setExportOpen((v) => !v)}
+              className="grid h-9 w-9 place-items-center rounded-xl text-muted-foreground hover:bg-accent transition"
+              title="Export"
+              aria-label="Export note"
+            >
+              <Download className="h-4 w-4" />
+            </button>
+            <AnimatePresence>
+              {exportOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -4, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -4, scale: 0.98 }}
+                  transition={{ duration: 0.12 }}
+                  className="absolute right-0 top-11 z-40 w-52 rounded-xl border border-border bg-card text-card-foreground shadow-float p-1"
+                >
+                  <MenuItem icon={<FileDown className="h-4 w-4" />} label="Export as PDF" shortcut="⌘P" onClick={() => handleExport("pdf")} />
+                  <MenuItem icon={<FileType className="h-4 w-4" />} label="Export as Markdown" onClick={() => handleExport("md")} />
+                  <MenuItem icon={<FileText className="h-4 w-4" />} label="Export as Plain Text" onClick={() => handleExport("txt")} />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
           <button
             onClick={() => togglePin(id)}
             className={`grid h-9 w-9 place-items-center rounded-xl hover:bg-accent transition ${note.pinned ? "text-primary" : "text-muted-foreground"}`}
@@ -101,6 +268,7 @@ function NotePage() {
 
       {/* Unified body */}
       <motion.div
+        ref={editorRootRef}
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2 }}
@@ -114,15 +282,41 @@ function NotePage() {
           onAddStroke={(s) => addStroke(id, s)}
           onUndoStroke={() => undoStroke(id)}
           onRedoStroke={() => redoStroke(id)}
-
           onClearStrokes={() => clearStrokes(id)}
           onEraseStroke={eraseStroke}
           onReplaceStrokes={(strokes) => updateNote(id, { strokes })}
           onCommitErase={(prev, next) => commitErase(id, prev, next)}
         />
-
       </motion.div>
     </div>
+  );
+}
+
+function getSaveStatus({
+  cloudActive, dirty, cloudStatus,
+}: { cloudActive: boolean; dirty: boolean; cloudStatus: CloudStatus }) {
+  if (!cloudActive) {
+    return { label: "Saved locally", Icon: Check, color: "text-emerald-500", spin: false };
+  }
+  if (cloudStatus === "offline") return { label: "Offline", Icon: CloudOff, color: "text-orange-500", spin: false };
+  if (cloudStatus === "error") return { label: "Save failed", Icon: CloudOff, color: "text-red-500", spin: false };
+  if (cloudStatus === "syncing") return { label: "Saving…", Icon: Loader2, color: "text-blue-500", spin: true };
+  if (dirty) return { label: "Unsaved", Icon: Save, color: "text-primary", spin: false };
+  return { label: "Saved", Icon: Check, color: "text-emerald-500", spin: false };
+}
+
+function MenuItem({
+  icon, label, shortcut, onClick,
+}: { icon: React.ReactNode; label: string; shortcut?: string; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-sm hover:bg-accent transition text-left"
+    >
+      <span className="text-muted-foreground">{icon}</span>
+      <span className="flex-1">{label}</span>
+      {shortcut && <span className="text-[10px] text-muted-foreground">{shortcut}</span>}
+    </button>
   );
 }
 

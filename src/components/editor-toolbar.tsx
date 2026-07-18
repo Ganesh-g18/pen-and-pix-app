@@ -1,5 +1,8 @@
-import { Pen, Highlighter, Eraser, Type, MousePointer2, Undo2, Redo2, Trash2, ChevronDown } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import {
+  Pen, PenTool, Pencil, Paintbrush, Highlighter, Eraser, Type, MousePointer2,
+  Undo2, Redo2, Trash2, ChevronDown, Circle, CircleDashed,
+} from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { PenStyle } from "@/lib/store";
 
 export type EditorTool = "select" | "text" | "pen" | "highlighter" | "eraser";
@@ -14,6 +17,13 @@ const PEN_LIBRARY: { id: PenStyle; label: string; desc: string }[] = [
   { id: "marker", label: "Marker", desc: "Thick, opaque strokes" },
   { id: "pencil", label: "Pencil", desc: "Soft, sketchy texture" },
 ];
+
+const PEN_ICON: Record<PenStyle, typeof Pen> = {
+  ballpoint: Pen,
+  fountain: PenTool,
+  marker: Paintbrush,
+  pencil: Pencil,
+};
 
 interface Props {
   tool: EditorTool;
@@ -31,7 +41,6 @@ interface Props {
   onUndo: () => void;
   onRedo: () => void;
   onClear: () => void;
-
 }
 
 export function EditorToolbar({
@@ -56,7 +65,7 @@ export function EditorToolbar({
   }, []);
 
   const btn = (active: boolean) =>
-    `grid h-9 w-9 shrink-0 place-items-center rounded-lg transition ${
+    `grid h-7 w-7 shrink-0 place-items-center rounded-md transition ${
       active ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-accent hover:text-foreground"
     }`;
 
@@ -65,103 +74,116 @@ export function EditorToolbar({
   const setActiveColor = tool === "highlighter" ? onHighlighterColorChange : onColorChange;
   const swatches = tool === "highlighter" ? HIGHLIGHT_COLORS : COLORS;
 
-  const popover = "fixed left-1/2 -translate-x-1/2 bottom-16 z-50";
+  const popover = "fixed left-1/2 -translate-x-1/2 bottom-14 z-50";
+
+  const PenIcon = useMemo(() => PEN_ICON[penStyle] ?? Pen, [penStyle]);
+  const EraserIcon = eraserMode === "spot" ? CircleDashed : Eraser;
 
   return (
     <div
       ref={rootRef}
-      className="pointer-events-auto fixed left-1/2 bottom-3 z-40 -translate-x-1/2 max-w-[calc(100vw-1rem)] rounded-xl glass-strong shadow-float backdrop-blur-xl"
+      className="pointer-events-auto fixed left-1/2 bottom-3 z-40 -translate-x-1/2 max-w-[calc(100vw-1rem)] rounded-lg glass-strong shadow-float backdrop-blur-xl"
       role="toolbar"
       aria-label="Editor tools"
     >
-      <div className="flex items-center gap-1 overflow-x-auto no-scrollbar px-2 py-1.5">
+      <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar px-1.5 py-1">
         <button className={btn(tool === "select")} onClick={() => onToolChange("select")} title="Select (V)" aria-label="Select">
-          <MousePointer2 className="h-4 w-4" />
+          <MousePointer2 className="h-3.5 w-3.5" />
         </button>
         <button className={btn(tool === "text")} onClick={() => onToolChange("text")} title="Text (T)" aria-label="Text">
-          <Type className="h-4 w-4" />
+          <Type className="h-3.5 w-3.5" />
         </button>
 
-        {/* Pen with library popover */}
+        {/* Pen with dynamic icon + library popover */}
         <div className="relative flex shrink-0 items-center">
           <button
             className={btn(isPen)}
             onClick={() => { onToolChange("pen"); if (isPen) setPenOpen((v) => !v); }}
-            title={`Pen · ${penStyle} (P)`}
-            aria-label="Pen"
+            title={`Pen · ${penStyle}`}
+            aria-label={`Pen — ${penStyle}`}
           >
-            <Pen className="h-4 w-4" />
+            <PenIcon className="h-3.5 w-3.5 transition-all duration-200" />
           </button>
           <button
-            className="grid h-9 w-3 place-items-center text-muted-foreground hover:text-foreground"
+            className="grid h-7 w-2.5 place-items-center text-muted-foreground hover:text-foreground"
             onClick={() => { onToolChange("pen"); setPenOpen((v) => !v); }}
             aria-label="Pen library"
           >
-            <ChevronDown className="h-3 w-3" />
+            <ChevronDown className="h-2.5 w-2.5" />
           </button>
           {penOpen && (
             <div className={`${popover} w-60 rounded-xl bg-card text-card-foreground border border-border p-2 shadow-float`}>
-              {PEN_LIBRARY.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => { onPenStyleChange(p.id); setPenOpen(false); }}
-                  className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition ${
-                    penStyle === p.id ? "bg-primary/15 text-primary" : "hover:bg-accent"
-                  }`}
-                >
-                  <PenPreview style={p.id} color={color} />
-                  <div className="min-w-0 flex-1">
-                    <div className="font-medium">{p.label}</div>
-                    <div className="text-xs text-muted-foreground">{p.desc}</div>
-                  </div>
-                </button>
-              ))}
+              {PEN_LIBRARY.map((p) => {
+                const Ico = PEN_ICON[p.id];
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => { onPenStyleChange(p.id); setPenOpen(false); }}
+                    className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition ${
+                      penStyle === p.id ? "bg-primary/15 text-primary" : "hover:bg-accent"
+                    }`}
+                  >
+                    <Ico className="h-4 w-4 shrink-0" style={{ color }} />
+                    <PenPreview style={p.id} color={color} />
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium">{p.label}</div>
+                      <div className="text-xs text-muted-foreground">{p.desc}</div>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
 
         <button className={btn(tool === "highlighter")} onClick={() => onToolChange("highlighter")} title="Highlighter (H)" aria-label="Highlighter">
-          <Highlighter className="h-4 w-4" />
+          <Highlighter className="h-3.5 w-3.5" />
         </button>
 
-        {/* Eraser with mode popover */}
+        {/* Eraser with dynamic icon + mode popover */}
         <div className="relative flex shrink-0 items-center">
           <button
             className={btn(tool === "eraser")}
             onClick={() => { onToolChange("eraser"); if (tool === "eraser") setEraserOpen((v) => !v); }}
             title={`Eraser · ${eraserMode} (E)`}
-            aria-label="Eraser"
+            aria-label={`Eraser — ${eraserMode}`}
           >
-            <Eraser className="h-4 w-4" />
+            <EraserIcon className="h-3.5 w-3.5 transition-all duration-200" />
           </button>
           <button
-            className="grid h-9 w-3 place-items-center text-muted-foreground hover:text-foreground"
+            className="grid h-7 w-2.5 place-items-center text-muted-foreground hover:text-foreground"
             onClick={() => { onToolChange("eraser"); setEraserOpen((v) => !v); }}
             aria-label="Eraser mode"
           >
-            <ChevronDown className="h-3 w-3" />
+            <ChevronDown className="h-2.5 w-2.5" />
           </button>
           {eraserOpen && (
-            <div className={`${popover} w-52 rounded-xl bg-card text-card-foreground border border-border p-2 shadow-float`}>
-              {(["stroke", "spot"] as EraserMode[]).map((m) => (
-                <button
-                  key={m}
-                  onClick={() => { onEraserModeChange(m); setEraserOpen(false); }}
-                  className={`flex w-full flex-col rounded-lg px-2.5 py-2 text-left text-sm transition ${
-                    eraserMode === m ? "bg-primary/15 text-primary" : "hover:bg-accent"
-                  }`}
-                >
-                  <span className="font-medium capitalize">{m} eraser</span>
-                  <span className="text-xs text-muted-foreground">
-                    {m === "stroke" ? "Remove entire strokes on touch" : "Erase only the touched portion"}
-                  </span>
-                </button>
-              ))}
+            <div className={`${popover} w-56 rounded-xl bg-card text-card-foreground border border-border p-2 shadow-float`}>
+              {(["stroke", "spot"] as EraserMode[]).map((m) => {
+                const Ico = m === "spot" ? CircleDashed : Eraser;
+                return (
+                  <button
+                    key={m}
+                    onClick={() => { onEraserModeChange(m); setEraserOpen(false); }}
+                    className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition ${
+                      eraserMode === m ? "bg-primary/15 text-primary" : "hover:bg-accent"
+                    }`}
+                  >
+                    <Ico className="h-4 w-4 shrink-0" />
+                    <div>
+                      <div className="font-medium capitalize">{m} eraser</div>
+                      <div className="text-xs text-muted-foreground">
+                        {m === "stroke" ? "Remove entire strokes on touch" : "Erase only the touched portion"}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
 
-        <div className="mx-1.5 h-5 w-px shrink-0 bg-border" />
+        <div className="mx-1 h-4 w-px shrink-0 bg-border" />
 
         <input
           type="range"
@@ -170,24 +192,24 @@ export function EditorToolbar({
           step={0.5}
           value={size}
           onChange={(e) => onSizeChange(Number(e.target.value))}
-          className="h-1.5 w-20 shrink-0 accent-primary"
+          className="h-1 w-16 shrink-0 accent-primary"
           aria-label="Brush size"
           title={`Size ${size}px`}
         />
-        <div className="mx-1 grid h-6 w-6 shrink-0 place-items-center">
+        <div className="mx-0.5 grid h-5 w-5 shrink-0 place-items-center">
           <span
             className="rounded-full"
-            style={{ background: activeColor, width: Math.min(size + 2, 16), height: Math.min(size + 2, 16) }}
+            style={{ background: activeColor, width: Math.min(size + 2, 14), height: Math.min(size + 2, 14) }}
           />
         </div>
 
-        <div className="mx-1.5 h-5 w-px shrink-0 bg-border" />
+        <div className="mx-1 h-4 w-px shrink-0 bg-border" />
 
-        {/* Spectrum color picker only */}
+        {/* Spectrum color picker */}
         <div className="relative flex shrink-0 items-center">
           <button
             onClick={() => setColorOpen((v) => !v)}
-            className="h-6 w-6 rounded-full ring-2 ring-border transition hover:scale-110"
+            className="h-5 w-5 rounded-full ring-2 ring-border transition hover:scale-110"
             style={{
               background:
                 "conic-gradient(from 0deg, #ef4444, #eab308, #22c55e, #06b6d4, #6366f1, #a855f7, #ec4899, #ef4444)",
@@ -201,18 +223,19 @@ export function EditorToolbar({
                 value={activeColor}
                 onChange={setActiveColor}
                 onClose={() => setColorOpen(false)}
+                swatches={swatches}
               />
             </div>
           )}
         </div>
 
-        <div className="mx-1.5 h-5 w-px shrink-0 bg-border" />
+        <div className="mx-1 h-4 w-px shrink-0 bg-border" />
 
         <button className={btn(false)} onClick={onUndo} title="Undo (⌘Z)" aria-label="Undo">
-          <Undo2 className="h-4 w-4" />
+          <Undo2 className="h-3.5 w-3.5" />
         </button>
         <button className={btn(false)} onClick={onRedo} title="Redo (⌘⇧Z)" aria-label="Redo">
-          <Redo2 className="h-4 w-4" />
+          <Redo2 className="h-3.5 w-3.5" />
         </button>
 
         <button
@@ -221,7 +244,7 @@ export function EditorToolbar({
           title="Clear ink"
           aria-label="Clear ink"
         >
-          <Trash2 className="h-4 w-4" />
+          <Trash2 className="h-3.5 w-3.5" />
         </button>
       </div>
     </div>
@@ -240,7 +263,7 @@ function PenPreview({ style, color }: { style: PenStyle; color: string }) {
   const width = style === "marker" ? 6 : style === "fountain" ? 2.5 : style === "pencil" ? 1.4 : 2;
   const opacity = style === "marker" ? 0.9 : style === "pencil" ? 0.7 : 1;
   return (
-    <svg width="28" height="16" viewBox="0 0 24 16" className="shrink-0">
+    <svg width="24" height="14" viewBox="0 0 24 16" className="shrink-0">
       <path
         d={path}
         fill="none"
@@ -255,8 +278,8 @@ function PenPreview({ style, color }: { style: PenStyle; color: string }) {
 }
 
 function SpectrumPicker({
-  value, onChange, onClose,
-}: { value: string; onChange: (c: string) => void; onClose: () => void }) {
+  value, onChange, onClose, swatches,
+}: { value: string; onChange: (c: string) => void; onClose: () => void; swatches: string[] }) {
   const [h, s, l] = hexToHsl(value);
   const [hue, setHue] = useState(h);
   const [sat, setSat] = useState(s);
@@ -286,6 +309,17 @@ function SpectrumPicker({
           aria-label="Hex color"
         />
         <button onClick={onClose} className="text-xs text-muted-foreground hover:text-foreground">Done</button>
+      </div>
+      <div className="mb-2 flex flex-wrap gap-1">
+        {swatches.map((sw) => (
+          <button
+            key={sw}
+            onClick={() => onChange(sw)}
+            className="h-5 w-5 rounded-md ring-1 ring-border hover:scale-110 transition"
+            style={{ background: sw }}
+            aria-label={`Color ${sw}`}
+          />
+        ))}
       </div>
       <label className="mb-1 block text-[10px] text-muted-foreground">Hue</label>
       <input
