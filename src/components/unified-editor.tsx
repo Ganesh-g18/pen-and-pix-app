@@ -312,9 +312,14 @@ export function UnifiedEditor({
   }, [onUndoStroke, onRedoStroke, tool]);
 
 
+  useEffect(() => {
+    if (tool !== "eraser") setEraserCursor(null);
+  }, [tool]);
 
   const cursor =
-    tool === "eraser" ? "crosshair" : tool === "pen" || tool === "highlighter" ? "crosshair" : "text";
+    tool === "eraser" ? "none" : tool === "pen" || tool === "highlighter" ? "crosshair" : "text";
+
+  const eraserRadius = (eraserMode === "spot" ? 10 : 14) + size * 1.5;
 
   return (
     <div className="relative flex-1 min-h-0">
