@@ -100,7 +100,7 @@ export function EditorToolbar({
             <ChevronDown className="h-3 w-3" />
           </button>
           {penOpen && (
-            <div className={`${popover} w-60 rounded-xl glass-strong border border-border/60 p-2 shadow-float`}>
+            <div className={`${popover} w-60 rounded-xl bg-card text-card-foreground border border-border p-2 shadow-float`}>
               {PEN_LIBRARY.map((p) => (
                 <button
                   key={p.id}
@@ -142,7 +142,7 @@ export function EditorToolbar({
             <ChevronDown className="h-3 w-3" />
           </button>
           {eraserOpen && (
-            <div className={`${popover} w-52 rounded-xl glass-strong border border-border/60 p-2 shadow-float`}>
+            <div className={`${popover} w-52 rounded-xl bg-card text-card-foreground border border-border p-2 shadow-float`}>
               {(["stroke", "spot"] as EraserMode[]).map((m) => (
                 <button
                   key={m}
@@ -272,7 +272,7 @@ function SpectrumPicker({
   };
 
   return (
-    <div className="w-64 rounded-xl glass-strong border border-border/60 p-3 shadow-float">
+    <div className="w-64 rounded-xl bg-card text-card-foreground border border-border p-3 shadow-float">
       <div className="mb-2 flex items-center gap-2">
         <span className="h-7 w-7 rounded-lg border border-border" style={{ background: value }} />
         <input
