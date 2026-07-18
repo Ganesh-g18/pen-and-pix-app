@@ -86,6 +86,14 @@ export interface Settings {
   displayName: string;
   username: string;
   avatarUrl: string;
+  pinnedPens: PinnedPen[];
+}
+
+export interface PinnedPen {
+  id: string;
+  style: PenStyle;
+  color: string;
+  size: number;
 }
 
 interface State {
