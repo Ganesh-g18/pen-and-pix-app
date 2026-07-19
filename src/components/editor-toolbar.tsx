@@ -362,37 +362,18 @@ export const EditorToolbar = memo(function EditorToolbar({
                 p.color.toLowerCase() === activeConfig.color.toLowerCase() &&
                 p.size === activeConfig.size;
               return (
-                <div
+                <PinnedPenItem
                   key={p.id}
-                  draggable
+                  pen={p}
+                  active={active}
+                  dragOver={dragOver === p.id}
                   onDragStart={onDragStart(p.id)}
                   onDragOver={onDragOver(p.id)}
                   onDrop={onDrop(p.id)}
                   onDragEnd={onDragEnd}
-                  className={`group relative flex shrink-0 items-center ${
-                    dragOver === p.id ? "ring-2 ring-primary/40 rounded-md" : ""
-                  }`}
-                  title={p.name ?? `${p.style} · ${p.color} · ${p.size}px`}
-                >
-                  <button
-                    onClick={() => onApplyPinned(p)}
-                    className={`grid h-8 w-8 place-items-center rounded-md transition ring-2 ${
-                      active ? "bg-primary/15" : "hover:bg-accent"
-                    }`}
-                    style={{ borderColor: "transparent", boxShadow: `inset 0 0 0 2px ${p.color}55` }}
-                    aria-label={`Pinned ${p.style}`}
-                  >
-                    <PinnedGlyph pen={p} />
-                  </button>
-                  <button
-                    onClick={() => removePinned(p.id)}
-                    className="absolute -right-1 -top-1 hidden h-3.5 w-3.5 place-items-center rounded-full bg-foreground/70 text-background group-hover:grid"
-                    aria-label="Remove pinned pen"
-                  >
-                    <X className="h-2.5 w-2.5" />
-                  </button>
-                  <GripVertical className="pointer-events-none absolute -left-1 top-1/2 h-2.5 w-2.5 -translate-y-1/2 text-muted-foreground/0 group-hover:text-muted-foreground/60" />
-                </div>
+                  onApply={() => onApplyPinned(p)}
+                  onRemove={() => removePinned(p.id)}
+                />
               );
             })}
             <button
