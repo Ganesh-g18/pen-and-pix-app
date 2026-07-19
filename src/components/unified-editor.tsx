@@ -482,7 +482,7 @@ function renderStrokePath(s: Stroke, isDrawing: boolean, pressureOn: boolean) {
 
   if (wantsVariable && s.points.length >= 6) {
     // Emit stacked segments with per-sample width — cheap and legible.
-    const segs: JSX.Element[] = [];
+    const segs: React.ReactElement[] = [];
     for (let i = 0; i + 5 < s.points.length; i += 3) {
       const x1 = s.points[i], y1 = s.points[i + 1], p1 = s.points[i + 2] || 0.5;
       const x2 = s.points[i + 3], y2 = s.points[i + 4], p2 = s.points[i + 5] || 0.5;
