@@ -94,6 +94,18 @@ export interface PinnedPen {
   style: PenStyle;
   color: string;
   size: number;
+  opacity?: number;
+  pressure?: boolean;
+  smoothing?: boolean;
+  name?: string;
+}
+
+export interface ToolPreset {
+  color: string;
+  size: number;
+  opacity: number;
+  pressure: boolean;
+  smoothing: boolean;
 }
 
 interface State {
