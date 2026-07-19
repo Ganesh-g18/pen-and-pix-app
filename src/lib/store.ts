@@ -87,6 +87,10 @@ export interface Settings {
   username: string;
   avatarUrl: string;
   pinnedPens: PinnedPen[];
+  toolPresets?: Partial<Record<PenStyle | "highlighter", ToolPreset>>;
+  eraserPreset?: { mode: "stroke" | "spot"; size: number; softness: number };
+  recentColors?: string[];
+  savedColors?: string[];
 }
 
 export interface PinnedPen {
