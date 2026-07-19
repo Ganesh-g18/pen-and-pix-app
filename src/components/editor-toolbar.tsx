@@ -22,6 +22,7 @@ import {
   BookmarkPlus,
 } from "lucide-react";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { PenStyle, PinnedPen, ToolPreset } from "@/lib/store";
 import { useStore } from "@/lib/store";
 
@@ -1002,28 +1003,30 @@ function PinnedPenItem({
         <PinnedGlyph pen={pen} />
       </button>
       <GripVertical className="pointer-events-none absolute -left-1 top-1/2 h-2.5 w-2.5 -translate-y-1/2 text-muted-foreground/0 group-hover:text-muted-foreground/60" />
-      {confirming && popoverPos && (
-        <div
-          className="fixed z-[100] -translate-x-1/2 -translate-y-full pb-1"
-          style={{ top: popoverPos.top, left: popoverPos.left }}
-          data-pinned-id={pen.id}
-        >
+      {confirming && popoverPos &&
+        createPortal(
           <div
-            className="flex items-center gap-1 rounded-lg border border-destructive/40 bg-card text-card-foreground shadow-lg px-2 py-1.5"
-            onMouseDown={(e) => e.stopPropagation()}
+            className="fixed z-[1000] -translate-x-1/2 -translate-y-full pb-1"
+            style={{ top: popoverPos.top, left: popoverPos.left }}
+            data-pinned-id={pen.id}
           >
-            <button
-              onClick={() => {
-                setConfirming(false);
-                onRemove();
-              }}
-              className="flex items-center gap-1 whitespace-nowrap text-[11px] font-medium text-destructive hover:bg-destructive/10 rounded px-1 py-0.5"
+            <div
+              className="flex items-center gap-1 rounded-lg border border-destructive/40 bg-card px-2 py-1.5 text-card-foreground shadow-lg"
+              onMouseDown={(e) => e.stopPropagation()}
             >
-              <X className="h-3 w-3" /> Delete pin
-            </button>
-          </div>
-        </div>
-      )}
+              <button
+                onClick={() => {
+                  setConfirming(false);
+                  onRemove();
+                }}
+                className="flex items-center gap-1 whitespace-nowrap rounded px-1 py-0.5 text-[11px] font-medium text-destructive hover:bg-destructive/10"
+              >
+                <X className="h-3 w-3" /> Delete pin
+              </button>
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }
