@@ -210,11 +210,22 @@ const defaultSettings: Settings = {
   username: "",
   avatarUrl: "",
   pinnedPens: [
-    { id: "pp-1", style: "ballpoint", color: "#0b0b0f", size: 2 },
-    { id: "pp-2", style: "fountain", color: "#1e3a8a", size: 2.5 },
-    { id: "pp-3", style: "marker", color: "#dc2626", size: 6 },
-    { id: "pp-4", style: "pencil", color: "#374151", size: 1.5 },
+    { id: "pp-1", style: "ballpoint", color: "#0b0b0f", size: 2, opacity: 1, pressure: true, smoothing: true, name: "Black Ballpoint" },
+    { id: "pp-2", style: "fountain", color: "#1e3a8a", size: 2.5, opacity: 1, pressure: true, smoothing: true, name: "Blue Fountain" },
+    { id: "pp-3", style: "marker", color: "#dc2626", size: 6, opacity: 0.9, pressure: false, smoothing: true, name: "Red Marker" },
+    { id: "pp-4", style: "pencil", color: "#374151", size: 1.5, opacity: 0.75, pressure: true, smoothing: false, name: "HB Pencil" },
   ],
+  toolPresets: {
+    ballpoint: { color: "#0b0b0f", size: 2, opacity: 1, pressure: true, smoothing: true },
+    fountain:  { color: "#1e3a8a", size: 2.5, opacity: 1, pressure: true, smoothing: true },
+    marker:    { color: "#dc2626", size: 6, opacity: 0.9, pressure: false, smoothing: true },
+    pencil:    { color: "#374151", size: 1.5, opacity: 0.75, pressure: true, smoothing: false },
+    brush:     { color: "#0b0b0f", size: 5, opacity: 0.95, pressure: true, smoothing: true },
+    highlighter: { color: "#fde68a", size: 14, opacity: 0.35, pressure: false, smoothing: true },
+  },
+  eraserPreset: { mode: "stroke", size: 8, softness: 0 },
+  recentColors: [],
+  savedColors: ["#0b0b0f", "#2563eb", "#dc2626", "#059669", "#eab308", "#a855f7"],
 };
 
 export const useStore = create<State>()(
