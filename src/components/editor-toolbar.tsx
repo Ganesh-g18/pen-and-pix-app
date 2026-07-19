@@ -349,8 +349,9 @@ export const EditorToolbar = memo(function EditorToolbar({
                 lpFired.current = false;
                 return;
               }
+              setPenOpen(false); setEraserOpen(false); setPenListOpen(false);
               if (isHi) setHiOpen((v) => !v);
-              else onToolChange("highlighter");
+              else { onToolChange("highlighter"); setHiOpen(false); }
             }}
             title="Highlighter (long-press for settings)"
             aria-label="Highlighter"
