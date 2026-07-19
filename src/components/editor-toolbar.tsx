@@ -499,15 +499,16 @@ export const EditorToolbar = memo(function EditorToolbar({
 
         <div className="mx-1 h-5 w-px shrink-0 bg-border" />
 
-        <button className={btn(false)} onClick={onUndo} title="Undo (⌘Z)" aria-label="Undo">
+        <button className={btn(false)} onClick={() => { closeAllPopovers(); onUndo(); }} title="Undo (⌘Z)" aria-label="Undo">
           <Undo2 className="h-4 w-4" />
         </button>
-        <button className={btn(false)} onClick={onRedo} title="Redo (⌘⇧Z)" aria-label="Redo">
+        <button className={btn(false)} onClick={() => { closeAllPopovers(); onRedo(); }} title="Redo (⌘⇧Z)" aria-label="Redo">
           <Redo2 className="h-4 w-4" />
         </button>
         <button
           className={btn(false)}
           onClick={() => {
+            closeAllPopovers();
             if (confirm("Clear all ink strokes?")) onClear();
           }}
           title="Clear ink"
