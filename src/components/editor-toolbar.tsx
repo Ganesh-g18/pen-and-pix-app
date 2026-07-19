@@ -397,8 +397,9 @@ export const EditorToolbar = memo(function EditorToolbar({
                 lpFired.current = false;
                 return;
               }
+              setPenOpen(false); setHiOpen(false); setPenListOpen(false);
               if (tool === "eraser") setEraserOpen((v) => !v);
-              else onToolChange("eraser");
+              else { onToolChange("eraser"); setEraserOpen(false); }
             }}
             title={`Eraser · ${eraserMode} (long-press for settings)`}
             aria-label={`Eraser — ${eraserMode}`}
