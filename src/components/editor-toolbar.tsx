@@ -989,7 +989,7 @@ function PinnedPenItem({
       <GripVertical className="pointer-events-none absolute -left-1 top-1/2 h-2.5 w-2.5 -translate-y-1/2 text-muted-foreground/0 group-hover:text-muted-foreground/60" />
       {confirming && (
         <div
-          className="absolute left-1/2 top-full z-50 mt-1.5 -translate-x-1/2 rounded-md border border-border bg-card text-card-foreground shadow-lg"
+          className="absolute left-1/2 bottom-full z-50 mb-1.5 -translate-x-1/2 rounded-md border border-border bg-card text-card-foreground shadow-lg"
           onMouseDown={(e) => e.stopPropagation()}
         >
           <button
