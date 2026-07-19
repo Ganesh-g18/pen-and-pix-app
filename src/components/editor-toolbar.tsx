@@ -273,6 +273,7 @@ export const EditorToolbar = memo(function EditorToolbar({
           <button
             className="grid h-8 w-3 place-items-center text-muted-foreground hover:text-foreground"
             onClick={() => {
+              setPenOpen(false); setHiOpen(false); setEraserOpen(false);
               onToolChange("pen");
               setPenListOpen((v) => !v);
             }}
