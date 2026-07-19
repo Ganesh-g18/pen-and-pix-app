@@ -911,6 +911,8 @@ function PinnedPenItem({
   const timerRef = useRef<number | null>(null);
   const longFiredRef = useRef(false);
   const downPosRef = useRef<{ x: number; y: number } | null>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [popoverPos, setPopoverPos] = useState<{ top: number; left: number } | null>(null);
 
   const clearTimer = () => {
     if (timerRef.current) {
@@ -938,13 +940,25 @@ function PinnedPenItem({
   };
 
   useEffect(() => {
-    if (!confirming) return;
+    if (!confirming) {
+      setPopoverPos(null);
+      return;
+    }
+    const measure = () => {
+      const rect = buttonRef.current?.getBoundingClientRect();
+      if (rect) setPopoverPos({ top: rect.top, left: rect.left + rect.width / 2 });
+    };
+    measure();
     const onDown = (e: MouseEvent) => {
       const t = e.target as HTMLElement;
       if (!t.closest(`[data-pinned-id="${pen.id}"]`)) setConfirming(false);
     };
     window.addEventListener("mousedown", onDown);
-    return () => window.removeEventListener("mousedown", onDown);
+    window.addEventListener("resize", measure);
+    return () => {
+      window.removeEventListener("mousedown", onDown);
+      window.removeEventListener("resize", measure);
+    };
   }, [confirming, pen.id]);
 
   useEffect(() => () => clearTimer(), []);
@@ -961,6 +975,7 @@ function PinnedPenItem({
       title={pen.name ?? `${pen.style} · ${pen.color} · ${pen.size}px  (long-press or right-click to delete)`}
     >
       <button
+        ref={buttonRef}
         onClick={() => {
           if (longFiredRef.current) {
             longFiredRef.current = false;
@@ -987,20 +1002,26 @@ function PinnedPenItem({
         <PinnedGlyph pen={pen} />
       </button>
       <GripVertical className="pointer-events-none absolute -left-1 top-1/2 h-2.5 w-2.5 -translate-y-1/2 text-muted-foreground/0 group-hover:text-muted-foreground/60" />
-      {confirming && (
+      {confirming && popoverPos && (
         <div
-          className="absolute inset-0 z-50 flex items-center justify-center rounded-md border border-destructive/40 bg-card text-card-foreground shadow-lg"
-          onMouseDown={(e) => e.stopPropagation()}
+          className="fixed z-[100] -translate-x-1/2 -translate-y-full pb-1"
+          style={{ top: popoverPos.top, left: popoverPos.left }}
+          data-pinned-id={pen.id}
         >
-          <button
-            onClick={() => {
-              setConfirming(false);
-              onRemove();
-            }}
-            className="flex items-center gap-1 whitespace-nowrap px-1.5 py-1 text-[10px] font-medium text-destructive hover:bg-destructive/10 rounded"
+          <div
+            className="flex items-center gap-1 rounded-lg border border-destructive/40 bg-card text-card-foreground shadow-lg px-2 py-1.5"
+            onMouseDown={(e) => e.stopPropagation()}
           >
-            <X className="h-3 w-3" /> Delete
-          </button>
+            <button
+              onClick={() => {
+                setConfirming(false);
+                onRemove();
+              }}
+              className="flex items-center gap-1 whitespace-nowrap text-[11px] font-medium text-destructive hover:bg-destructive/10 rounded px-1 py-0.5"
+            >
+              <X className="h-3 w-3" /> Delete pin
+            </button>
+          </div>
         </div>
       )}
     </div>
