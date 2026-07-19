@@ -226,7 +226,7 @@ export const EditorToolbar = memo(function EditorToolbar({
       <div className="flex items-center gap-1 overflow-x-auto no-scrollbar px-2 py-1.5">
         <button
           className={btn(tool === "select")}
-          onClick={() => onToolChange("select")}
+          onClick={() => { closeAllPopovers(); onToolChange("select"); }}
           title="Select (V)"
           aria-label="Select"
         >
@@ -234,7 +234,7 @@ export const EditorToolbar = memo(function EditorToolbar({
         </button>
         <button
           className={btn(tool === "text")}
-          onClick={() => onToolChange("text")}
+          onClick={() => { closeAllPopovers(); onToolChange("text"); }}
           title="Text (T)"
           aria-label="Text"
         >
