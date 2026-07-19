@@ -910,6 +910,7 @@ function PinnedPenItem({
   const [confirming, setConfirming] = useState(false);
   const timerRef = useRef<number | null>(null);
   const longFiredRef = useRef(false);
+  const downPosRef = useRef<{ x: number; y: number } | null>(null);
 
   const clearTimer = () => {
     if (timerRef.current) {
@@ -918,13 +919,22 @@ function PinnedPenItem({
     }
   };
 
-  const startLongPress = () => {
+  const startLongPress = (e: React.PointerEvent) => {
     longFiredRef.current = false;
+    downPosRef.current = { x: e.clientX, y: e.clientY };
     clearTimer();
     timerRef.current = window.setTimeout(() => {
       longFiredRef.current = true;
+      timerRef.current = null;
       setConfirming(true);
-    }, 300);
+    }, 500);
+  };
+
+  const maybeCancelOnMove = (e: React.PointerEvent) => {
+    if (!timerRef.current || !downPosRef.current) return;
+    const dx = e.clientX - downPosRef.current.x;
+    const dy = e.clientY - downPosRef.current.y;
+    if (dx * dx + dy * dy > 64) clearTimer(); // > 8px
   };
 
   useEffect(() => {
@@ -943,7 +953,7 @@ function PinnedPenItem({
     <div
       data-pinned-id={pen.id}
       draggable
-      onDragStart={onDragStart}
+      onDragStart={(e) => { clearTimer(); onDragStart(e); }}
       onDragOver={onDragOver}
       onDrop={onDrop}
       onDragEnd={onDragEnd}
@@ -959,12 +969,13 @@ function PinnedPenItem({
           onApply();
         }}
         onPointerDown={startLongPress}
+        onPointerMove={maybeCancelOnMove}
         onPointerUp={clearTimer}
-        onPointerLeave={clearTimer}
         onPointerCancel={clearTimer}
         onContextMenu={(e) => {
           e.preventDefault();
           clearTimer();
+          longFiredRef.current = true;
           setConfirming(true);
         }}
         className={`grid h-8 w-8 place-items-center rounded-md transition ring-2 ${
