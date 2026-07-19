@@ -100,6 +100,13 @@ export const EditorToolbar = memo(function EditorToolbar({
   const [hiOpen, setHiOpen] = useState(false);
   const [eraserOpen, setEraserOpen] = useState(false);
 
+  const closeAllPopovers = () => {
+    setPenOpen(false);
+    setHiOpen(false);
+    setEraserOpen(false);
+    setPenListOpen(false);
+  };
+
   const rootRef = useRef<HTMLDivElement>(null);
   const lpTimer = useRef<number | null>(null);
   const lpFired = useRef(false);
@@ -107,10 +114,7 @@ export const EditorToolbar = memo(function EditorToolbar({
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
       if (!rootRef.current?.contains(e.target as Node)) {
-        setPenOpen(false);
-        setHiOpen(false);
-        setEraserOpen(false);
-        setPenListOpen(false);
+        closeAllPopovers();
       }
     };
     document.addEventListener("mousedown", onDoc);
@@ -222,7 +226,7 @@ export const EditorToolbar = memo(function EditorToolbar({
       <div className="flex items-center gap-1 overflow-x-auto no-scrollbar px-2 py-1.5">
         <button
           className={btn(tool === "select")}
-          onClick={() => onToolChange("select")}
+          onClick={() => { closeAllPopovers(); onToolChange("select"); }}
           title="Select (V)"
           aria-label="Select"
         >
@@ -230,7 +234,7 @@ export const EditorToolbar = memo(function EditorToolbar({
         </button>
         <button
           className={btn(tool === "text")}
-          onClick={() => onToolChange("text")}
+          onClick={() => { closeAllPopovers(); onToolChange("text"); }}
           title="Text (T)"
           aria-label="Text"
         >
@@ -256,8 +260,9 @@ export const EditorToolbar = memo(function EditorToolbar({
                 lpFired.current = false;
                 return;
               }
+              setHiOpen(false); setEraserOpen(false); setPenListOpen(false);
               if (isPen) setPenOpen((v) => !v);
-              else onToolChange("pen");
+              else { onToolChange("pen"); setPenOpen(false); }
             }}
             title={`Pen · ${penStyle} (long-press or right-click for settings)`}
             aria-label={`Pen — ${penStyle}`}
@@ -268,6 +273,7 @@ export const EditorToolbar = memo(function EditorToolbar({
           <button
             className="grid h-8 w-3 place-items-center text-muted-foreground hover:text-foreground"
             onClick={() => {
+              setPenOpen(false); setHiOpen(false); setEraserOpen(false);
               onToolChange("pen");
               setPenListOpen((v) => !v);
             }}
@@ -343,8 +349,9 @@ export const EditorToolbar = memo(function EditorToolbar({
                 lpFired.current = false;
                 return;
               }
+              setPenOpen(false); setEraserOpen(false); setPenListOpen(false);
               if (isHi) setHiOpen((v) => !v);
-              else onToolChange("highlighter");
+              else { onToolChange("highlighter"); setHiOpen(false); }
             }}
             title="Highlighter (long-press for settings)"
             aria-label="Highlighter"
@@ -390,8 +397,9 @@ export const EditorToolbar = memo(function EditorToolbar({
                 lpFired.current = false;
                 return;
               }
+              setPenOpen(false); setHiOpen(false); setPenListOpen(false);
               if (tool === "eraser") setEraserOpen((v) => !v);
-              else onToolChange("eraser");
+              else { onToolChange("eraser"); setEraserOpen(false); }
             }}
             title={`Eraser · ${eraserMode} (long-press for settings)`}
             aria-label={`Eraser — ${eraserMode}`}
@@ -491,15 +499,16 @@ export const EditorToolbar = memo(function EditorToolbar({
 
         <div className="mx-1 h-5 w-px shrink-0 bg-border" />
 
-        <button className={btn(false)} onClick={onUndo} title="Undo (⌘Z)" aria-label="Undo">
+        <button className={btn(false)} onClick={() => { closeAllPopovers(); onUndo(); }} title="Undo (⌘Z)" aria-label="Undo">
           <Undo2 className="h-4 w-4" />
         </button>
-        <button className={btn(false)} onClick={onRedo} title="Redo (⌘⇧Z)" aria-label="Redo">
+        <button className={btn(false)} onClick={() => { closeAllPopovers(); onRedo(); }} title="Redo (⌘⇧Z)" aria-label="Redo">
           <Redo2 className="h-4 w-4" />
         </button>
         <button
           className={btn(false)}
           onClick={() => {
+            closeAllPopovers();
             if (confirm("Clear all ink strokes?")) onClear();
           }}
           title="Clear ink"
@@ -901,6 +910,7 @@ function PinnedPenItem({
   const [confirming, setConfirming] = useState(false);
   const timerRef = useRef<number | null>(null);
   const longFiredRef = useRef(false);
+  const downPosRef = useRef<{ x: number; y: number } | null>(null);
 
   const clearTimer = () => {
     if (timerRef.current) {
@@ -909,13 +919,22 @@ function PinnedPenItem({
     }
   };
 
-  const startLongPress = () => {
+  const startLongPress = (e: React.PointerEvent) => {
     longFiredRef.current = false;
+    downPosRef.current = { x: e.clientX, y: e.clientY };
     clearTimer();
     timerRef.current = window.setTimeout(() => {
       longFiredRef.current = true;
+      timerRef.current = null;
       setConfirming(true);
-    }, 300);
+    }, 500);
+  };
+
+  const maybeCancelOnMove = (e: React.PointerEvent) => {
+    if (!timerRef.current || !downPosRef.current) return;
+    const dx = e.clientX - downPosRef.current.x;
+    const dy = e.clientY - downPosRef.current.y;
+    if (dx * dx + dy * dy > 64) clearTimer(); // > 8px
   };
 
   useEffect(() => {
@@ -934,7 +953,7 @@ function PinnedPenItem({
     <div
       data-pinned-id={pen.id}
       draggable
-      onDragStart={onDragStart}
+      onDragStart={(e) => { clearTimer(); onDragStart(e); }}
       onDragOver={onDragOver}
       onDrop={onDrop}
       onDragEnd={onDragEnd}
@@ -950,12 +969,13 @@ function PinnedPenItem({
           onApply();
         }}
         onPointerDown={startLongPress}
+        onPointerMove={maybeCancelOnMove}
         onPointerUp={clearTimer}
-        onPointerLeave={clearTimer}
         onPointerCancel={clearTimer}
         onContextMenu={(e) => {
           e.preventDefault();
           clearTimer();
+          longFiredRef.current = true;
           setConfirming(true);
         }}
         className={`grid h-8 w-8 place-items-center rounded-md transition ring-2 ${
