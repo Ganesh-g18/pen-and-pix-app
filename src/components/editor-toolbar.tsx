@@ -100,6 +100,13 @@ export const EditorToolbar = memo(function EditorToolbar({
   const [hiOpen, setHiOpen] = useState(false);
   const [eraserOpen, setEraserOpen] = useState(false);
 
+  const closeAllPopovers = () => {
+    setPenOpen(false);
+    setHiOpen(false);
+    setEraserOpen(false);
+    setPenListOpen(false);
+  };
+
   const rootRef = useRef<HTMLDivElement>(null);
   const lpTimer = useRef<number | null>(null);
   const lpFired = useRef(false);
@@ -107,10 +114,7 @@ export const EditorToolbar = memo(function EditorToolbar({
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
       if (!rootRef.current?.contains(e.target as Node)) {
-        setPenOpen(false);
-        setHiOpen(false);
-        setEraserOpen(false);
-        setPenListOpen(false);
+        closeAllPopovers();
       }
     };
     document.addEventListener("mousedown", onDoc);
