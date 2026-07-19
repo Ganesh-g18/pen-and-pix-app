@@ -1,7 +1,25 @@
 import {
-  Pen, PenTool, Pencil, Paintbrush, Brush, Highlighter, Eraser, Type, MousePointer2,
-  Undo2, Redo2, Trash2, ChevronDown, CircleDashed, Pin, X, GripVertical, Plus, Pipette,
-  Bookmark, BookmarkPlus,
+  Pen,
+  PenTool,
+  Pencil,
+  Paintbrush,
+  Brush,
+  Highlighter,
+  Eraser,
+  Type,
+  MousePointer2,
+  Undo2,
+  Redo2,
+  Trash2,
+  ChevronDown,
+  CircleDashed,
+  Pin,
+  X,
+  GripVertical,
+  Plus,
+  Pipette,
+  Bookmark,
+  BookmarkPlus,
 } from "lucide-react";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import type { PenStyle, PinnedPen, ToolPreset } from "@/lib/store";
@@ -54,14 +72,23 @@ interface Props {
 }
 
 export const EditorToolbar = memo(function EditorToolbar({
-  tool, onToolChange, penStyle, onPenStyleChange,
-  activeConfig, onConfigPatch,
-  eraserMode, onEraserModeChange,
-  eraserSize, onEraserSizeChange,
-  eraserSoftness, onEraserSoftnessChange,
-  onApplyPinned, onUndo, onRedo, onClear,
+  tool,
+  onToolChange,
+  penStyle,
+  onPenStyleChange,
+  activeConfig,
+  onConfigPatch,
+  eraserMode,
+  onEraserModeChange,
+  eraserSize,
+  onEraserSizeChange,
+  eraserSoftness,
+  onEraserSoftnessChange,
+  onApplyPinned,
+  onUndo,
+  onRedo,
+  onClear,
 }: Props) {
-
   const settings = useStore((s) => s.settings);
   const pinnedPens = settings.pinnedPens ?? EMPTY_PINNED_PENS;
   const recentColors = settings.recentColors ?? [];
@@ -80,7 +107,10 @@ export const EditorToolbar = memo(function EditorToolbar({
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
       if (!rootRef.current?.contains(e.target as Node)) {
-        setPenOpen(false); setHiOpen(false); setEraserOpen(false); setPenListOpen(false);
+        setPenOpen(false);
+        setHiOpen(false);
+        setEraserOpen(false);
+        setPenListOpen(false);
       }
     };
     document.addEventListener("mousedown", onDoc);
@@ -90,10 +120,16 @@ export const EditorToolbar = memo(function EditorToolbar({
   const startLongPress = (fn: () => void) => {
     lpFired.current = false;
     if (lpTimer.current) window.clearTimeout(lpTimer.current);
-    lpTimer.current = window.setTimeout(() => { lpFired.current = true; fn(); }, LONG_PRESS_MS);
+    lpTimer.current = window.setTimeout(() => {
+      lpFired.current = true;
+      fn();
+    }, LONG_PRESS_MS);
   };
   const cancelLongPress = () => {
-    if (lpTimer.current) { window.clearTimeout(lpTimer.current); lpTimer.current = null; }
+    if (lpTimer.current) {
+      window.clearTimeout(lpTimer.current);
+      lpTimer.current = null;
+    }
   };
 
   const btn = (active: boolean) =>
@@ -123,10 +159,11 @@ export const EditorToolbar = memo(function EditorToolbar({
 
   const pinCurrent = () => {
     if (!isPen) return;
-    const exists = pinnedPens.some((p) =>
-      p.style === penStyle &&
-      p.color.toLowerCase() === activeConfig.color.toLowerCase() &&
-      p.size === activeConfig.size,
+    const exists = pinnedPens.some(
+      (p) =>
+        p.style === penStyle &&
+        p.color.toLowerCase() === activeConfig.color.toLowerCase() &&
+        p.size === activeConfig.size,
     );
     if (exists) return;
     const next: PinnedPen = {
@@ -141,8 +178,7 @@ export const EditorToolbar = memo(function EditorToolbar({
     updateSettings({ pinnedPens: [...pinnedPens, next] });
   };
 
-  const removePinned = (id: string) =>
-    updateSettings({ pinnedPens: pinnedPens.filter((p) => p.id !== id) });
+  const removePinned = (id: string) => updateSettings({ pinnedPens: pinnedPens.filter((p) => p.id !== id) });
 
   // HTML5 drag-reorder
   const dragId = useRef<string | null>(null);
@@ -153,13 +189,15 @@ export const EditorToolbar = memo(function EditorToolbar({
     e.dataTransfer.setData("text/plain", id);
   };
   const onDragOver = (id: string) => (e: React.DragEvent) => {
-    e.preventDefault(); e.dataTransfer.dropEffect = "move";
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
     if (dragOver !== id) setDragOver(id);
   };
   const onDrop = (targetId: string) => (e: React.DragEvent) => {
     e.preventDefault();
     const src = dragId.current;
-    dragId.current = null; setDragOver(null);
+    dragId.current = null;
+    setDragOver(null);
     if (!src || src === targetId) return;
     const arr = [...pinnedPens];
     const from = arr.findIndex((p) => p.id === src);
@@ -169,7 +207,10 @@ export const EditorToolbar = memo(function EditorToolbar({
     arr.splice(to, 0, moved);
     updateSettings({ pinnedPens: arr });
   };
-  const onDragEnd = () => { dragId.current = null; setDragOver(null); };
+  const onDragEnd = () => {
+    dragId.current = null;
+    setDragOver(null);
+  };
 
   return (
     <div
@@ -179,10 +220,20 @@ export const EditorToolbar = memo(function EditorToolbar({
       aria-label="Editor tools"
     >
       <div className="flex items-center gap-1 overflow-x-auto no-scrollbar px-2 py-1.5">
-        <button className={btn(tool === "select")} onClick={() => onToolChange("select")} title="Select (V)" aria-label="Select">
+        <button
+          className={btn(tool === "select")}
+          onClick={() => onToolChange("select")}
+          title="Select (V)"
+          aria-label="Select"
+        >
           <MousePointer2 className="h-4 w-4" />
         </button>
-        <button className={btn(tool === "text")} onClick={() => onToolChange("text")} title="Text (T)" aria-label="Text">
+        <button
+          className={btn(tool === "text")}
+          onClick={() => onToolChange("text")}
+          title="Text (T)"
+          aria-label="Text"
+        >
           <Type className="h-4 w-4" />
         </button>
 
@@ -195,9 +246,16 @@ export const EditorToolbar = memo(function EditorToolbar({
             }}
             onPointerUp={cancelLongPress}
             onPointerLeave={cancelLongPress}
-            onContextMenu={(e) => { e.preventDefault(); onToolChange("pen"); setPenOpen(true); }}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              onToolChange("pen");
+              setPenOpen(true);
+            }}
             onClick={() => {
-              if (lpFired.current) { lpFired.current = false; return; }
+              if (lpFired.current) {
+                lpFired.current = false;
+                return;
+              }
               if (isPen) setPenOpen((v) => !v);
               else onToolChange("pen");
             }}
@@ -209,19 +267,27 @@ export const EditorToolbar = memo(function EditorToolbar({
           </button>
           <button
             className="grid h-8 w-3 place-items-center text-muted-foreground hover:text-foreground"
-            onClick={() => { onToolChange("pen"); setPenListOpen((v) => !v); }}
+            onClick={() => {
+              onToolChange("pen");
+              setPenListOpen((v) => !v);
+            }}
             aria-label="Pen library"
           >
             <ChevronDown className="h-3 w-3" />
           </button>
           {penListOpen && (
-            <div className={`${popover} w-64 rounded-xl bg-card text-card-foreground border border-border p-2 shadow-float`}>
+            <div
+              className={`${popover} w-64 rounded-xl bg-card text-card-foreground border border-border p-2 shadow-float`}
+            >
               {PEN_LIBRARY.map((p) => {
                 const Ico = PEN_ICON[p.id];
                 return (
                   <button
                     key={p.id}
-                    onClick={() => { onPenStyleChange(p.id); setPenListOpen(false); }}
+                    onClick={() => {
+                      onPenStyleChange(p.id);
+                      setPenListOpen(false);
+                    }}
                     className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-sm transition ${
                       penStyle === p.id ? "bg-primary/15 text-primary" : "hover:bg-accent"
                     }`}
@@ -262,12 +328,21 @@ export const EditorToolbar = memo(function EditorToolbar({
         <div className="relative flex shrink-0 items-center">
           <button
             className={btn(isHi)}
-            onPointerDown={() => { if (isHi) startLongPress(() => setHiOpen(true)); }}
+            onPointerDown={() => {
+              if (isHi) startLongPress(() => setHiOpen(true));
+            }}
             onPointerUp={cancelLongPress}
             onPointerLeave={cancelLongPress}
-            onContextMenu={(e) => { e.preventDefault(); onToolChange("highlighter"); setHiOpen(true); }}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              onToolChange("highlighter");
+              setHiOpen(true);
+            }}
             onClick={() => {
-              if (lpFired.current) { lpFired.current = false; return; }
+              if (lpFired.current) {
+                lpFired.current = false;
+                return;
+              }
               if (isHi) setHiOpen((v) => !v);
               else onToolChange("highlighter");
             }}
@@ -300,12 +375,21 @@ export const EditorToolbar = memo(function EditorToolbar({
         <div className="relative flex shrink-0 items-center">
           <button
             className={btn(tool === "eraser")}
-            onPointerDown={() => { if (tool === "eraser") startLongPress(() => setEraserOpen(true)); }}
+            onPointerDown={() => {
+              if (tool === "eraser") startLongPress(() => setEraserOpen(true));
+            }}
             onPointerUp={cancelLongPress}
             onPointerLeave={cancelLongPress}
-            onContextMenu={(e) => { e.preventDefault(); onToolChange("eraser"); setEraserOpen(true); }}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              onToolChange("eraser");
+              setEraserOpen(true);
+            }}
             onClick={() => {
-              if (lpFired.current) { lpFired.current = false; return; }
+              if (lpFired.current) {
+                lpFired.current = false;
+                return;
+              }
               if (tool === "eraser") setEraserOpen((v) => !v);
               else onToolChange("eraser");
             }}
@@ -315,7 +399,9 @@ export const EditorToolbar = memo(function EditorToolbar({
             <EraserIcon className="h-4 w-4 transition-all duration-200" />
           </button>
           {eraserOpen && (
-            <div className={`${popover} w-64 rounded-xl bg-card text-card-foreground border border-border p-2 shadow-float`}>
+            <div
+              className={`${popover} w-64 rounded-xl bg-card text-card-foreground border border-border p-2 shadow-float`}
+            >
               <div className="grid grid-cols-2 gap-1">
                 {(["stroke", "spot"] as EraserMode[]).map((m) => {
                   const Ico = m === "spot" ? CircleDashed : Eraser;
@@ -333,9 +419,24 @@ export const EditorToolbar = memo(function EditorToolbar({
                   );
                 })}
               </div>
-              <Slider label="Size" value={eraserSize} min={4} max={80} step={1} onChange={onEraserSizeChange} unit="px" />
+              <Slider
+                label="Size"
+                value={eraserSize}
+                min={4}
+                max={80}
+                step={1}
+                onChange={onEraserSizeChange}
+                unit="px"
+              />
               {eraserMode === "spot" && (
-                <Slider label="Softness" value={eraserSoftness} min={0} max={1} step={0.05} onChange={onEraserSoftnessChange} />
+                <Slider
+                  label="Softness"
+                  value={eraserSoftness}
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  onChange={onEraserSoftnessChange}
+                />
               )}
               <div className="mt-2 flex items-center justify-center py-1">
                 {eraserMode === "spot" ? (
@@ -358,7 +459,8 @@ export const EditorToolbar = memo(function EditorToolbar({
           <div className="flex items-center gap-1">
             {pinnedPens.map((p) => {
               const active =
-                isPen && p.style === penStyle &&
+                isPen &&
+                p.style === penStyle &&
                 p.color.toLowerCase() === activeConfig.color.toLowerCase() &&
                 p.size === activeConfig.size;
               return (
@@ -397,7 +499,9 @@ export const EditorToolbar = memo(function EditorToolbar({
         </button>
         <button
           className={btn(false)}
-          onClick={() => { if (confirm("Clear all ink strokes?")) onClear(); }}
+          onClick={() => {
+            if (confirm("Clear all ink strokes?")) onClear();
+          }}
           title="Clear ink"
           aria-label="Clear ink"
         >
@@ -428,9 +532,20 @@ interface ToolPopoverProps {
 }
 
 const ToolSettingsPopover = memo(function ToolSettingsPopover({
-  title, config, onPatch, previewKind, penStyle,
-  swatches, recentColors, savedColors, onCommitColor, onToggleSaved,
-  minSize, maxSize, showPin, onPin,
+  title,
+  config,
+  onPatch,
+  previewKind,
+  penStyle,
+  swatches,
+  recentColors,
+  savedColors,
+  onCommitColor,
+  onToggleSaved,
+  minSize,
+  maxSize,
+  showPin,
+  onPin,
 }: ToolPopoverProps) {
   const [hex, setHex] = useState(config.color);
   useEffect(() => setHex(config.color), [config.color]);
@@ -438,14 +553,20 @@ const ToolSettingsPopover = memo(function ToolSettingsPopover({
   const hasEyedropper = typeof window !== "undefined" && "EyeDropper" in window;
   const isSaved = savedColors.some((c) => c.toLowerCase() === config.color.toLowerCase());
 
-  const setColor = (c: string) => { onPatch({ color: c }); onCommitColor(c); };
+  const setColor = (c: string) => {
+    onPatch({ color: c });
+    onCommitColor(c);
+  };
 
   const openEyedropper = async () => {
     try {
-      const ED = (window as unknown as { EyeDropper: new () => { open: () => Promise<{ sRGBHex: string }> } }).EyeDropper;
+      const ED = (window as unknown as { EyeDropper: new () => { open: () => Promise<{ sRGBHex: string }> } })
+        .EyeDropper;
       const res = await new ED().open();
       if (res?.sRGBHex) setColor(res.sRGBHex);
-    } catch { /* cancelled */ }
+    } catch {
+      /* cancelled */
+    }
   };
 
   return (
@@ -463,7 +584,13 @@ const ToolSettingsPopover = memo(function ToolSettingsPopover({
 
       {/* Preview */}
       <div className="mb-2 flex h-10 items-center justify-center rounded-lg border border-border bg-muted/40 px-3">
-        <StrokePreview kind={previewKind} penStyle={penStyle} color={config.color} size={config.size} opacity={config.opacity} />
+        <StrokePreview
+          kind={previewKind}
+          penStyle={penStyle}
+          color={config.color}
+          size={config.size}
+          opacity={config.opacity}
+        />
       </div>
 
       {/* Color: hex + swatches + eyedropper */}
@@ -477,7 +604,9 @@ const ToolSettingsPopover = memo(function ToolSettingsPopover({
             setHex(v);
             if (/^#[0-9a-fA-F]{6}$/.test(v)) onPatch({ color: v });
           }}
-          onBlur={() => { if (/^#[0-9a-fA-F]{6}$/.test(hex)) onCommitColor(hex); }}
+          onBlur={() => {
+            if (/^#[0-9a-fA-F]{6}$/.test(hex)) onCommitColor(hex);
+          }}
           className="w-24 rounded-md border border-border bg-transparent px-1.5 py-1 text-[11px] font-mono outline-none focus:ring-2 focus:ring-primary/40"
           aria-label="Hex color"
         />
@@ -499,7 +628,10 @@ const ToolSettingsPopover = memo(function ToolSettingsPopover({
           <label key={k} className="flex items-center gap-1 text-[10px] text-muted-foreground">
             <span className="uppercase">{k}</span>
             <input
-              type="number" min={0} max={255} value={rgb[i]}
+              type="number"
+              min={0}
+              max={255}
+              value={rgb[i]}
               onChange={(e) => {
                 const nv = Math.max(0, Math.min(255, Number(e.target.value) || 0));
                 const next: [number, number, number] = [...rgb];
@@ -516,9 +648,13 @@ const ToolSettingsPopover = memo(function ToolSettingsPopover({
       <div className="mb-1 text-[10px] text-muted-foreground">Presets</div>
       <div className="mb-2 flex flex-wrap gap-1">
         {swatches.map((c) => (
-          <button key={c} onClick={() => setColor(c)}
+          <button
+            key={c}
+            onClick={() => setColor(c)}
             className="h-5 w-5 rounded-md ring-1 ring-border hover:scale-110 transition"
-            style={{ background: c }} aria-label={c} />
+            style={{ background: c }}
+            aria-label={c}
+          />
         ))}
       </div>
 
@@ -527,9 +663,13 @@ const ToolSettingsPopover = memo(function ToolSettingsPopover({
           <div className="mb-1 text-[10px] text-muted-foreground">Recent</div>
           <div className="mb-2 flex flex-wrap gap-1">
             {recentColors.map((c) => (
-              <button key={c} onClick={() => setColor(c)}
+              <button
+                key={c}
+                onClick={() => setColor(c)}
                 className="h-5 w-5 rounded-md ring-1 ring-border hover:scale-110 transition"
-                style={{ background: c }} aria-label={c} />
+                style={{ background: c }}
+                aria-label={c}
+              />
             ))}
           </div>
         </>
@@ -540,9 +680,13 @@ const ToolSettingsPopover = memo(function ToolSettingsPopover({
           <div className="mb-1 text-[10px] text-muted-foreground">Saved</div>
           <div className="mb-2 flex flex-wrap gap-1">
             {savedColors.map((c) => (
-              <button key={c} onClick={() => setColor(c)}
+              <button
+                key={c}
+                onClick={() => setColor(c)}
                 className="h-5 w-5 rounded-md ring-1 ring-border hover:scale-110 transition"
-                style={{ background: c }} aria-label={c} />
+                style={{ background: c }}
+                aria-label={c}
+              />
             ))}
           </div>
         </>
@@ -551,10 +695,23 @@ const ToolSettingsPopover = memo(function ToolSettingsPopover({
       {/* Hue slider (quick spectrum) */}
       <HueRow color={config.color} onChange={setColor} />
 
-      <Slider label="Thickness" value={config.size} min={minSize} max={maxSize} step={0.5}
-        onChange={(n) => onPatch({ size: n })} unit="px" />
-      <Slider label="Opacity" value={config.opacity} min={0.05} max={1} step={0.05}
-        onChange={(n) => onPatch({ opacity: n })} />
+      <Slider
+        label="Thickness"
+        value={config.size}
+        min={minSize}
+        max={maxSize}
+        step={0.5}
+        onChange={(n) => onPatch({ size: n })}
+        unit="px"
+      />
+      <Slider
+        label="Opacity"
+        value={config.opacity}
+        min={0.05}
+        max={1}
+        step={0.05}
+        onChange={(n) => onPatch({ opacity: n })}
+      />
 
       <div className="mt-2 grid grid-cols-2 gap-1.5">
         <Toggle label="Pressure" value={config.pressure} onChange={(v) => onPatch({ pressure: v })} />
@@ -576,16 +733,37 @@ const ToolSettingsPopover = memo(function ToolSettingsPopover({
 /* ------- helpers ------- */
 
 function Slider({
-  label, value, min, max, step, onChange, unit,
-}: { label: string; value: number; min: number; max: number; step: number; onChange: (n: number) => void; unit?: string }) {
+  label,
+  value,
+  min,
+  max,
+  step,
+  onChange,
+  unit,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  onChange: (n: number) => void;
+  unit?: string;
+}) {
   return (
     <div className="mt-2">
       <div className="mb-1 flex items-center justify-between text-[10px] text-muted-foreground">
         <span>{label}</span>
-        <span className="font-mono">{value.toFixed(step < 1 ? 2 : 1)}{unit ?? ""}</span>
+        <span className="font-mono">
+          {value.toFixed(step < 1 ? 2 : 1)}
+          {unit ?? ""}
+        </span>
       </div>
       <input
-        type="range" min={min} max={max} step={step} value={value}
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
         onChange={(e) => onChange(Number(e.target.value))}
         className="h-1.5 w-full accent-primary"
       />
@@ -622,10 +800,14 @@ function HueRow({ color, onChange }: { color: string; onChange: (c: string) => v
   return (
     <div className="mt-2">
       <div className="mb-1 flex items-center justify-between text-[10px] text-muted-foreground">
-        <span>Hue</span><span className="font-mono">{hue}°</span>
+        <span>Hue</span>
+        <span className="font-mono">{hue}°</span>
       </div>
       <input
-        type="range" min={0} max={360} value={hue}
+        type="range"
+        min={0}
+        max={360}
+        value={hue}
         onChange={(e) => {
           const nh = Number(e.target.value);
           setHue(nh);
@@ -639,8 +821,18 @@ function HueRow({ color, onChange }: { color: string; onChange: (c: string) => v
 }
 
 function StrokePreview({
-  kind, penStyle, color, size, opacity,
-}: { kind: "pen" | "highlighter"; penStyle?: PenStyle; color: string; size: number; opacity: number }) {
+  kind,
+  penStyle,
+  color,
+  size,
+  opacity,
+}: {
+  kind: "pen" | "highlighter";
+  penStyle?: PenStyle;
+  color: string;
+  size: number;
+  opacity: number;
+}) {
   if (kind === "highlighter") {
     return (
       <span
@@ -686,7 +878,15 @@ const PinnedGlyph = memo(function PinnedGlyph({ pen }: { pen: PinnedPen }) {
 });
 
 function PinnedPenItem({
-  pen, active, dragOver, onDragStart, onDragOver, onDrop, onDragEnd, onApply, onRemove,
+  pen,
+  active,
+  dragOver,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  onDragEnd,
+  onApply,
+  onRemove,
 }: {
   pen: PinnedPen;
   active: boolean;
@@ -715,7 +915,7 @@ function PinnedPenItem({
     timerRef.current = window.setTimeout(() => {
       longFiredRef.current = true;
       setConfirming(true);
-    }, 550);
+    }, 300);
   };
 
   useEffect(() => {
@@ -738,9 +938,7 @@ function PinnedPenItem({
       onDragOver={onDragOver}
       onDrop={onDrop}
       onDragEnd={onDragEnd}
-      className={`group relative flex shrink-0 items-center ${
-        dragOver ? "ring-2 ring-primary/40 rounded-md" : ""
-      }`}
+      className={`group relative flex shrink-0 items-center ${dragOver ? "ring-2 ring-primary/40 rounded-md" : ""}`}
       title={pen.name ?? `${pen.style} · ${pen.color} · ${pen.size}px  (long-press or right-click to delete)`}
     >
       <button
@@ -795,34 +993,50 @@ function hexToRgb(hex: string): [number, number, number] {
   return [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)];
 }
 function rgbToHex(r: number, g: number, b: number): string {
-  const h = (n: number) => Math.max(0, Math.min(255, n | 0)).toString(16).padStart(2, "0");
+  const h = (n: number) =>
+    Math.max(0, Math.min(255, n | 0))
+      .toString(16)
+      .padStart(2, "0");
   return `#${h(r)}${h(g)}${h(b)}`;
 }
 function hexToHsl(hex: string): [number, number, number] {
   const [r0, g0, b0] = hexToRgb(hex);
-  const r = r0 / 255, g = g0 / 255, b = b0 / 255;
-  const max = Math.max(r, g, b), min = Math.min(r, g, b);
-  let h = 0, s = 0;
+  const r = r0 / 255,
+    g = g0 / 255,
+    b = b0 / 255;
+  const max = Math.max(r, g, b),
+    min = Math.min(r, g, b);
+  let h = 0,
+    s = 0;
   const l = (max + min) / 2;
   if (max !== min) {
     const d = max - min;
     s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
     switch (max) {
-      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-      case g: h = (b - r) / d + 2; break;
-      case b: h = (r - g) / d + 4; break;
+      case r:
+        h = (g - b) / d + (g < b ? 6 : 0);
+        break;
+      case g:
+        h = (b - r) / d + 2;
+        break;
+      case b:
+        h = (r - g) / d + 4;
+        break;
     }
     h *= 60;
   }
   return [Math.round(h), Math.round(s * 100), Math.round(l * 100)];
 }
 function hslToHex(h: number, s: number, l: number): string {
-  const S = s / 100, L = l / 100;
+  const S = s / 100,
+    L = l / 100;
   const k = (n: number) => (n + h / 30) % 12;
   const a = S * Math.min(L, 1 - L);
   const f = (n: number) => {
     const c = L - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
-    return Math.round(c * 255).toString(16).padStart(2, "0");
+    return Math.round(c * 255)
+      .toString(16)
+      .padStart(2, "0");
   };
   return `#${f(0)}${f(8)}${f(4)}`;
 }
