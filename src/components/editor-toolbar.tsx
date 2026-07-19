@@ -260,8 +260,9 @@ export const EditorToolbar = memo(function EditorToolbar({
                 lpFired.current = false;
                 return;
               }
+              setHiOpen(false); setEraserOpen(false); setPenListOpen(false);
               if (isPen) setPenOpen((v) => !v);
-              else onToolChange("pen");
+              else { onToolChange("pen"); setPenOpen(false); }
             }}
             title={`Pen · ${penStyle} (long-press or right-click for settings)`}
             aria-label={`Pen — ${penStyle}`}
