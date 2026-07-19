@@ -989,7 +989,7 @@ function PinnedPenItem({
       <GripVertical className="pointer-events-none absolute -left-1 top-1/2 h-2.5 w-2.5 -translate-y-1/2 text-muted-foreground/0 group-hover:text-muted-foreground/60" />
       {confirming && (
         <div
-          className="absolute left-1/2 bottom-full z-50 mb-1.5 -translate-x-1/2 rounded-md border border-border bg-card text-card-foreground shadow-lg"
+          className="absolute inset-0 z-50 flex items-center justify-center rounded-md border border-destructive/40 bg-card text-card-foreground shadow-lg"
           onMouseDown={(e) => e.stopPropagation()}
         >
           <button
@@ -997,9 +997,9 @@ function PinnedPenItem({
               setConfirming(false);
               onRemove();
             }}
-            className="flex items-center gap-1.5 whitespace-nowrap px-2.5 py-1.5 text-[11px] font-medium text-destructive hover:bg-destructive/10 rounded-md"
+            className="flex items-center gap-1 whitespace-nowrap px-1.5 py-1 text-[10px] font-medium text-destructive hover:bg-destructive/10 rounded"
           >
-            <X className="h-3 w-3" /> Delete pin
+            <X className="h-3 w-3" /> Delete
           </button>
         </div>
       )}
