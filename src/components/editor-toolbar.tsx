@@ -362,37 +362,18 @@ export const EditorToolbar = memo(function EditorToolbar({
                 p.color.toLowerCase() === activeConfig.color.toLowerCase() &&
                 p.size === activeConfig.size;
               return (
-                <div
+                <PinnedPenItem
                   key={p.id}
-                  draggable
+                  pen={p}
+                  active={active}
+                  dragOver={dragOver === p.id}
                   onDragStart={onDragStart(p.id)}
                   onDragOver={onDragOver(p.id)}
                   onDrop={onDrop(p.id)}
                   onDragEnd={onDragEnd}
-                  className={`group relative flex shrink-0 items-center ${
-                    dragOver === p.id ? "ring-2 ring-primary/40 rounded-md" : ""
-                  }`}
-                  title={p.name ?? `${p.style} · ${p.color} · ${p.size}px`}
-                >
-                  <button
-                    onClick={() => onApplyPinned(p)}
-                    className={`grid h-8 w-8 place-items-center rounded-md transition ring-2 ${
-                      active ? "bg-primary/15" : "hover:bg-accent"
-                    }`}
-                    style={{ borderColor: "transparent", boxShadow: `inset 0 0 0 2px ${p.color}55` }}
-                    aria-label={`Pinned ${p.style}`}
-                  >
-                    <PinnedGlyph pen={p} />
-                  </button>
-                  <button
-                    onClick={() => removePinned(p.id)}
-                    className="absolute -right-1 -top-1 hidden h-3.5 w-3.5 place-items-center rounded-full bg-foreground/70 text-background group-hover:grid"
-                    aria-label="Remove pinned pen"
-                  >
-                    <X className="h-2.5 w-2.5" />
-                  </button>
-                  <GripVertical className="pointer-events-none absolute -left-1 top-1/2 h-2.5 w-2.5 -translate-y-1/2 text-muted-foreground/0 group-hover:text-muted-foreground/60" />
-                </div>
+                  onApply={() => onApplyPinned(p)}
+                  onRemove={() => removePinned(p.id)}
+                />
               );
             })}
             <button
@@ -703,6 +684,110 @@ const PinnedGlyph = memo(function PinnedGlyph({ pen }: { pen: PinnedPen }) {
     </div>
   );
 });
+
+function PinnedPenItem({
+  pen, active, dragOver, onDragStart, onDragOver, onDrop, onDragEnd, onApply, onRemove,
+}: {
+  pen: PinnedPen;
+  active: boolean;
+  dragOver: boolean;
+  onDragStart: (e: React.DragEvent) => void;
+  onDragOver: (e: React.DragEvent) => void;
+  onDrop: (e: React.DragEvent) => void;
+  onDragEnd: () => void;
+  onApply: () => void;
+  onRemove: () => void;
+}) {
+  const [confirming, setConfirming] = useState(false);
+  const timerRef = useRef<number | null>(null);
+  const longFiredRef = useRef(false);
+
+  const clearTimer = () => {
+    if (timerRef.current) {
+      window.clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+
+  const startLongPress = () => {
+    longFiredRef.current = false;
+    clearTimer();
+    timerRef.current = window.setTimeout(() => {
+      longFiredRef.current = true;
+      setConfirming(true);
+    }, 550);
+  };
+
+  useEffect(() => {
+    if (!confirming) return;
+    const onDown = (e: MouseEvent) => {
+      const t = e.target as HTMLElement;
+      if (!t.closest(`[data-pinned-id="${pen.id}"]`)) setConfirming(false);
+    };
+    window.addEventListener("mousedown", onDown);
+    return () => window.removeEventListener("mousedown", onDown);
+  }, [confirming, pen.id]);
+
+  useEffect(() => () => clearTimer(), []);
+
+  return (
+    <div
+      data-pinned-id={pen.id}
+      draggable
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      onDragEnd={onDragEnd}
+      className={`group relative flex shrink-0 items-center ${
+        dragOver ? "ring-2 ring-primary/40 rounded-md" : ""
+      }`}
+      title={pen.name ?? `${pen.style} · ${pen.color} · ${pen.size}px  (long-press or right-click to delete)`}
+    >
+      <button
+        onClick={() => {
+          if (longFiredRef.current) {
+            longFiredRef.current = false;
+            return;
+          }
+          onApply();
+        }}
+        onPointerDown={startLongPress}
+        onPointerUp={clearTimer}
+        onPointerLeave={clearTimer}
+        onPointerCancel={clearTimer}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          clearTimer();
+          setConfirming(true);
+        }}
+        className={`grid h-8 w-8 place-items-center rounded-md transition ring-2 ${
+          active ? "bg-primary/15" : "hover:bg-accent"
+        }`}
+        style={{ borderColor: "transparent", boxShadow: `inset 0 0 0 2px ${pen.color}55` }}
+        aria-label={`Pinned ${pen.style}`}
+      >
+        <PinnedGlyph pen={pen} />
+      </button>
+      <GripVertical className="pointer-events-none absolute -left-1 top-1/2 h-2.5 w-2.5 -translate-y-1/2 text-muted-foreground/0 group-hover:text-muted-foreground/60" />
+      {confirming && (
+        <div
+          className="absolute left-1/2 top-full z-50 mt-1.5 -translate-x-1/2 rounded-md border border-border bg-card text-card-foreground shadow-lg"
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <button
+            onClick={() => {
+              setConfirming(false);
+              onRemove();
+            }}
+            className="flex items-center gap-1.5 whitespace-nowrap px-2.5 py-1.5 text-[11px] font-medium text-destructive hover:bg-destructive/10 rounded-md"
+          >
+            <X className="h-3 w-3" /> Delete pin
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function hexToRgb(hex: string): [number, number, number] {
   const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
