@@ -8,6 +8,7 @@ import type { Stroke, PaperType, PenStyle, PinnedPen, ToolPreset, TextBlock, Pap
 import { useStore } from "@/lib/store";
 import { EditorToolbar, type EditorTool, type EraserMode, type ToolConfigKey } from "./editor-toolbar";
 import { TextBlockLayer } from "./text-block-layer";
+import { TextToolPanel } from "./text-tool-panel";
 
 interface Props {
   content: string;
@@ -108,6 +109,7 @@ export function UnifiedEditor({
   const [erasePreview, setErasePreview] = useState<Stroke[] | null>(null);
   const [, force] = useState(0);
   const [docHeight, setDocHeight] = useState(MIN_DOC_HEIGHT);
+  const [editingTextId, setEditingTextId] = useState<string | null>(null);
 
   const editor = useEditor({
     extensions: [
@@ -373,15 +375,17 @@ export function UnifiedEditor({
   // Keyboard shortcuts
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      const inEditable = !!(e.target as HTMLElement)?.closest("[contenteditable='true']");
+      // List shortcuts inside text blocks / tiptap
+      if (inEditable && (e.ctrlKey || e.metaKey) && e.shiftKey) {
+        if (e.key === "7" || e.code === "Digit7") { e.preventDefault(); document.execCommand("insertOrderedList"); return; }
+        if (e.key === "8" || e.code === "Digit8") { e.preventDefault(); document.execCommand("insertUnorderedList"); return; }
+      }
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z" && !e.shiftKey) {
-        if (tool !== "text" && !(e.target as HTMLElement)?.closest("[contenteditable]")) {
-          e.preventDefault(); onUndoStroke(); return;
-        }
+        if (tool !== "text" && !inEditable) { e.preventDefault(); onUndoStroke(); return; }
       }
       if ((e.metaKey || e.ctrlKey) && (e.key.toLowerCase() === "y" || (e.key.toLowerCase() === "z" && e.shiftKey))) {
-        if (tool !== "text" && !(e.target as HTMLElement)?.closest("[contenteditable]")) {
-          e.preventDefault(); onRedoStroke(); return;
-        }
+        if (tool !== "text" && !inEditable) { e.preventDefault(); onRedoStroke(); return; }
       }
       if ((e.target as HTMLElement)?.closest("input, textarea, [contenteditable]")) return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
@@ -414,9 +418,9 @@ export function UnifiedEditor({
           ref={surfaceRef}
           data-editor-surface
           className={`relative w-full ${paperClass}`}
-          style={{ height: docHeight, minHeight: "100%", ...paperStyle }}
+          style={{ height: docHeight, minHeight: "100%", cursor: tool === "text" ? "text" : undefined, ...paperStyle }}
         >
-          <div className="absolute inset-0" style={{ pointerEvents: inkActive ? "none" : "auto" }}>
+          <div className="absolute inset-0" style={{ pointerEvents: tool === "select" ? "auto" : "none" }}>
             {editor && <EditorContent editor={editor} />}
           </div>
 
@@ -427,6 +431,8 @@ export function UnifiedEditor({
               onChange={onTextBlocksChange}
               toolActive={tool === "text" ? "text" : tool === "select" ? "select" : "ink"}
               surfaceRef={surfaceRef}
+              editingId={editingTextId}
+              onEditingChange={setEditingTextId}
             />
           )}
 
@@ -483,6 +489,14 @@ export function UnifiedEditor({
         onRedo={onRedoStroke}
         onClear={onClearStrokes}
       />
+
+      {tool === "text" && onTextBlocksChange && (
+        <TextToolPanel
+          editingId={editingTextId}
+          blocks={textBlocks ?? []}
+          onBlocksChange={onTextBlocksChange}
+        />
+      )}
     </div>
   );
 }
