@@ -6,7 +6,7 @@ import {
   Bold, Italic, Underline, Strikethrough, List, ListOrdered, ListChecks,
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
   Palette, Highlighter, Type, Minus, Plus, Copy, Trash2, ChevronsUp, ChevronsDown,
-  IndentIncrease, IndentDecrease,
+  IndentIncrease, IndentDecrease, Table as TableIcon,
 } from "lucide-react";
 
 const FONTS = [
