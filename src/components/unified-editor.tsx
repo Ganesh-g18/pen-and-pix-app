@@ -685,3 +685,74 @@ function strokeToPath(s: Stroke): string {
   d += ` L ${pts[last]} ${pts[last + 1]}`;
   return d;
 }
+
+// Sample points along the outline of a shape so it can be stored/edited as a normal stroke.
+function buildShapePoints(kind: ShapeKind, x0: number, y0: number, x1: number, y1: number): number[] {
+  const pts: number[] = [];
+  const push = (x: number, y: number) => pts.push(x, y, 0.5);
+
+  if (kind === "line" || kind === "arrow") {
+    const steps = 24;
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      push(x0 + (x1 - x0) * t, y0 + (y1 - y0) * t);
+    }
+    if (kind === "arrow") {
+      const dx = x1 - x0, dy = y1 - y0;
+      const len = Math.hypot(dx, dy) || 1;
+      const ux = dx / len, uy = dy / len;
+      const head = Math.min(28, Math.max(10, len * 0.22));
+      const ang = Math.PI / 7;
+      const cos = Math.cos(ang), sin = Math.sin(ang);
+      // left barb
+      const lx = x1 - head * (ux * cos + uy * sin);
+      const ly = y1 - head * (uy * cos - ux * sin);
+      // right barb
+      const rx = x1 - head * (ux * cos - uy * sin);
+      const ry = y1 - head * (uy * cos + ux * sin);
+      const seg = 10;
+      for (let i = 1; i <= seg; i++) { const t = i / seg; push(x1 + (lx - x1) * t, y1 + (ly - y1) * t); }
+      for (let i = seg - 1; i >= 0; i--) { const t = i / seg; push(x1 + (lx - x1) * t, y1 + (ly - y1) * t); }
+      for (let i = 1; i <= seg; i++) { const t = i / seg; push(x1 + (rx - x1) * t, y1 + (ry - y1) * t); }
+    }
+    return pts;
+  }
+
+  const minX = Math.min(x0, x1), maxX = Math.max(x0, x1);
+  const minY = Math.min(y0, y1), maxY = Math.max(y0, y1);
+
+  if (kind === "rect") {
+    const stepsX = Math.max(6, Math.round((maxX - minX) / 6));
+    const stepsY = Math.max(6, Math.round((maxY - minY) / 6));
+    for (let i = 0; i <= stepsX; i++) push(minX + ((maxX - minX) * i) / stepsX, minY);
+    for (let i = 1; i <= stepsY; i++) push(maxX, minY + ((maxY - minY) * i) / stepsY);
+    for (let i = 1; i <= stepsX; i++) push(maxX - ((maxX - minX) * i) / stepsX, maxY);
+    for (let i = 1; i <= stepsY; i++) push(minX, maxY - ((maxY - minY) * i) / stepsY);
+    return pts;
+  }
+
+  if (kind === "circle") {
+    const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+    const rx = (maxX - minX) / 2, ry = (maxY - minY) / 2;
+    const steps = Math.max(24, Math.round((rx + ry) * 0.6));
+    for (let i = 0; i <= steps; i++) {
+      const t = (i / steps) * Math.PI * 2;
+      push(cx + Math.cos(t) * rx, cy + Math.sin(t) * ry);
+    }
+    return pts;
+  }
+
+  if (kind === "triangle") {
+    const apex = { x: (minX + maxX) / 2, y: minY };
+    const bl = { x: minX, y: maxY };
+    const br = { x: maxX, y: maxY };
+    const seg = 20;
+    const edge = (a: { x: number; y: number }, b: { x: number; y: number }) => {
+      for (let i = 0; i <= seg; i++) { const t = i / seg; push(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t); }
+    };
+    edge(apex, br); edge(br, bl); edge(bl, apex);
+    return pts;
+  }
+
+  return pts;
+}
