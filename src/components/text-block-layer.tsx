@@ -113,12 +113,34 @@ export const TextBlockLayer = memo(function TextBlockLayer({
       // Ignore clicks that land on the base tiptap doc (keep structured typing).
       if (target.closest(".tiptap")) return;
 
+      // Prevent the browser from stealing focus before we can commit the
+      // currently-editing block. Without this, the editable blurs and React
+      // re-renders wipe the freshly typed DOM content.
+      e.preventDefault();
+
+      // Commit / drop the currently editing block using the latest DOM html.
+      let latest = blocksRef.current;
+      const curId = editingIdRef.current;
+      if (curId) {
+        const curEl = document.querySelector<HTMLDivElement>(`[data-text-block="${curId}"]`);
+        if (curEl) {
+          const html = curEl.innerHTML;
+          const text = curEl.textContent ?? "";
+          if (isBlockEmpty(html, text)) {
+            latest = latest.filter((b) => b.id !== curId);
+          } else {
+            latest = latest.map((b) => (b.id === curId ? { ...b, html } : b));
+          }
+        }
+        try { (document.activeElement as HTMLElement | null)?.blur(); } catch { /* noop */ }
+      }
+
       const r = surface.getBoundingClientRect();
       const x = e.clientX - r.left;
       const y = e.clientY - r.top;
       const id = Math.random().toString(36).slice(2, 10);
       const nb: TextBlock = { id, x, y, width: 0, height: 0, html: "" };
-      onChange([...blocksRef.current, nb]);
+      onChange([...latest, nb]);
       requestAnimationFrame(() => focusBlock(id, null));
     };
     surface.addEventListener("mousedown", onDown);
@@ -129,10 +151,19 @@ export const TextBlockLayer = memo(function TextBlockLayer({
   useEffect(() => {
     if (toolActive !== "text" && editingIdRef.current) {
       const el = document.querySelector<HTMLDivElement>(`[data-text-block="${editingIdRef.current}"]`);
-      el?.blur();
+      if (el) {
+        const html = el.innerHTML;
+        const text = el.textContent ?? "";
+        if (isBlockEmpty(html, text)) {
+          onChange(blocksRef.current.filter((b) => b.id !== editingIdRef.current));
+        } else {
+          onChange(blocksRef.current.map((b) => (b.id === editingIdRef.current ? { ...b, html } : b)));
+        }
+        el.blur();
+      }
       setEditingId(null);
     }
-  }, [toolActive, setEditingId]);
+  }, [toolActive, setEditingId, onChange]);
 
   const commitEdit = (id: string, html: string) => {
     onChange(blocksRef.current.map((b) => b.id === id ? { ...b, html } : b));
