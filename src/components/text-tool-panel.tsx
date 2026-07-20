@@ -327,7 +327,7 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
               <div>
                 <label className="mb-1 flex items-center justify-between text-[11px] text-muted-foreground">
                   <span>Line height</span>
-                  <span>{(parseFloat(document.querySelector<HTMLDivElement>(`[data-text-block="${editingBlock.id}"] [contenteditable]`)?.style.lineHeight || "1.5") || 1.5).toFixed(2)}</span>
+                  <span>{(parseFloat(getEditableEl(editingBlock.id)?.style.lineHeight || "1.5") || 1.5).toFixed(2)}</span>
                 </label>
                 <input type="range" min="1" max="3" step="0.05" defaultValue="1.5"
                   onChange={(e) => applyBlockStyle({ lineHeight: e.target.value })}
