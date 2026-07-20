@@ -64,19 +64,31 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
 
   const editingBlock = editingId ? blocks.find((b) => b.id === editingId) ?? null : null;
 
+  const getEditableEl = (id: string | null) =>
+    id ? document.querySelector<HTMLDivElement>(`[data-text-block="${id}"]`) : null;
+
   const withSelection = (fn: () => void) => {
-    const el = editingId
-      ? document.querySelector<HTMLDivElement>(`[data-text-block="${editingId}"] [contenteditable]`)
-      : null;
+    const el = getEditableEl(editingId);
     if (el) {
       el.focus();
       const sel = window.getSelection();
       if (sel && savedRangeRef.current) {
         sel.removeAllRanges();
         try { sel.addRange(savedRangeRef.current); } catch { /* range detached */ }
+      } else if (sel && sel.rangeCount === 0) {
+        // Fallback: place caret at end of the editable so commands have a target.
+        const r = document.createRange();
+        r.selectNodeContents(el);
+        r.collapse(false);
+        sel.addRange(r);
       }
     }
     fn();
+    // Persist HTML after formatting so it survives blur/remounts.
+    if (el && editingId) {
+      const html = el.innerHTML;
+      onBlocksChange(blocks.map((b) => b.id === editingId ? { ...b, html } : b));
+    }
   };
 
   const cmd = (name: string, value?: string) => withSelection(() => document.execCommand(name, false, value));
