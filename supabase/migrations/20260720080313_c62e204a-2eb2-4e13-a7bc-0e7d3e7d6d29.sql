@@ -1,0 +1,1 @@
+ALTER TABLE public.notes ADD COLUMN IF NOT EXISTS text_blocks jsonb NOT NULL DEFAULT '[]'::jsonb; ALTER TABLE public.notes ADD COLUMN IF NOT EXISTS paper_options jsonb;

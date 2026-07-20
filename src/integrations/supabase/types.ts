@@ -54,9 +54,11 @@ export type Database = {
           id: string
           mode: string
           paper: string
+          paper_options: Json | null
           pinned: boolean
           strokes: Json
           tags: string[]
+          text_blocks: Json
           title: string
           trashed: boolean
           updated_at: string
@@ -71,9 +73,11 @@ export type Database = {
           id: string
           mode?: string
           paper?: string
+          paper_options?: Json | null
           pinned?: boolean
           strokes?: Json
           tags?: string[]
+          text_blocks?: Json
           title?: string
           trashed?: boolean
           updated_at?: string
@@ -88,9 +92,11 @@ export type Database = {
           id?: string
           mode?: string
           paper?: string
+          paper_options?: Json | null
           pinned?: boolean
           strokes?: Json
           tags?: string[]
+          text_blocks?: Json
           title?: string
           trashed?: boolean
           updated_at?: string
