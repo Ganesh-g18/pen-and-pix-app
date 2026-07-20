@@ -262,7 +262,10 @@ export function UnifiedEditor({
     const s = drawingRef.current;
     drawingRef.current = null;
     drawingPointerIdRef.current = null;
-    if (s && s.points.length >= 3) {
+    if (tool === "shape") {
+      shapeStartRef.current = null;
+      if (s && s.points.length >= 6) onAddStroke(s);
+    } else if (s && s.points.length >= 3) {
       // Bake pressure into per-stroke size for constant-width tools if pressure enabled.
       const bake = shouldBakePressure(tool, penStyle) && activeConfig.pressure;
       if (bake) {
