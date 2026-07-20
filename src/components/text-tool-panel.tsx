@@ -6,7 +6,7 @@ import {
   Bold, Italic, Underline, Strikethrough, List, ListOrdered, ListChecks,
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
   Palette, Highlighter, Type, Minus, Plus, Copy, Trash2, ChevronsUp, ChevronsDown,
-  IndentIncrease, IndentDecrease, Table as TableIcon,
+  IndentIncrease, IndentDecrease,
 } from "lucide-react";
 
 const FONTS = [
@@ -17,7 +17,7 @@ const SIZES = [10, 13, 16, 18, 24, 32, 48];
 const HIGHLIGHTS = ["#fde68a", "#bbf7d0", "#bfdbfe", "#fecaca", "#e9d5ff", "#fed7aa", "transparent"];
 const COLORS = ["#0b0b0f", "#dc2626", "#059669", "#2563eb", "#a855f7", "#eab308", "#ec4899", "#ffffff"];
 
-type MenuKey = null | "font" | "color" | "highlight" | "paragraph" | "table";
+type MenuKey = null | "font" | "color" | "highlight" | "paragraph";
 
 interface Props {
   editingId: string | null;
@@ -208,29 +208,6 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
     range.insertNode(frag);
   });
 
-  const insertTable = (rows: number, cols: number, withHeader: boolean) => withSelection(() => {
-    const sel = window.getSelection();
-    if (!sel || sel.rangeCount === 0) return;
-    const range = sel.getRangeAt(0);
-    const cellStyle = "border:1px solid currentColor;padding:6px 8px;min-width:48px;vertical-align:top;";
-    const headStyle = cellStyle + "background:rgba(127,127,127,0.12);font-weight:600;";
-    let html = `<table data-inserted-table="1" style="border-collapse:collapse;margin:0.5em 0;width:auto;">`;
-    for (let r = 0; r < rows; r++) {
-      html += "<tr>";
-      for (let c = 0; c < cols; c++) {
-        const isHeader = withHeader && r === 0;
-        const tag = isHeader ? "th" : "td";
-        const style = isHeader ? headStyle : cellStyle;
-        html += `<${tag} style="${style}"><br></${tag}>`;
-      }
-      html += "</tr>";
-    }
-    html += "</table><p><br></p>";
-    const frag = range.createContextualFragment(html);
-    range.deleteContents();
-    range.insertNode(frag);
-  });
-
   const Btn = ({ onClick, title, children, active, dataMenu }: {
     onClick: (e: React.MouseEvent<HTMLButtonElement>) => void; title: string;
     children: React.ReactNode; active?: boolean; dataMenu?: string;
@@ -372,9 +349,6 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
           </div>
         </div>
       );
-    } else if (openMenu === "table") {
-      width = 232;
-      content = <TableGridPicker onPick={(r, c, h) => { insertTable(r, c, h); setOpenMenu(null); }} />;
     }
     if (!content) return null;
     return createPortal(
@@ -469,13 +443,6 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
 
         <Divider />
 
-        <Btn dataMenu="table" title="Insert table" onClick={(e) => openWith("table", e.currentTarget)}>
-          <TableIcon className="h-3.5 w-3.5" />
-        </Btn>
-
-        <Divider />
-
-
         <Btn title="Duplicate box" onClick={duplicate}><Copy className="h-3.5 w-3.5" /></Btn>
         <Btn title="Bring forward" onClick={bringForward}><ChevronsUp className="h-3.5 w-3.5" /></Btn>
         <Btn title="Send backward" onClick={sendBackward}><ChevronsDown className="h-3.5 w-3.5" /></Btn>
@@ -487,45 +454,6 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
         </div>
       )}
       {renderPopover()}
-    </div>
-  );
-}
-
-function TableGridPicker({ onPick }: { onPick: (rows: number, cols: number, header: boolean) => void }) {
-  const MAX_R = 8, MAX_C = 8;
-  const [hover, setHover] = useState<{ r: number; c: number }>({ r: 1, c: 1 });
-  const [header, setHeader] = useState(true);
-  return (
-    <div className="w-58 rounded-lg border border-border bg-card text-card-foreground shadow-float p-2">
-      <div className="mb-1.5 flex items-center justify-between text-[11px] text-muted-foreground">
-        <span>Insert table</span>
-        <span>{hover.r} × {hover.c}</span>
-      </div>
-      <div
-        className="grid gap-0.5"
-        style={{ gridTemplateColumns: `repeat(${MAX_C}, 16px)` }}
-        onMouseLeave={() => setHover({ r: 1, c: 1 })}
-      >
-        {Array.from({ length: MAX_R * MAX_C }).map((_, i) => {
-          const r = Math.floor(i / MAX_C) + 1;
-          const c = (i % MAX_C) + 1;
-          const on = r <= hover.r && c <= hover.c;
-          return (
-            <button
-              key={i}
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onMouseEnter={() => setHover({ r, c })}
-              onClick={() => onPick(hover.r, hover.c, header)}
-              className={`h-4 w-4 rounded-[3px] border ${on ? "bg-primary/60 border-primary" : "bg-background border-border"}`}
-            />
-          );
-        })}
-      </div>
-      <label className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground">
-        <input type="checkbox" checked={header} onChange={(e) => setHeader(e.target.checked)} />
-        First row as header
-      </label>
     </div>
   );
 }
