@@ -16,14 +16,33 @@ export interface Stroke {
   points: number[]; // flat [x,y,pressure, x,y,pressure, ...]
 }
 
+export interface TextBlock {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  html: string;
+  zIndex?: number;
+}
+
+export interface PaperOptions {
+  thickness?: number; // stroke width in px
+  spacing?: number;   // gap between rules / grid / dots
+  color?: string;     // any CSS color
+  margin?: number;    // left margin ruler width in px (0 = none)
+}
+
 export interface Note {
   id: string;
   title: string;
   emoji?: string;
   mode: NoteMode;
   paper: PaperType;
+  paperOptions?: PaperOptions;
   content: string; // tiptap HTML
   strokes: Stroke[];
+  textBlocks?: TextBlock[];
   folderId: string | null;
   tags: string[];
   pinned: boolean;
@@ -51,6 +70,8 @@ export interface Settings {
   density: Density;
   animations: boolean;
   glassmorphism: boolean;
+  cornerRadius?: number; // px, default 16
+  toolbarSize?: number;  // 0.85..1.25 scale, default 1
   // Note prefs
   defaultPen: "pen" | "highlighter" | "marker";
   defaultPenColor: string;
@@ -175,6 +196,8 @@ const defaultSettings: Settings = {
   density: "comfortable",
   animations: true,
   glassmorphism: true,
+  cornerRadius: 16,
+  toolbarSize: 1,
   defaultPen: "pen",
   defaultPenColor: "#111827",
   defaultPenThickness: 2,

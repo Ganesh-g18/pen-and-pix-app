@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { useStore } from "@/lib/store";
+import { useStore, type PaperOptions } from "@/lib/store";
 import { UnifiedEditor } from "@/components/unified-editor";
 import { CommandPalette } from "@/components/command-palette";
 import { flushNow, isCloudActive, subscribeStatus, type CloudStatus } from "@/lib/cloud-sync";
@@ -9,7 +9,7 @@ import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import {
   ArrowLeft, Pin, Star, Trash2, Grid3x3, LayoutGrid, Rows3, Square,
-  Save, Check, Download, FileText, FileType, FileDown, Loader2, CloudOff,
+  Save, Check, Download, FileText, FileType, FileDown, Loader2, CloudOff, Sliders,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -182,6 +182,12 @@ function NotePage() {
           <PaperBtn active={note.paper === "grid"} onClick={() => updateNote(id, { paper: "grid" })} icon={<Grid3x3 className="h-3.5 w-3.5" />} label="Grid" />
           <PaperBtn active={note.paper === "dots"} onClick={() => updateNote(id, { paper: "dots" })} icon={<LayoutGrid className="h-3.5 w-3.5" />} label="Dots" />
           <PaperBtn active={note.paper === "lined"} onClick={() => updateNote(id, { paper: "lined" })} icon={<Rows3 className="h-3.5 w-3.5" />} label="Lined" />
+          {note.paper !== "blank" && (
+            <PaperOptionsMenu
+              options={note.paperOptions}
+              onChange={(opts) => updateNote(id, { paperOptions: opts })}
+            />
+          )}
         </div>
 
         <div className="flex shrink-0 items-center gap-1">
@@ -278,7 +284,10 @@ function NotePage() {
           content={note.content}
           strokes={note.strokes}
           paper={note.paper}
+          paperOptions={note.paperOptions}
+          textBlocks={note.textBlocks}
           onContentChange={(html) => updateNote(id, { content: html })}
+          onTextBlocksChange={(blocks) => updateNote(id, { textBlocks: blocks })}
           onAddStroke={(s) => addStroke(id, s)}
           onUndoStroke={() => undoStroke(id)}
           onRedoStroke={() => redoStroke(id)}
@@ -329,5 +338,78 @@ function PaperBtn({ active, onClick, icon, label }: { active: boolean; onClick: 
     >
       {icon}
     </button>
+  );
+}
+
+function PaperOptionsMenu({
+  options,
+  onChange,
+}: { options?: PaperOptions; onChange: (opts: PaperOptions) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const opts: Required<PaperOptions> = {
+    thickness: options?.thickness ?? 1,
+    spacing: options?.spacing ?? 24,
+    color: options?.color ?? "",
+    margin: options?.margin ?? 0,
+  };
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open]);
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        aria-label="Paper options"
+        title="Paper options"
+        className="grid h-7 w-8 place-items-center rounded-lg text-muted-foreground hover:text-foreground transition"
+      >
+        <Sliders className="h-3.5 w-3.5" />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-9 z-40 w-64 rounded-xl border border-border bg-card text-card-foreground shadow-float p-3 space-y-3">
+          <div>
+            <div className="flex items-center justify-between text-xs mb-1">
+              <span>Thickness</span><span className="text-muted-foreground">{opts.thickness}px</span>
+            </div>
+            <input type="range" min={0.5} max={4} step={0.5} value={opts.thickness}
+              onChange={(e) => onChange({ ...opts, thickness: Number(e.target.value) })}
+              className="w-full" />
+          </div>
+          <div>
+            <div className="flex items-center justify-between text-xs mb-1">
+              <span>Spacing</span><span className="text-muted-foreground">{opts.spacing}px</span>
+            </div>
+            <input type="range" min={12} max={64} step={2} value={opts.spacing}
+              onChange={(e) => onChange({ ...opts, spacing: Number(e.target.value) })}
+              className="w-full" />
+          </div>
+          <div>
+            <div className="flex items-center justify-between text-xs mb-1">
+              <span>Margin ruler</span><span className="text-muted-foreground">{opts.margin}px</span>
+            </div>
+            <input type="range" min={0} max={80} step={4} value={opts.margin}
+              onChange={(e) => onChange({ ...opts, margin: Number(e.target.value) })}
+              className="w-full" />
+          </div>
+          <div className="flex items-center justify-between text-xs">
+            <span>Line color</span>
+            <input type="color"
+              value={/^#[0-9a-f]{6}$/i.test(opts.color) ? opts.color : "#94a3b8"}
+              onChange={(e) => onChange({ ...opts, color: e.target.value })}
+              className="h-6 w-8 cursor-pointer rounded" />
+          </div>
+          <button
+            onClick={() => onChange({})}
+            className="w-full rounded-lg border border-border text-xs py-1.5 hover:bg-accent"
+          >Reset to default</button>
+        </div>
+      )}
+    </div>
   );
 }

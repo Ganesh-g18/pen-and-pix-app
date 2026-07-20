@@ -4,15 +4,19 @@ import Placeholder from "@tiptap/extension-placeholder";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
-import type { Stroke, PaperType, PenStyle, PinnedPen, ToolPreset } from "@/lib/store";
+import type { Stroke, PaperType, PenStyle, PinnedPen, ToolPreset, TextBlock, PaperOptions } from "@/lib/store";
 import { useStore } from "@/lib/store";
 import { EditorToolbar, type EditorTool, type EraserMode, type ToolConfigKey } from "./editor-toolbar";
+import { TextBlockLayer } from "./text-block-layer";
 
 interface Props {
   content: string;
   strokes: Stroke[];
   paper: PaperType;
+  paperOptions?: PaperOptions;
+  textBlocks?: TextBlock[];
   onContentChange: (html: string) => void;
+  onTextBlocksChange?: (blocks: TextBlock[]) => void;
   onAddStroke: (s: Stroke) => void;
   onUndoStroke: () => void;
   onRedoStroke: () => void;
@@ -37,7 +41,8 @@ const DEFAULT_PRESETS: Record<ToolConfigKey, ToolPreset> = {
 };
 
 export function UnifiedEditor({
-  content, strokes, paper, onContentChange,
+  content, strokes, paper, paperOptions, textBlocks, onContentChange,
+  onTextBlocksChange,
   onAddStroke, onUndoStroke, onRedoStroke,
   onClearStrokes, onReplaceStrokes, onCommitErase,
 }: Props) {
@@ -142,6 +147,13 @@ export function UnifiedEditor({
 
   const paperClass =
     paper === "grid" ? "paper-grid" : paper === "dots" ? "paper-dots" : paper === "lined" ? "paper-lined" : "";
+
+  const paperStyle: React.CSSProperties = paperOptions ? {
+    ["--paper-thickness" as unknown as string]: `${paperOptions.thickness ?? 1}px`,
+    ["--paper-spacing" as unknown as string]: `${paperOptions.spacing ?? 24}px`,
+    ...(paperOptions.color ? { ["--paper-color" as unknown as string]: paperOptions.color } : {}),
+    ...(paperOptions.margin ? { ["--paper-margin" as unknown as string]: `${paperOptions.margin}px` } : {}),
+  } : {};
 
   const getPoint = (e: React.PointerEvent) => {
     const svg = svgRef.current!;
@@ -402,11 +414,21 @@ export function UnifiedEditor({
           ref={surfaceRef}
           data-editor-surface
           className={`relative w-full ${paperClass}`}
-          style={{ height: docHeight, minHeight: "100%" }}
+          style={{ height: docHeight, minHeight: "100%", ...paperStyle }}
         >
           <div className="absolute inset-0" style={{ pointerEvents: inkActive ? "none" : "auto" }}>
             {editor && <EditorContent editor={editor} />}
           </div>
+
+          {/* Freeform text blocks — sit above tiptap, below ink SVG. */}
+          {onTextBlocksChange && (
+            <TextBlockLayer
+              blocks={textBlocks ?? []}
+              onChange={onTextBlocksChange}
+              toolActive={tool === "text" ? "text" : tool === "select" ? "select" : "ink"}
+              surfaceRef={surfaceRef}
+            />
+          )}
 
           <svg
             ref={svgRef}

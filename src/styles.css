@@ -173,18 +173,55 @@
   pointer-events: none;
 }
 
-/* Canvas grid backgrounds */
+/* Canvas paper templates — driven by CSS variables so live settings + per-note
+   paperOptions (thickness / spacing / color / margin) can update instantly. */
+:root {
+  --paper-thickness: 1px;
+  --paper-spacing: 24px;
+  --paper-color: oklch(0.5 0.02 260 / 0.14);
+  --paper-margin: 0px;
+  --paper-margin-color: oklch(0.7 0.14 25 / 0.35);
+}
 .paper-grid {
   background-image:
-    linear-gradient(to right, oklch(0.5 0.02 260 / 0.08) 1px, transparent 1px),
-    linear-gradient(to bottom, oklch(0.5 0.02 260 / 0.08) 1px, transparent 1px);
-  background-size: 24px 24px;
+    linear-gradient(to right, var(--paper-color) var(--paper-thickness), transparent var(--paper-thickness)),
+    linear-gradient(to bottom, var(--paper-color) var(--paper-thickness), transparent var(--paper-thickness));
+  background-size: var(--paper-spacing) var(--paper-spacing);
 }
 .paper-dots {
-  background-image: radial-gradient(oklch(0.5 0.02 260 / 0.22) 1px, transparent 1px);
-  background-size: 22px 22px;
+  background-image: radial-gradient(var(--paper-color) var(--paper-thickness), transparent calc(var(--paper-thickness) + 0.5px));
+  background-size: var(--paper-spacing) var(--paper-spacing);
 }
 .paper-lined {
-  background-image: linear-gradient(to bottom, transparent 27px, oklch(0.5 0.02 260 / 0.14) 28px);
-  background-size: 100% 28px;
+  background-image: linear-gradient(
+    to bottom,
+    transparent calc(var(--paper-spacing) - var(--paper-thickness)),
+    var(--paper-color) calc(var(--paper-spacing) - var(--paper-thickness) + 1px)
+  );
+  background-size: 100% var(--paper-spacing);
 }
+.paper-margin {
+  box-shadow: inset var(--paper-margin) 0 0 0 transparent;
+  border-left: var(--paper-margin) solid transparent;
+  background-image: linear-gradient(to right, transparent var(--paper-margin), transparent var(--paper-margin));
+}
+.paper-margin::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 var(--paper-margin);
+  width: 1px;
+  background: var(--paper-margin-color);
+  pointer-events: none;
+}
+
+/* Reduced motion when the user turns off animations. */
+html[data-animations="false"] *,
+html[data-animations="false"] *::before,
+html[data-animations="false"] *::after {
+  transition-duration: 0ms !important;
+  animation-duration: 0ms !important;
+}
+
+/* Toolbar scale variable — components use `calc(... * var(--toolbar-scale))`
+   or a wrapping transform. Provided as a hook without forcing a rewrite. */
+:root { --toolbar-scale: 1; }
