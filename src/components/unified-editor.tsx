@@ -527,7 +527,22 @@ export function UnifiedEditor({
               if (cursorRef.current && inkActive) cursorRef.current.style.display = "block";
             }}
           >
-            {(erasePreview ?? strokes).map((s) => renderStrokePath(s, false, activeConfig.pressure))}
+            {(erasePreview ?? strokes).map((s) => {
+              const child = renderStrokePath(s, false, activeConfig.pressure);
+              if (tool !== "select") return child;
+              const dragging = selectDrag?.ids.has(s.id);
+              const transform = dragging ? `translate(${selectDrag!.dx} ${selectDrag!.dy})` : undefined;
+              return (
+                <g
+                  key={s.id}
+                  transform={transform}
+                  style={{ pointerEvents: "auto", cursor: dragging ? "grabbing" : "grab", touchAction: "none" }}
+                  onPointerDown={(e) => beginStrokeDrag(e, s.id)}
+                >
+                  {child}
+                </g>
+              );
+            })}
             {drawingRef.current && renderStrokePath(drawingRef.current, true, activeConfig.pressure)}
           </svg>
         </div>
