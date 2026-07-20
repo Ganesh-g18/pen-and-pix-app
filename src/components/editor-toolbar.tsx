@@ -106,6 +106,8 @@ export const EditorToolbar = memo(function EditorToolbar({
   onUndo,
   onRedo,
   onClear,
+  shapeKind,
+  onShapeKindChange,
 }: Props) {
   const settings = useStore((s) => s.settings);
   const pinnedPens = settings.pinnedPens ?? EMPTY_PINNED_PENS;
