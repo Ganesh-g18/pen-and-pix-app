@@ -418,7 +418,7 @@ export function UnifiedEditor({
           ref={surfaceRef}
           data-editor-surface
           className={`relative w-full ${paperClass}`}
-          style={{ height: docHeight, minHeight: "100%", ...paperStyle }}
+          style={{ height: docHeight, minHeight: "100%", cursor: tool === "text" ? "text" : undefined, ...paperStyle }}
         >
           <div className="absolute inset-0" style={{ pointerEvents: tool === "select" ? "auto" : "none" }}>
             {editor && <EditorContent editor={editor} />}
