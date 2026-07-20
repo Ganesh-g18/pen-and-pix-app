@@ -375,15 +375,17 @@ export function UnifiedEditor({
   // Keyboard shortcuts
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      const inEditable = !!(e.target as HTMLElement)?.closest("[contenteditable='true']");
+      // List shortcuts inside text blocks / tiptap
+      if (inEditable && (e.ctrlKey || e.metaKey) && e.shiftKey) {
+        if (e.key === "7" || e.code === "Digit7") { e.preventDefault(); document.execCommand("insertOrderedList"); return; }
+        if (e.key === "8" || e.code === "Digit8") { e.preventDefault(); document.execCommand("insertUnorderedList"); return; }
+      }
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z" && !e.shiftKey) {
-        if (tool !== "text" && !(e.target as HTMLElement)?.closest("[contenteditable]")) {
-          e.preventDefault(); onUndoStroke(); return;
-        }
+        if (tool !== "text" && !inEditable) { e.preventDefault(); onUndoStroke(); return; }
       }
       if ((e.metaKey || e.ctrlKey) && (e.key.toLowerCase() === "y" || (e.key.toLowerCase() === "z" && e.shiftKey))) {
-        if (tool !== "text" && !(e.target as HTMLElement)?.closest("[contenteditable]")) {
-          e.preventDefault(); onRedoStroke(); return;
-        }
+        if (tool !== "text" && !inEditable) { e.preventDefault(); onRedoStroke(); return; }
       }
       if ((e.target as HTMLElement)?.closest("input, textarea, [contenteditable]")) return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
