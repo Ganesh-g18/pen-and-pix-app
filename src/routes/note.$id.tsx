@@ -9,7 +9,7 @@ import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import {
   ArrowLeft, Pin, Star, Trash2, Grid3x3, LayoutGrid, Rows3, Square,
-  Save, Check, Download, FileText, FileType, FileDown, Loader2, CloudOff,
+  Save, Check, Download, FileText, FileType, FileDown, Loader2, CloudOff, Sliders,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -182,6 +182,12 @@ function NotePage() {
           <PaperBtn active={note.paper === "grid"} onClick={() => updateNote(id, { paper: "grid" })} icon={<Grid3x3 className="h-3.5 w-3.5" />} label="Grid" />
           <PaperBtn active={note.paper === "dots"} onClick={() => updateNote(id, { paper: "dots" })} icon={<LayoutGrid className="h-3.5 w-3.5" />} label="Dots" />
           <PaperBtn active={note.paper === "lined"} onClick={() => updateNote(id, { paper: "lined" })} icon={<Rows3 className="h-3.5 w-3.5" />} label="Lined" />
+          {note.paper !== "blank" && (
+            <PaperOptionsMenu
+              options={note.paperOptions}
+              onChange={(opts) => updateNote(id, { paperOptions: opts })}
+            />
+          )}
         </div>
 
         <div className="flex shrink-0 items-center gap-1">

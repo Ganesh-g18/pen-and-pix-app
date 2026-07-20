@@ -1,10 +1,32 @@
 import type { Note } from "@/lib/store";
 
+/** Serialize freeform text blocks as HTML for export. */
+function blocksToHtml(note: Note): string {
+  if (!note.textBlocks?.length) return "";
+  return note.textBlocks
+    .map((b) => `<div style="margin:0.6em 0;">${b.html || ""}</div>`)
+    .join("\n");
+}
+
+/** Extract plain text from text blocks. */
+function blocksToText(note: Note): string {
+  if (!note.textBlocks?.length) return "";
+  return note.textBlocks
+    .map((b) => {
+      const doc = new DOMParser().parseFromString(b.html || "", "text/html");
+      return (doc.body.textContent || "").trim();
+    })
+    .filter(Boolean)
+    .join("\n\n");
+}
+
 /** Export a note as a plain-text file. */
 export function exportAsText(note: Note) {
   const doc = new DOMParser().parseFromString(note.content || "", "text/html");
-  const text = (doc.body.textContent || "").trim();
-  const body = `${note.title}\n${"=".repeat(note.title.length)}\n\n${text}\n`;
+  const mainText = (doc.body.textContent || "").trim();
+  const blockText = blocksToText(note);
+  const combined = [mainText, blockText].filter(Boolean).join("\n\n");
+  const body = `${note.title}\n${"=".repeat(note.title.length)}\n\n${combined}\n`;
   downloadBlob(new Blob([body], { type: "text/plain" }), `${safeName(note.title)}.txt`);
 }
 
@@ -12,7 +34,8 @@ export function exportAsText(note: Note) {
 export async function exportAsMarkdown(note: Note) {
   const { default: TurndownService } = await import("turndown");
   const td = new TurndownService({ headingStyle: "atx", codeBlockStyle: "fenced", bulletListMarker: "-" });
-  const md = td.turndown(note.content || "");
+  const html = [note.content || "", blocksToHtml(note)].filter(Boolean).join("\n");
+  const md = td.turndown(html);
   const body = `# ${note.title}\n\n${md}\n`;
   downloadBlob(new Blob([body], { type: "text/markdown" }), `${safeName(note.title)}.md`);
 }
