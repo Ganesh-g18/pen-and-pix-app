@@ -126,9 +126,46 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
 
   const cmd = (name: string, value?: string) => withSelection(() => document.execCommand(name, false, value));
 
+  /**
+   * Apply an inline CSS style to the current selection. If the selection is
+   * collapsed, wrap a zero-width space so subsequent typing inherits the style.
+   * This is more reliable than execCommand("fontName"/"fontSize"), which is
+   * inconsistent across browsers and interacts badly with styleWithCSS.
+   */
+  const applyInlineStyle = (style: Partial<CSSStyleDeclaration>) => {
+    withSelection(() => {
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0) return;
+      const range = sel.getRangeAt(0);
+      const span = document.createElement("span");
+      Object.assign(span.style, style);
+      if (range.collapsed) {
+        span.appendChild(document.createTextNode("\u200B"));
+        range.insertNode(span);
+        const r = document.createRange();
+        r.setStart(span.firstChild!, 1);
+        r.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(r);
+      } else {
+        try {
+          const frag = range.extractContents();
+          span.appendChild(frag);
+          range.insertNode(span);
+          const r = document.createRange();
+          r.selectNodeContents(span);
+          sel.removeAllRanges();
+          sel.addRange(r);
+        } catch {
+          /* selection crossed non-editable boundary */
+        }
+      }
+    });
+  };
+
   const applyFont = (f: string) => {
     lastFontRef.current = f;
-    cmd("fontName", f);
+    applyInlineStyle({ fontFamily: f });
     setOpenMenu(null);
   };
 
@@ -164,17 +201,8 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
   };
 
   const applySize = (px: number) => {
-    withSelection(() => {
-      const next = Math.max(8, Math.min(96, Math.round(px)));
-      document.execCommand("styleWithCSS", false, "true");
-      document.execCommand("fontSize", false, "7");
-      document.querySelectorAll<HTMLElement>("font[size='7']").forEach((f) => {
-        const span = document.createElement("span");
-        span.style.fontSize = `${next}px`;
-        span.innerHTML = f.innerHTML;
-        f.replaceWith(span);
-      });
-    });
+    const next = Math.max(8, Math.min(96, Math.round(px)));
+    applyInlineStyle({ fontSize: `${next}px` });
   };
 
   const adjustSize = (delta: number) => {
