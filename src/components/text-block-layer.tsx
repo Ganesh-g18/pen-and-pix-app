@@ -137,6 +137,9 @@ export const TextBlockLayer = memo(function TextBlockLayer({
     const range = sel.getRangeAt(0).cloneRange();
     range.collapse(true);
     const rect = range.getBoundingClientRect();
+    // A collapsed range on an empty new line can report an all-zero rect; that
+    // would trick the scroller into jumping to the top of the page.
+    if (rect.top === 0 && rect.bottom === 0 && rect.left === 0) return;
     const margin = 80;
     let node: HTMLElement | null = surfaceRef.current;
     while (node) {

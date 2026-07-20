@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { TextBlock } from "@/lib/store";
 import { useStore } from "@/lib/store";
 import {
@@ -19,6 +20,8 @@ const SIZES = [
 const HIGHLIGHTS = ["#fde68a", "#bbf7d0", "#bfdbfe", "#fecaca", "#e9d5ff", "#fed7aa", "transparent"];
 const COLORS = ["#0b0b0f", "#dc2626", "#059669", "#2563eb", "#a855f7", "#eab308", "#ec4899", "#ffffff"];
 
+type MenuKey = null | "font" | "color" | "highlight" | "paragraph";
+
 interface Props {
   editingId: string | null;
   blocks: TextBlock[];
@@ -27,21 +30,30 @@ interface Props {
 
 /**
  * Contextual toolbar rendered just above the annotation panel while the
- * Text tool is active. Applies formatting to the currently editing block
- * via execCommand (retaining current text selection). Actions (duplicate,
- * delete, bring forward/back) operate on the editing block directly.
+ * Text tool is active. Popovers render into a portal with fixed positioning
+ * so the toolbar's horizontal scroll container never clips them.
  */
 export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
   const settings = useStore((s) => s.settings);
   const updateSettings = useStore((s) => s.updateSettings);
   const recentColors = settings.recentColors ?? [];
 
-  const [openMenu, setOpenMenu] = useState<null | "font" | "size" | "color" | "highlight" | "paragraph">(null);
+  const [openMenu, setOpenMenu] = useState<MenuKey>(null);
   const [fontQuery, setFontQuery] = useState("");
+  const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
   const savedRangeRef = useRef<Range | null>(null);
+  const lastFontRef = useRef<string>("Inter");
 
-  // Preserve selection whenever the user is about to click a toolbar control.
+  const openWith = useCallback((menu: Exclude<MenuKey, null>, el: HTMLElement | null) => {
+    if (!el) return;
+    setAnchorRect(el.getBoundingClientRect());
+    setOpenMenu((prev) => (prev === menu ? null : menu));
+    setFontQuery("");
+  }, []);
+
+  // Track editable selection so toolbar clicks retain user's caret/selection.
   useEffect(() => {
     const onSel = () => {
       const sel = window.getSelection();
@@ -55,13 +67,38 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
     return () => document.removeEventListener("selectionchange", onSel);
   }, []);
 
+  // Close on outside pointer / Escape.
   useEffect(() => {
-    const onDoc = (e: MouseEvent) => {
-      if (!rootRef.current?.contains(e.target as Node)) setOpenMenu(null);
+    if (!openMenu) return;
+    const onDown = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (rootRef.current?.contains(t)) return;
+      if (popoverRef.current?.contains(t)) return;
+      setOpenMenu(null);
     };
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
-  }, []);
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpenMenu(null); };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [openMenu]);
+
+  // Reposition popover on scroll/resize while open.
+  useLayoutEffect(() => {
+    if (!openMenu) return;
+    const update = () => {
+      const trigger = rootRef.current?.querySelector<HTMLElement>(`[data-menu-trigger="${openMenu}"]`);
+      if (trigger) setAnchorRect(trigger.getBoundingClientRect());
+    };
+    window.addEventListener("scroll", update, true);
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update, true);
+      window.removeEventListener("resize", update);
+    };
+  }, [openMenu]);
 
   const editingBlock = editingId ? blocks.find((b) => b.id === editingId) ?? null : null;
 
@@ -77,7 +114,6 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
         sel.removeAllRanges();
         try { sel.addRange(savedRangeRef.current); } catch { /* range detached */ }
       } else if (sel && sel.rangeCount === 0) {
-        // Fallback: place caret at end of the editable so commands have a target.
         const r = document.createRange();
         r.selectNodeContents(el);
         r.collapse(false);
@@ -85,7 +121,6 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
       }
     }
     fn();
-    // Persist HTML after formatting so it survives blur/remounts.
     if (el && editingId) {
       const html = el.innerHTML;
       onBlocksChange(blocks.map((b) => b.id === editingId ? { ...b, html } : b));
@@ -93,6 +128,12 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
   };
 
   const cmd = (name: string, value?: string) => withSelection(() => document.execCommand(name, false, value));
+
+  const applyFont = (f: string) => {
+    lastFontRef.current = f;
+    cmd("fontName", f);
+    setOpenMenu(null);
+  };
 
   const pushRecent = (c: string) => {
     const next = [c, ...recentColors.filter((x) => x.toLowerCase() !== c.toLowerCase())].slice(0, 12);
@@ -130,16 +171,13 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
       const sel = window.getSelection();
       if (!sel || sel.rangeCount === 0) return;
       const r = sel.getRangeAt(0);
-      // Find current font-size on the anchor node’s parent
       const el = (r.startContainer.nodeType === 1
         ? (r.startContainer as HTMLElement)
         : r.startContainer.parentElement) as HTMLElement | null;
       const px = parseFloat(getComputedStyle(el ?? document.body).fontSize) || 16;
       const next = Math.max(8, Math.min(96, Math.round(px + delta)));
-      // execCommand fontSize only accepts 1-7; use styleWithCSS + a wrapper span for precision.
       document.execCommand("styleWithCSS", false, "true");
       document.execCommand("fontSize", false, "7");
-      // Replace the last font tag with a span using the exact px.
       document.querySelectorAll<HTMLElement>("font[size='7']").forEach((f) => {
         const span = document.createElement("span");
         span.style.fontSize = `${next}px`;
@@ -171,11 +209,14 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
     range.insertNode(frag);
   });
 
-  const Btn = ({ onClick, title, children, active }: {
-    onClick: () => void; title: string; children: React.ReactNode; active?: boolean;
+  const Btn = ({ onClick, title, children, active, dataMenu }: {
+    onClick: (e: React.MouseEvent<HTMLButtonElement>) => void; title: string;
+    children: React.ReactNode; active?: boolean; dataMenu?: string;
   }) => (
     <button
+      type="button"
       title={title}
+      data-menu-trigger={dataMenu}
       onMouseDown={(e) => e.preventDefault()}
       onClick={onClick}
       className={`grid h-8 w-8 shrink-0 place-items-center rounded-md transition ${
@@ -188,6 +229,141 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
 
   const Divider = () => <div className="mx-1 h-5 w-px shrink-0 bg-border" />;
 
+  /** Position a popover just above the trigger, keeping it inside the viewport. */
+  const popoverStyle = (width: number): React.CSSProperties => {
+    if (!anchorRect) return { display: "none" };
+    const gap = 8;
+    const vw = window.innerWidth;
+    let left = anchorRect.left;
+    if (left + width > vw - 8) left = Math.max(8, vw - width - 8);
+    return {
+      position: "fixed",
+      left,
+      top: anchorRect.top - gap,
+      transform: "translateY(-100%)",
+      zIndex: 60,
+    };
+  };
+
+  const renderPopover = () => {
+    if (!openMenu || !anchorRect) return null;
+    let content: React.ReactNode = null;
+    let width = 224;
+    if (openMenu === "font") {
+      width = 224;
+      const filtered = FONTS.filter((f) => f.toLowerCase().includes(fontQuery.trim().toLowerCase()));
+      content = (
+        <div className="w-56 rounded-lg border border-border bg-card text-card-foreground shadow-float p-1">
+          <input
+            autoFocus
+            value={fontQuery}
+            onChange={(e) => setFontQuery(e.target.value)}
+            onMouseDown={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+            placeholder="Search fonts…"
+            className="mb-1 w-full rounded-md border border-border bg-background px-2 py-1 text-xs outline-none focus:ring-1 focus:ring-ring"
+          />
+          <div className="max-h-64 overflow-y-auto">
+            {filtered.map((f) => (
+              <button
+                key={f}
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => applyFont(f)}
+                className={`w-full rounded px-2 py-1.5 text-left text-sm hover:bg-accent ${
+                  lastFontRef.current === f ? "bg-accent/60" : ""
+                }`}
+                style={{ fontFamily: f }}
+              >{f}</button>
+            ))}
+            {filtered.length === 0 && (
+              <div className="px-2 py-3 text-center text-xs text-muted-foreground">No matches</div>
+            )}
+          </div>
+        </div>
+      );
+    } else if (openMenu === "color") {
+      width = 224;
+      content = (
+        <div className="w-56 rounded-lg border border-border bg-card shadow-float p-2">
+          <div className="mb-1 text-[10px] uppercase tracking-wide text-muted-foreground">Preset</div>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {COLORS.map((c) => (
+              <button key={c} type="button" onMouseDown={(e) => e.preventDefault()}
+                onClick={() => { cmd("foreColor", c); pushRecent(c); setOpenMenu(null); }}
+                className="h-5 w-5 rounded-full border border-border" style={{ background: c }} />
+            ))}
+            <input type="color" onChange={(e) => { cmd("foreColor", e.target.value); pushRecent(e.target.value); }}
+              className="h-6 w-8 cursor-pointer rounded" />
+          </div>
+          {recentColors.length > 0 && (
+            <>
+              <div className="mt-2 mb-1 text-[10px] uppercase tracking-wide text-muted-foreground">Recent</div>
+              <div className="flex flex-wrap gap-1.5">
+                {recentColors.map((c) => (
+                  <button key={c} type="button" onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => { cmd("foreColor", c); setOpenMenu(null); }}
+                    className="h-5 w-5 rounded-full border border-border" style={{ background: c }} />
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      );
+    } else if (openMenu === "highlight") {
+      width = 220;
+      content = (
+        <div className="rounded-lg border border-border bg-card shadow-float p-2 flex items-center gap-1.5">
+          {HIGHLIGHTS.map((c) => (
+            <button key={c} type="button" onMouseDown={(e) => e.preventDefault()}
+              onClick={() => { cmd("hiliteColor", c); setOpenMenu(null); }}
+              title={c === "transparent" ? "Clear" : c}
+              className="h-5 w-5 rounded-full border border-border"
+              style={{ background: c === "transparent" ? "transparent" : c }} />
+          ))}
+          <input type="color" onChange={(e) => cmd("hiliteColor", e.target.value)}
+            className="h-6 w-8 cursor-pointer rounded" />
+        </div>
+      );
+    } else if (openMenu === "paragraph" && editingBlock) {
+      width = 224;
+      const el = getEditableEl(editingBlock.id);
+      content = (
+        <div className="w-56 rounded-lg border border-border bg-card shadow-float p-3 space-y-2">
+          <div>
+            <label className="mb-1 flex items-center justify-between text-[11px] text-muted-foreground">
+              <span>Line height</span>
+              <span>{(parseFloat(el?.style.lineHeight || "1.5") || 1.5).toFixed(2)}</span>
+            </label>
+            <input type="range" min="1" max="3" step="0.05" defaultValue={el?.style.lineHeight || "1.5"}
+              onChange={(e) => applyBlockStyle({ lineHeight: e.target.value })}
+              className="w-full" />
+          </div>
+          <div>
+            <label className="mb-1 flex items-center justify-between text-[11px] text-muted-foreground">
+              <span>Letter spacing</span>
+            </label>
+            <input type="range" min="-2" max="10" step="0.1"
+              defaultValue={parseFloat(el?.style.letterSpacing || "0") || 0}
+              onChange={(e) => applyBlockStyle({ letterSpacing: `${e.target.value}px` })}
+              className="w-full" />
+          </div>
+        </div>
+      );
+    }
+    if (!content) return null;
+    return createPortal(
+      <div
+        ref={popoverRef}
+        style={popoverStyle(width)}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        {content}
+      </div>,
+      document.body,
+    );
+  };
+
   return (
     <div
       ref={rootRef}
@@ -197,48 +373,20 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
       onMouseDown={(e) => e.preventDefault()}
     >
       <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar px-2 py-1.5">
-        {/* Font family (compact dropdown w/ search) */}
-        <div className="relative">
-          <button
-            type="button"
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => { setOpenMenu(openMenu === "font" ? null : "font"); setFontQuery(""); }}
-            className="inline-flex items-center h-8 rounded-md bg-transparent px-2 text-xs outline-none hover:bg-accent max-w-[8rem] truncate text-left text-muted-foreground hover:text-foreground"
-            title="Font family"
-          >
-            <Type className="mr-1 h-3.5 w-3.5" />
-            Font
-          </button>
-          {openMenu === "font" && (
-            <div className="absolute bottom-10 left-0 w-52 rounded-lg border border-border bg-card text-card-foreground shadow-float p-1 z-10">
-              <input
-                autoFocus
-                value={fontQuery}
-                onChange={(e) => setFontQuery(e.target.value)}
-                onMouseDown={(e) => e.stopPropagation()}
-                placeholder="Search fonts…"
-                className="mb-1 w-full rounded-md border border-border bg-background px-2 py-1 text-xs outline-none focus:ring-1 focus:ring-ring"
-              />
-              <div className="max-h-56 overflow-y-auto">
-                {FONTS.filter((f) => f.toLowerCase().includes(fontQuery.trim().toLowerCase())).map((f) => (
-                  <button
-                    key={f}
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => { cmd("fontName", f); setOpenMenu(null); }}
-                    className="w-full rounded px-2 py-1.5 text-left text-sm hover:bg-accent"
-                    style={{ fontFamily: f }}
-                  >{f}</button>
-                ))}
-                {FONTS.filter((f) => f.toLowerCase().includes(fontQuery.trim().toLowerCase())).length === 0 && (
-                  <div className="px-2 py-3 text-center text-xs text-muted-foreground">No matches</div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
+        {/* Font family */}
+        <button
+          type="button"
+          data-menu-trigger="font"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={(e) => openWith("font", e.currentTarget)}
+          className="inline-flex items-center h-8 rounded-md bg-transparent px-2 text-xs outline-none hover:bg-accent max-w-[8rem] truncate text-left text-muted-foreground hover:text-foreground"
+          title="Font family"
+        >
+          <Type className="mr-1 h-3.5 w-3.5" />
+          Font
+        </button>
 
-
-        {/* Font size (select + +/-) */}
+        {/* Font size */}
         <select
           onMouseDown={(e) => e.stopPropagation()}
           onChange={(e) => cmd("fontSize", e.target.value)}
@@ -260,58 +408,12 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
 
         <Divider />
 
-        {/* Text color */}
-        <div className="relative">
-          <Btn title="Text color" onClick={() => setOpenMenu(openMenu === "color" ? null : "color")}>
-            <Palette className="h-3.5 w-3.5" />
-          </Btn>
-          {openMenu === "color" && (
-            <div className="absolute bottom-10 left-0 rounded-lg border border-border bg-card shadow-float p-2 z-10 w-56">
-              <div className="mb-1 text-[10px] uppercase tracking-wide text-muted-foreground">Preset</div>
-              <div className="flex flex-wrap items-center gap-1.5">
-                {COLORS.map((c) => (
-                  <button key={c} onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => { cmd("foreColor", c); pushRecent(c); setOpenMenu(null); }}
-                    className="h-5 w-5 rounded-full border border-border" style={{ background: c }} />
-                ))}
-                <input type="color" onChange={(e) => { cmd("foreColor", e.target.value); pushRecent(e.target.value); }}
-                  className="h-6 w-8 cursor-pointer rounded" />
-              </div>
-              {recentColors.length > 0 && (
-                <>
-                  <div className="mt-2 mb-1 text-[10px] uppercase tracking-wide text-muted-foreground">Recent</div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {recentColors.map((c) => (
-                      <button key={c} onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => { cmd("foreColor", c); setOpenMenu(null); }}
-                        className="h-5 w-5 rounded-full border border-border" style={{ background: c }} />
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Highlight */}
-        <div className="relative">
-          <Btn title="Highlight" onClick={() => setOpenMenu(openMenu === "highlight" ? null : "highlight")}>
-            <Highlighter className="h-3.5 w-3.5" />
-          </Btn>
-          {openMenu === "highlight" && (
-            <div className="absolute bottom-10 left-0 rounded-lg border border-border bg-card shadow-float p-2 z-10 flex items-center gap-1.5">
-              {HIGHLIGHTS.map((c) => (
-                <button key={c} onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => { cmd("hiliteColor", c); setOpenMenu(null); }}
-                  title={c === "transparent" ? "Clear" : c}
-                  className="h-5 w-5 rounded-full border border-border"
-                  style={{ background: c === "transparent" ? "transparent" : c }} />
-              ))}
-              <input type="color" onChange={(e) => cmd("hiliteColor", e.target.value)}
-                className="h-6 w-8 cursor-pointer rounded" />
-            </div>
-          )}
-        </div>
+        <Btn dataMenu="color" title="Text color" onClick={(e) => openWith("color", e.currentTarget)}>
+          <Palette className="h-3.5 w-3.5" />
+        </Btn>
+        <Btn dataMenu="highlight" title="Highlight" onClick={(e) => openWith("highlight", e.currentTarget)}>
+          <Highlighter className="h-3.5 w-3.5" />
+        </Btn>
 
         <Divider />
 
@@ -331,36 +433,14 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
         <Btn title="Outdent" onClick={() => cmd("outdent")}><IndentDecrease className="h-3.5 w-3.5" /></Btn>
         <Btn title="Indent" onClick={() => cmd("indent")}><IndentIncrease className="h-3.5 w-3.5" /></Btn>
 
-        {/* Paragraph settings */}
-        <div className="relative">
-          <button
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => setOpenMenu(openMenu === "paragraph" ? null : "paragraph")}
-            className="rounded-md px-2 h-8 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
-            title="Paragraph"
-          >¶</button>
-          {openMenu === "paragraph" && editingBlock && (
-            <div className="absolute bottom-10 left-0 w-56 rounded-lg border border-border bg-card shadow-float p-3 z-10 space-y-2">
-              <div>
-                <label className="mb-1 flex items-center justify-between text-[11px] text-muted-foreground">
-                  <span>Line height</span>
-                  <span>{(parseFloat(getEditableEl(editingBlock.id)?.style.lineHeight || "1.5") || 1.5).toFixed(2)}</span>
-                </label>
-                <input type="range" min="1" max="3" step="0.05" defaultValue="1.5"
-                  onChange={(e) => applyBlockStyle({ lineHeight: e.target.value })}
-                  className="w-full" />
-              </div>
-              <div>
-                <label className="mb-1 flex items-center justify-between text-[11px] text-muted-foreground">
-                  <span>Letter spacing</span>
-                </label>
-                <input type="range" min="-2" max="10" step="0.1" defaultValue="0"
-                  onChange={(e) => applyBlockStyle({ letterSpacing: `${e.target.value}px` })}
-                  className="w-full" />
-              </div>
-            </div>
-          )}
-        </div>
+        <button
+          type="button"
+          data-menu-trigger="paragraph"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={(e) => openWith("paragraph", e.currentTarget)}
+          className="rounded-md px-2 h-8 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
+          title="Paragraph"
+        >¶</button>
 
         <Divider />
 
@@ -374,6 +454,7 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
           Click anywhere on the page to type
         </div>
       )}
+      {renderPopover()}
     </div>
   );
 }
