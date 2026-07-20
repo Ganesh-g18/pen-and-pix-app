@@ -482,7 +482,62 @@ export const EditorToolbar = memo(function EditorToolbar({
           )}
         </div>
 
+        {/* Shapes */}
+        <div className="relative flex shrink-0 items-center">
+          <button
+            className={btn(tool === "shape")}
+            onClick={() => {
+              if (lpFired.current) { lpFired.current = false; return; }
+              setPenOpen(false); setHiOpen(false); setEraserOpen(false); setPenListOpen(false);
+              if (tool === "shape") setShapeOpen((v) => !v);
+              else { onToolChange("shape"); setShapeOpen(false); }
+            }}
+            title={`Shapes · ${shapeKind}`}
+            aria-label={`Shapes — ${shapeKind}`}
+            style={{ color: tool === "shape" ? activeConfig.color : undefined }}
+          >
+            {(() => {
+              const S = SHAPE_LIBRARY.find((x) => x.id === shapeKind)?.Icon ?? ShapesIcon;
+              return <S className="h-4 w-4 transition-all duration-200" />;
+            })()}
+          </button>
+          <button
+            className="grid h-8 w-3 place-items-center text-muted-foreground hover:text-foreground"
+            onClick={() => {
+              setPenOpen(false); setHiOpen(false); setEraserOpen(false); setPenListOpen(false);
+              onToolChange("shape");
+              setShapeOpen((v) => !v);
+            }}
+            aria-label="Shape library"
+          >
+            <ChevronDown className="h-3 w-3" />
+          </button>
+          {shapeOpen && (
+            <div className={`${popover} w-56 rounded-xl bg-card text-card-foreground border border-border p-2 shadow-float`}>
+              <div className="grid grid-cols-5 gap-1">
+                {SHAPE_LIBRARY.map(({ id, label, Icon }) => (
+                  <button
+                    key={id}
+                    onClick={() => { onShapeKindChange(id); setShapeOpen(false); }}
+                    className={`flex flex-col items-center gap-1 rounded-lg px-1.5 py-2 text-[10px] transition ${
+                      shapeKind === id ? "bg-primary/15 text-primary" : "hover:bg-accent"
+                    }`}
+                    title={label}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span className="truncate">{label}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="mt-2 border-t border-border pt-2">
+                <div className="mb-1 text-[10px] text-muted-foreground">Color & size use current pen settings.</div>
+              </div>
+            </div>
+          )}
+        </div>
+
         <div className="mx-1 h-5 w-px shrink-0 bg-border" />
+
 
         {/* Pinned pens strip */}
         {pinnedPens.length > 0 && (
