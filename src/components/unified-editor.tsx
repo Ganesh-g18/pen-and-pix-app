@@ -30,24 +30,36 @@ interface Props {
 const MIN_DOC_HEIGHT = 2400;
 
 const FALLBACK_PRESET: ToolPreset = {
-  color: "#0b0b0f", size: 2, opacity: 1, pressure: true, smoothing: true,
+  color: "#0b0b0f",
+  size: 2,
+  opacity: 1,
+  pressure: true,
+  smoothing: true,
 };
 const DEFAULT_PRESETS: Record<ToolConfigKey, ToolPreset> = {
   ballpoint: { color: "#0b0b0f", size: 2, opacity: 1, pressure: true, smoothing: true },
-  fountain:  { color: "#1e3a8a", size: 2.5, opacity: 1, pressure: true, smoothing: true },
-  marker:    { color: "#dc2626", size: 6, opacity: 0.9, pressure: false, smoothing: true },
-  pencil:    { color: "#374151", size: 1.5, opacity: 0.75, pressure: true, smoothing: false },
-  brush:     { color: "#0b0b0f", size: 5, opacity: 0.95, pressure: true, smoothing: true },
+  fountain: { color: "#1e3a8a", size: 2.5, opacity: 1, pressure: true, smoothing: true },
+  marker: { color: "#dc2626", size: 6, opacity: 0.9, pressure: false, smoothing: true },
+  pencil: { color: "#374151", size: 1.5, opacity: 0.75, pressure: true, smoothing: false },
+  brush: { color: "#0b0b0f", size: 5, opacity: 0.95, pressure: true, smoothing: true },
   highlighter: { color: "#fde68a", size: 14, opacity: 0.35, pressure: false, smoothing: true },
 };
 
 export function UnifiedEditor({
-  content, strokes, paper, paperOptions, textBlocks, onContentChange,
+  content,
+  strokes,
+  paper,
+  paperOptions,
+  textBlocks,
+  onContentChange,
   onTextBlocksChange,
-  onAddStroke, onUndoStroke, onRedoStroke,
-  onClearStrokes, onReplaceStrokes, onCommitErase,
+  onAddStroke,
+  onUndoStroke,
+  onRedoStroke,
+  onClearStrokes,
+  onReplaceStrokes,
+  onCommitErase,
 }: Props) {
-
   const settings = useStore((s) => s.settings);
   const updateSettings = useStore((s) => s.updateSettings);
 
@@ -66,15 +78,18 @@ export function UnifiedEditor({
     [activeKey, persistedPreset],
   );
 
-  const patchConfig = useCallback((patch: Partial<ToolPreset>) => {
-    const cur = settings.toolPresets?.[activeKey] ?? DEFAULT_PRESETS[activeKey];
-    updateSettings({
-      toolPresets: {
-        ...(settings.toolPresets ?? {}),
-        [activeKey]: { ...cur, ...patch },
-      },
-    });
-  }, [settings.toolPresets, activeKey, updateSettings]);
+  const patchConfig = useCallback(
+    (patch: Partial<ToolPreset>) => {
+      const cur = settings.toolPresets?.[activeKey] ?? DEFAULT_PRESETS[activeKey];
+      updateSettings({
+        toolPresets: {
+          ...(settings.toolPresets ?? {}),
+          [activeKey]: { ...cur, ...patch },
+        },
+      });
+    },
+    [settings.toolPresets, activeKey, updateSettings],
+  );
 
   // Persist eraser preset on change
   useEffect(() => {
@@ -82,23 +97,26 @@ export function UnifiedEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eraserMode, eraserSize, eraserSoftness]);
 
-  const applyPinned = useCallback((p: PinnedPen) => {
-    setTool("pen");
-    setPenStyle(p.style);
-    const merged: ToolPreset = {
-      color: p.color,
-      size: p.size,
-      opacity: p.opacity ?? DEFAULT_PRESETS[p.style].opacity,
-      pressure: p.pressure ?? DEFAULT_PRESETS[p.style].pressure,
-      smoothing: p.smoothing ?? DEFAULT_PRESETS[p.style].smoothing,
-    };
-    updateSettings({
-      toolPresets: {
-        ...(settings.toolPresets ?? {}),
-        [p.style]: merged,
-      },
-    });
-  }, [settings.toolPresets, updateSettings]);
+  const applyPinned = useCallback(
+    (p: PinnedPen) => {
+      setTool("pen");
+      setPenStyle(p.style);
+      const merged: ToolPreset = {
+        color: p.color,
+        size: p.size,
+        opacity: p.opacity ?? DEFAULT_PRESETS[p.style].opacity,
+        pressure: p.pressure ?? DEFAULT_PRESETS[p.style].pressure,
+        smoothing: p.smoothing ?? DEFAULT_PRESETS[p.style].smoothing,
+      };
+      updateSettings({
+        toolPresets: {
+          ...(settings.toolPresets ?? {}),
+          [p.style]: merged,
+        },
+      });
+    },
+    [settings.toolPresets, updateSettings],
+  );
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const surfaceRef = useRef<HTMLDivElement>(null);
@@ -117,7 +135,7 @@ export function UnifiedEditor({
   const editor = useEditor({
     extensions: [
       StarterKit,
-      Placeholder.configure({ placeholder: "Type or draw anywhere…" }),
+      Placeholder.configure({ placeholder: "" }),
       TaskList,
       TaskItem.configure({ nested: true }),
     ],
@@ -153,12 +171,14 @@ export function UnifiedEditor({
   const paperClass =
     paper === "grid" ? "paper-grid" : paper === "dots" ? "paper-dots" : paper === "lined" ? "paper-lined" : "";
 
-  const paperStyle: React.CSSProperties = paperOptions ? {
-    ["--paper-thickness" as unknown as string]: `${paperOptions.thickness ?? 1}px`,
-    ["--paper-spacing" as unknown as string]: `${paperOptions.spacing ?? 24}px`,
-    ...(paperOptions.color ? { ["--paper-color" as unknown as string]: paperOptions.color } : {}),
-    ...(paperOptions.margin ? { ["--paper-margin" as unknown as string]: `${paperOptions.margin}px` } : {}),
-  } : {};
+  const paperStyle: React.CSSProperties = paperOptions
+    ? {
+        ["--paper-thickness" as unknown as string]: `${paperOptions.thickness ?? 1}px`,
+        ["--paper-spacing" as unknown as string]: `${paperOptions.spacing ?? 24}px`,
+        ...(paperOptions.color ? { ["--paper-color" as unknown as string]: paperOptions.color } : {}),
+        ...(paperOptions.margin ? { ["--paper-margin" as unknown as string]: `${paperOptions.margin}px` } : {}),
+      }
+    : {};
 
   const getPoint = (e: React.PointerEvent) => {
     const svg = svgRef.current!;
@@ -190,7 +210,10 @@ export function UnifiedEditor({
     if (!inkActive) return;
     if (e.button && e.button !== 0) return;
     activePointersRef.current.add(e.pointerId);
-    if (activePointersRef.current.size >= 2) { cancelActiveStroke(); return; }
+    if (activePointersRef.current.size >= 2) {
+      cancelActiveStroke();
+      return;
+    }
     if (e.pointerType === "touch") e.preventDefault();
     (e.target as Element).setPointerCapture?.(e.pointerId);
     drawingPointerIdRef.current = e.pointerId;
@@ -238,7 +261,10 @@ export function UnifiedEditor({
     if (tool === "eraser" ? drawingPointerIdRef.current !== e.pointerId : !drawingRef.current) return;
     if (e.pointerType === "touch") e.preventDefault();
 
-    if (tool === "eraser") { hitErase(pt.x, pt.y); return; }
+    if (tool === "eraser") {
+      hitErase(pt.x, pt.y);
+      return;
+    }
     const s = drawingRef.current;
     if (!s) return;
     if (tool === "shape" && shapeStartRef.current) {
@@ -269,8 +295,12 @@ export function UnifiedEditor({
       // Bake pressure into per-stroke size for constant-width tools if pressure enabled.
       const bake = shouldBakePressure(tool, penStyle) && activeConfig.pressure;
       if (bake) {
-        let sum = 0, n = 0;
-        for (let i = 2; i < s.points.length; i += 3) { sum += s.points[i]; n++; }
+        let sum = 0,
+          n = 0;
+        for (let i = 2; i < s.points.length; i += 3) {
+          sum += s.points[i];
+          n++;
+        }
         const avg = n > 0 ? sum / n : 0.5;
         s.size = s.size * (0.65 + 0.7 * avg);
       }
@@ -348,7 +378,8 @@ export function UnifiedEditor({
         }
       }
       if (changed) {
-        es.working = next; es.changed = true;
+        es.working = next;
+        es.changed = true;
         setErasePreview([...next]);
       }
     },
@@ -358,18 +389,23 @@ export function UnifiedEditor({
   // ---- Select-tool: drag drawn strokes (grouped by overlapping bounding boxes) ----
   type BBox = { minX: number; minY: number; maxX: number; maxY: number };
   const bboxOf = (s: Stroke): BBox => {
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    let minX = Infinity,
+      minY = Infinity,
+      maxX = -Infinity,
+      maxY = -Infinity;
     const pts = s.points;
     for (let i = 0; i < pts.length; i += 3) {
-      const x = pts[i], y = pts[i + 1];
-      if (x < minX) minX = x; if (y < minY) minY = y;
-      if (x > maxX) maxX = x; if (y > maxY) maxY = y;
+      const x = pts[i],
+        y = pts[i + 1];
+      if (x < minX) minX = x;
+      if (y < minY) minY = y;
+      if (x > maxX) maxX = x;
+      if (y > maxY) maxY = y;
     }
     const pad = (s.size || 2) + 6;
     return { minX: minX - pad, minY: minY - pad, maxX: maxX + pad, maxY: maxY + pad };
   };
-  const bboxOverlap = (a: BBox, b: BBox) =>
-    !(a.maxX < b.minX || b.maxX < a.minX || a.maxY < b.minY || b.maxY < a.minY);
+  const bboxOverlap = (a: BBox, b: BBox) => !(a.maxX < b.minX || b.maxX < a.minX || a.maxY < b.minY || b.maxY < a.minY);
 
   const beginStrokeDrag = (e: React.PointerEvent<SVGGElement>, seedId: string) => {
     if (tool !== "select") return;
@@ -387,13 +423,21 @@ export function UnifiedEditor({
       for (const s of strokes) {
         if (group.has(s.id)) continue;
         const nb = bboxes.get(s.id);
-        if (nb && bboxOverlap(cb, nb)) { group.add(s.id); queue.push(s.id); }
+        if (nb && bboxOverlap(cb, nb)) {
+          group.add(s.id);
+          queue.push(s.id);
+        }
       }
     }
-    const startX = e.clientX, startY = e.clientY;
+    const startX = e.clientX,
+      startY = e.clientY;
     const pointerId = e.pointerId;
     const target = e.currentTarget;
-    try { target.setPointerCapture(pointerId); } catch { /* noop */ }
+    try {
+      target.setPointerCapture(pointerId);
+    } catch {
+      /* noop */
+    }
     setSelectDrag({ ids: group, dx: 0, dy: 0 });
     const prevStrokes = strokes;
     const onMove = (ev: PointerEvent) => {
@@ -405,14 +449,22 @@ export function UnifiedEditor({
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
       window.removeEventListener("pointercancel", onUp);
-      try { target.releasePointerCapture(pointerId); } catch { /* noop */ }
-      const dx = ev.clientX - startX, dy = ev.clientY - startY;
+      try {
+        target.releasePointerCapture(pointerId);
+      } catch {
+        /* noop */
+      }
+      const dx = ev.clientX - startX,
+        dy = ev.clientY - startY;
       setSelectDrag(null);
       if (Math.hypot(dx, dy) < 2) return;
       const next = prevStrokes.map((s) => {
         if (!group.has(s.id)) return s;
         const pts = s.points.slice();
-        for (let i = 0; i < pts.length; i += 3) { pts[i] += dx; pts[i + 1] += dy; }
+        for (let i = 0; i < pts.length; i += 3) {
+          pts[i] += dx;
+          pts[i + 1] += dy;
+        }
         return { ...s, points: pts };
       });
       if (onCommitErase) onCommitErase(prevStrokes, next);
@@ -433,7 +485,10 @@ export function UnifiedEditor({
   useEffect(() => {
     const el = cursorRef.current;
     if (!el) return;
-    if (!inkActive) { el.style.display = "none"; return; }
+    if (!inkActive) {
+      el.style.display = "none";
+      return;
+    }
     el.style.display = "block";
     // Size/appearance:
     if (tool === "eraser") {
@@ -444,7 +499,8 @@ export function UnifiedEditor({
         el.style.border = "1px dashed rgba(15,23,42,0.65)";
         el.style.background = "rgba(148,163,184,0.15)";
       } else {
-        el.style.width = "18px"; el.style.height = "18px";
+        el.style.width = "18px";
+        el.style.height = "18px";
         el.style.borderRadius = "3px";
         el.style.border = "1.5px solid rgba(15,23,42,0.75)";
         el.style.background = "rgba(255,255,255,0.6)";
@@ -457,7 +513,8 @@ export function UnifiedEditor({
       el.style.background = activeConfig.color;
       el.style.opacity = String(activeConfig.opacity);
     } else if (tool === "shape") {
-      el.style.width = "20px"; el.style.height = "20px";
+      el.style.width = "20px";
+      el.style.height = "20px";
       el.style.borderRadius = "0";
       el.style.border = "none";
       el.style.opacity = "0.9";
@@ -466,7 +523,8 @@ export function UnifiedEditor({
         `linear-gradient(${activeConfig.color},${activeConfig.color}) center/1.5px 100% no-repeat`;
     } else {
       const d = Math.max(6, activeConfig.size * 2 + 2);
-      el.style.width = `${d}px`; el.style.height = `${d}px`;
+      el.style.width = `${d}px`;
+      el.style.height = `${d}px`;
       el.style.borderRadius = "9999px";
       el.style.border = `1.5px solid ${activeConfig.color}`;
       el.style.background = "transparent";
@@ -480,25 +538,51 @@ export function UnifiedEditor({
       const inEditable = !!(e.target as HTMLElement)?.closest("[contenteditable='true']");
       // List shortcuts inside text blocks / tiptap
       if (inEditable && (e.ctrlKey || e.metaKey) && e.shiftKey) {
-        if (e.key === "7" || e.code === "Digit7") { e.preventDefault(); document.execCommand("insertOrderedList"); return; }
-        if (e.key === "8" || e.code === "Digit8") { e.preventDefault(); document.execCommand("insertUnorderedList"); return; }
+        if (e.key === "7" || e.code === "Digit7") {
+          e.preventDefault();
+          document.execCommand("insertOrderedList");
+          return;
+        }
+        if (e.key === "8" || e.code === "Digit8") {
+          e.preventDefault();
+          document.execCommand("insertUnorderedList");
+          return;
+        }
       }
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z" && !e.shiftKey) {
-        if (tool !== "text" && !inEditable) { e.preventDefault(); onUndoStroke(); return; }
+        if (tool !== "text" && !inEditable) {
+          e.preventDefault();
+          onUndoStroke();
+          return;
+        }
       }
       if ((e.metaKey || e.ctrlKey) && (e.key.toLowerCase() === "y" || (e.key.toLowerCase() === "z" && e.shiftKey))) {
-        if (tool !== "text" && !inEditable) { e.preventDefault(); onRedoStroke(); return; }
+        if (tool !== "text" && !inEditable) {
+          e.preventDefault();
+          onRedoStroke();
+          return;
+        }
       }
       if ((e.target as HTMLElement)?.closest("input, textarea, [contenteditable]")) return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const k = e.key.toLowerCase();
       if (k === "t") setTool("text");
-      else if (k === "b") { setTool("pen"); setPenStyle("ballpoint"); }
-      else if (k === "m") { setTool("pen"); setPenStyle("marker"); }
-      else if (k === "p") { setTool("pen"); setPenStyle("pencil"); }
-      else if (k === "f") { setTool("pen"); setPenStyle("fountain"); }
-      else if (k === "r") { setTool("pen"); setPenStyle("brush"); }
-      else if (k === "h") setTool("highlighter");
+      else if (k === "b") {
+        setTool("pen");
+        setPenStyle("ballpoint");
+      } else if (k === "m") {
+        setTool("pen");
+        setPenStyle("marker");
+      } else if (k === "p") {
+        setTool("pen");
+        setPenStyle("pencil");
+      } else if (k === "f") {
+        setTool("pen");
+        setPenStyle("fountain");
+      } else if (k === "r") {
+        setTool("pen");
+        setPenStyle("brush");
+      } else if (k === "h") setTool("highlighter");
       else if (k === "e") setTool("eraser");
       else if (k === "v") setTool("select");
     };
@@ -506,8 +590,7 @@ export function UnifiedEditor({
     return () => window.removeEventListener("keydown", onKey);
   }, [onUndoStroke, onRedoStroke, tool]);
 
-  const cursor =
-    inkActive ? "none" : "text";
+  const cursor = inkActive ? "none" : "text";
 
   return (
     <div className="relative flex-1 min-h-0">
@@ -545,8 +628,8 @@ export function UnifiedEditor({
             className="absolute inset-0 select-none"
             style={{
               cursor,
-              pointerEvents: inkActive ? "auto" : (tool === "select" ? "auto" : "none"),
-              touchAction: inkActive ? "pinch-zoom" : (tool === "select" ? "none" : "auto"),
+              pointerEvents: inkActive ? "auto" : tool === "select" ? "auto" : "none",
+              touchAction: inkActive ? "pinch-zoom" : tool === "select" ? "none" : "auto",
             }}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
@@ -577,42 +660,79 @@ export function UnifiedEditor({
               );
             })}
             {drawingRef.current && renderStrokePath(drawingRef.current, true, activeConfig.pressure)}
-            {tool === "shape" && shapeStartRef.current && drawingRef.current && (() => {
-              const s = shapeStartRef.current!;
-              const pts = drawingRef.current!.points;
-              let minX = s.x, minY = s.y, maxX = s.x, maxY = s.y;
-              for (let i = 0; i < pts.length; i += 3) {
-                if (pts[i] < minX) minX = pts[i]; if (pts[i] > maxX) maxX = pts[i];
-                if (pts[i+1] < minY) minY = pts[i+1]; if (pts[i+1] > maxY) maxY = pts[i+1];
-              }
-              const w = Math.round(maxX - minX);
-              const h = Math.round(maxY - minY);
-              return (
-                <g pointerEvents="none">
-                  <rect
-                    x={minX - 4} y={minY - 4}
-                    width={maxX - minX + 8} height={maxY - minY + 8}
-                    fill="none"
-                    stroke="hsl(var(--primary, 220 90% 56%))"
-                    strokeWidth={1}
-                    strokeDasharray="4 4"
-                    opacity={0.75}
-                  />
-                  {[[minX-4,minY-4],[maxX+4,minY-4],[minX-4,maxY+4],[maxX+4,maxY+4]].map(([hx,hy],i)=>(
-                    <rect key={i} x={hx-3} y={hy-3} width={6} height={6}
-                      fill="white" stroke="hsl(var(--primary, 220 90% 56%))" strokeWidth={1} />
-                  ))}
-                  <g transform={`translate(${maxX + 8}, ${maxY + 16})`}>
-                    <rect x={0} y={-11} rx={4} ry={4}
-                      width={String(w).length * 7 + String(h).length * 7 + 22} height={16}
-                      fill="hsl(var(--primary, 220 90% 56%))" opacity={0.95} />
-                    <text x={6} y={1} fill="white" fontSize={10} fontFamily="ui-sans-serif, system-ui" fontWeight={600}>
-                      {w} × {h}
-                    </text>
+            {tool === "shape" &&
+              shapeStartRef.current &&
+              drawingRef.current &&
+              (() => {
+                const s = shapeStartRef.current!;
+                const pts = drawingRef.current!.points;
+                let minX = s.x,
+                  minY = s.y,
+                  maxX = s.x,
+                  maxY = s.y;
+                for (let i = 0; i < pts.length; i += 3) {
+                  if (pts[i] < minX) minX = pts[i];
+                  if (pts[i] > maxX) maxX = pts[i];
+                  if (pts[i + 1] < minY) minY = pts[i + 1];
+                  if (pts[i + 1] > maxY) maxY = pts[i + 1];
+                }
+                const w = Math.round(maxX - minX);
+                const h = Math.round(maxY - minY);
+                return (
+                  <g pointerEvents="none">
+                    <rect
+                      x={minX - 4}
+                      y={minY - 4}
+                      width={maxX - minX + 8}
+                      height={maxY - minY + 8}
+                      fill="none"
+                      stroke="hsl(var(--primary, 220 90% 56%))"
+                      strokeWidth={1}
+                      strokeDasharray="4 4"
+                      opacity={0.75}
+                    />
+                    {[
+                      [minX - 4, minY - 4],
+                      [maxX + 4, minY - 4],
+                      [minX - 4, maxY + 4],
+                      [maxX + 4, maxY + 4],
+                    ].map(([hx, hy], i) => (
+                      <rect
+                        key={i}
+                        x={hx - 3}
+                        y={hy - 3}
+                        width={6}
+                        height={6}
+                        fill="white"
+                        stroke="hsl(var(--primary, 220 90% 56%))"
+                        strokeWidth={1}
+                      />
+                    ))}
+                    <g transform={`translate(${maxX + 8}, ${maxY + 16})`}>
+                      <rect
+                        x={0}
+                        y={-11}
+                        rx={4}
+                        ry={4}
+                        width={String(w).length * 7 + String(h).length * 7 + 22}
+                        height={16}
+                        fill="hsl(var(--primary, 220 90% 56%))"
+                        opacity={0.95}
+                      />
+                      <text
+                        x={6}
+                        y={1}
+                        fill="white"
+                        fontSize={10}
+                        fontFamily="ui-sans-serif, system-ui"
+                        fontWeight={600}
+                      >
+                        {w} × {h}
+                      </text>
+                    </g>
                   </g>
-                </g>
-              );
-            })()}
+                );
+              })()}
           </svg>
         </div>
       </div>
@@ -646,11 +766,7 @@ export function UnifiedEditor({
       />
 
       {tool === "text" && onTextBlocksChange && (
-        <TextToolPanel
-          editingId={editingTextId}
-          blocks={textBlocks ?? []}
-          onBlocksChange={onTextBlocksChange}
-        />
+        <TextToolPanel editingId={editingTextId} blocks={textBlocks ?? []} onBlocksChange={onTextBlocksChange} />
       )}
     </div>
   );
@@ -663,28 +779,36 @@ function shouldBakePressure(tool: EditorTool, penStyle: PenStyle): boolean {
 
 function renderStrokePath(s: Stroke, isDrawing: boolean, pressureOn: boolean) {
   const key = isDrawing ? "drawing" : s.id;
-  const dash = s.penStyle === "pencil"
-    ? `${Math.max(0.5, s.size * 0.6)} ${Math.max(0.6, s.size * 0.8)}`
-    : undefined;
+  const dash = s.penStyle === "pencil" ? `${Math.max(0.5, s.size * 0.6)} ${Math.max(0.6, s.size * 0.8)}` : undefined;
 
   // Variable-width strokes for expressive tools while drawing (fountain, brush, pencil).
-  const wantsVariable = isDrawing && pressureOn &&
-    (s.penStyle === "fountain" || s.penStyle === "brush" || s.penStyle === "pencil");
+  const wantsVariable =
+    isDrawing && pressureOn && (s.penStyle === "fountain" || s.penStyle === "brush" || s.penStyle === "pencil");
 
   if (wantsVariable && s.points.length >= 6) {
     // Emit stacked segments with per-sample width — cheap and legible.
     const segs: React.ReactElement[] = [];
     for (let i = 0; i + 5 < s.points.length; i += 3) {
-      const x1 = s.points[i], y1 = s.points[i + 1], p1 = s.points[i + 2] || 0.5;
-      const x2 = s.points[i + 3], y2 = s.points[i + 4], p2 = s.points[i + 5] || 0.5;
+      const x1 = s.points[i],
+        y1 = s.points[i + 1],
+        p1 = s.points[i + 2] || 0.5;
+      const x2 = s.points[i + 3],
+        y2 = s.points[i + 4],
+        p2 = s.points[i + 5] || 0.5;
       const p = (p1 + p2) / 2;
       const factor =
-        s.penStyle === "fountain" || s.penStyle === "brush" ? 0.2 + 1.1 * p :
-        s.penStyle === "pencil" ? 0.3 + 0.9 * p : 1;
+        s.penStyle === "fountain" || s.penStyle === "brush"
+          ? 0.2 + 1.1 * p
+          : s.penStyle === "pencil"
+            ? 0.3 + 0.9 * p
+            : 1;
       segs.push(
         <line
           key={`${key}-${i}`}
-          x1={x1} y1={y1} x2={x2} y2={y2}
+          x1={x1}
+          y1={y1}
+          x2={x2}
+          y2={y2}
           stroke={s.color}
           strokeWidth={Math.max(0.3, s.size * factor)}
           strokeLinecap="round"
@@ -719,8 +843,10 @@ function strokeToPath(s: Stroke): string {
     return d;
   }
   for (let i = 3; i < pts.length - 3; i += 3) {
-    const x1 = pts[i], y1 = pts[i + 1];
-    const x2 = pts[i + 3], y2 = pts[i + 4];
+    const x1 = pts[i],
+      y1 = pts[i + 1];
+    const x2 = pts[i + 3],
+      y2 = pts[i + 4];
     const mx = (x1 + x2) / 2;
     const my = (y1 + y2) / 2;
     d += ` Q ${x1} ${y1} ${mx} ${my}`;
@@ -742,12 +868,15 @@ function buildShapePoints(kind: ShapeKind, x0: number, y0: number, x1: number, y
       push(x0 + (x1 - x0) * t, y0 + (y1 - y0) * t);
     }
     if (kind === "arrow") {
-      const dx = x1 - x0, dy = y1 - y0;
+      const dx = x1 - x0,
+        dy = y1 - y0;
       const len = Math.hypot(dx, dy) || 1;
-      const ux = dx / len, uy = dy / len;
+      const ux = dx / len,
+        uy = dy / len;
       const head = Math.min(28, Math.max(10, len * 0.22));
       const ang = Math.PI / 7;
-      const cos = Math.cos(ang), sin = Math.sin(ang);
+      const cos = Math.cos(ang),
+        sin = Math.sin(ang);
       // left barb
       const lx = x1 - head * (ux * cos + uy * sin);
       const ly = y1 - head * (uy * cos - ux * sin);
@@ -755,15 +884,26 @@ function buildShapePoints(kind: ShapeKind, x0: number, y0: number, x1: number, y
       const rx = x1 - head * (ux * cos - uy * sin);
       const ry = y1 - head * (uy * cos + ux * sin);
       const seg = 10;
-      for (let i = 1; i <= seg; i++) { const t = i / seg; push(x1 + (lx - x1) * t, y1 + (ly - y1) * t); }
-      for (let i = seg - 1; i >= 0; i--) { const t = i / seg; push(x1 + (lx - x1) * t, y1 + (ly - y1) * t); }
-      for (let i = 1; i <= seg; i++) { const t = i / seg; push(x1 + (rx - x1) * t, y1 + (ry - y1) * t); }
+      for (let i = 1; i <= seg; i++) {
+        const t = i / seg;
+        push(x1 + (lx - x1) * t, y1 + (ly - y1) * t);
+      }
+      for (let i = seg - 1; i >= 0; i--) {
+        const t = i / seg;
+        push(x1 + (lx - x1) * t, y1 + (ly - y1) * t);
+      }
+      for (let i = 1; i <= seg; i++) {
+        const t = i / seg;
+        push(x1 + (rx - x1) * t, y1 + (ry - y1) * t);
+      }
     }
     return pts;
   }
 
-  const minX = Math.min(x0, x1), maxX = Math.max(x0, x1);
-  const minY = Math.min(y0, y1), maxY = Math.max(y0, y1);
+  const minX = Math.min(x0, x1),
+    maxX = Math.max(x0, x1);
+  const minY = Math.min(y0, y1),
+    maxY = Math.max(y0, y1);
 
   if (kind === "rect") {
     const stepsX = Math.max(6, Math.round((maxX - minX) / 6));
@@ -776,8 +916,10 @@ function buildShapePoints(kind: ShapeKind, x0: number, y0: number, x1: number, y
   }
 
   if (kind === "circle") {
-    const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
-    const rx = (maxX - minX) / 2, ry = (maxY - minY) / 2;
+    const cx = (minX + maxX) / 2,
+      cy = (minY + maxY) / 2;
+    const rx = (maxX - minX) / 2,
+      ry = (maxY - minY) / 2;
     const steps = Math.max(24, Math.round((rx + ry) * 0.6));
     for (let i = 0; i <= steps; i++) {
       const t = (i / steps) * Math.PI * 2;
@@ -792,9 +934,14 @@ function buildShapePoints(kind: ShapeKind, x0: number, y0: number, x1: number, y
     const br = { x: maxX, y: maxY };
     const seg = 20;
     const edge = (a: { x: number; y: number }, b: { x: number; y: number }) => {
-      for (let i = 0; i <= seg; i++) { const t = i / seg; push(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t); }
+      for (let i = 0; i <= seg; i++) {
+        const t = i / seg;
+        push(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t);
+      }
     };
-    edge(apex, br); edge(br, bl); edge(bl, apex);
+    edge(apex, br);
+    edge(br, bl);
+    edge(bl, apex);
     return pts;
   }
 
