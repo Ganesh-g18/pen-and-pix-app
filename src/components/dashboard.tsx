@@ -53,9 +53,7 @@ export function Dashboard() {
 
     if (query.trim()) {
       const q = query.toLowerCase();
-      list = list.filter(
-        (n) => n.title.toLowerCase().includes(q) || n.content.toLowerCase().includes(q),
-      );
+      list = list.filter((n) => n.title.toLowerCase().includes(q) || n.content.toLowerCase().includes(q));
     }
     return list.sort((a, b) => {
       if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
@@ -79,7 +77,7 @@ export function Dashboard() {
             <PenLine className="h-5 w-5" />
           </div>
           <div>
-            <div className="font-display text-xl leading-none gradient-text">InkFlow</div>
+            <div className="font-display text-xl leading-none gradient-text">Pen Flow</div>
             <div className="text-[11px] text-muted-foreground mt-0.5">Notes reimagined</div>
           </div>
         </div>
@@ -95,10 +93,31 @@ export function Dashboard() {
         </button>
 
         <div className="mt-3 space-y-1">
-          <NavItem active={filter === "all"} onClick={() => setFilter("all")} icon={<FileText className="h-4 w-4" />} label="All notes" count={Object.values(notes).filter(n=>!n.trashed).length} />
-          <NavItem active={filter === "pinned"} onClick={() => setFilter("pinned")} icon={<Pin className="h-4 w-4" />} label="Pinned" />
-          <NavItem active={filter === "favorites"} onClick={() => setFilter("favorites")} icon={<Star className="h-4 w-4" />} label="Favorites" />
-          <NavItem active={filter === "trash"} onClick={() => setFilter("trash")} icon={<Trash2 className="h-4 w-4" />} label="Trash" />
+          <NavItem
+            active={filter === "all"}
+            onClick={() => setFilter("all")}
+            icon={<FileText className="h-4 w-4" />}
+            label="All notes"
+            count={Object.values(notes).filter((n) => !n.trashed).length}
+          />
+          <NavItem
+            active={filter === "pinned"}
+            onClick={() => setFilter("pinned")}
+            icon={<Pin className="h-4 w-4" />}
+            label="Pinned"
+          />
+          <NavItem
+            active={filter === "favorites"}
+            onClick={() => setFilter("favorites")}
+            icon={<Star className="h-4 w-4" />}
+            label="Favorites"
+          />
+          <NavItem
+            active={filter === "trash"}
+            onClick={() => setFilter("trash")}
+            icon={<Trash2 className="h-4 w-4" />}
+            label="Trash"
+          />
         </div>
 
         <div className="mt-5 flex items-center justify-between px-2">
@@ -179,7 +198,15 @@ export function Dashboard() {
           >
             <div>
               <h1 className="font-display text-4xl sm:text-5xl tracking-tight">
-                {filter === "trash" ? "Trash" : filter === "pinned" ? "Pinned" : filter === "favorites" ? "Favorites" : typeof filter === "object" ? folders.find(f=>f.id===filter.folder)?.name : "Your library"}
+                {filter === "trash"
+                  ? "Trash"
+                  : filter === "pinned"
+                    ? "Pinned"
+                    : filter === "favorites"
+                      ? "Favorites"
+                      : typeof filter === "object"
+                        ? folders.find((f) => f.id === filter.folder)?.name
+                        : "Your library"}
               </h1>
               <p className="text-muted-foreground mt-1 text-sm">
                 {filtered.length} {filtered.length === 1 ? "note" : "notes"}
@@ -211,25 +238,39 @@ export function Dashboard() {
                       <div className="text-2xl">{n.emoji || "📝"}</div>
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
                         <button
-                          onClick={(e) => { e.preventDefault(); togglePin(n.id); }}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            togglePin(n.id);
+                          }}
                           className={`grid h-7 w-7 place-items-center rounded-lg hover:bg-accent ${n.pinned ? "text-primary" : "text-muted-foreground"}`}
                         >
                           <Pin className="h-3.5 w-3.5" />
                         </button>
                         <button
-                          onClick={(e) => { e.preventDefault(); toggleFavorite(n.id); }}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            toggleFavorite(n.id);
+                          }}
                           className={`grid h-7 w-7 place-items-center rounded-lg hover:bg-accent ${n.favorite ? "text-yellow-500" : "text-muted-foreground"}`}
                         >
                           <Star className="h-3.5 w-3.5" />
                         </button>
                         {n.trashed ? (
                           <button
-                            onClick={(e) => { e.preventDefault(); restoreNote(n.id); }}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              restoreNote(n.id);
+                            }}
                             className="text-[11px] rounded-lg px-2 py-1 hover:bg-accent"
-                          >Restore</button>
+                          >
+                            Restore
+                          </button>
                         ) : (
                           <button
-                            onClick={(e) => { e.preventDefault(); deleteNote(n.id); }}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              deleteNote(n.id);
+                            }}
                             className="grid h-7 w-7 place-items-center rounded-lg hover:bg-destructive/15 text-muted-foreground hover:text-destructive"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
@@ -266,7 +307,19 @@ export function Dashboard() {
   );
 }
 
-function NavItem({ active, onClick, icon, label, count }: { active?: boolean; onClick: () => void; icon: React.ReactNode; label: string; count?: number }) {
+function NavItem({
+  active,
+  onClick,
+  icon,
+  label,
+  count,
+}: {
+  active?: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+  count?: number;
+}) {
   return (
     <button
       onClick={onClick}
@@ -287,7 +340,9 @@ function EmptyState({ onCreate, isTrash }: { onCreate: () => void; isTrash: bool
       </div>
       <h2 className="font-display text-2xl">{isTrash ? "Trash is empty" : "Start something great"}</h2>
       <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
-        {isTrash ? "Deleted notes will land here so you can restore them." : "Create your first note — write with text, or sketch by hand on the canvas."}
+        {isTrash
+          ? "Deleted notes will land here so you can restore them."
+          : "Create your first note — write with text, or sketch by hand on the canvas."}
       </p>
       {!isTrash && (
         <button
@@ -303,5 +358,8 @@ function EmptyState({ onCreate, isTrash }: { onCreate: () => void; isTrash: bool
 }
 
 function stripHtml(html: string) {
-  return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  return html
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }

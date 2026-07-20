@@ -4,24 +4,25 @@ import { z } from "zod";
 import type { Database } from "@/integrations/supabase/types";
 
 function supabaseForUser(ctx: ToolContext) {
-  return createClient<Database>(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_PUBLISHABLE_KEY!,
-    {
-      global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
-      auth: { persistSession: false, autoRefreshToken: false },
-    },
-  );
+  return createClient<Database>(process.env.SUPABASE_URL!, process.env.SUPABASE_PUBLISHABLE_KEY!, {
+    global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
 }
 
 export default defineTool({
   name: "list_notes",
   title: "List notes",
   description:
-    "List the signed-in user's InkFlow notes. Supports filtering by folder, favorites, pinned, or trashed, and a text search over title and content.",
+    "List the signed-in user's Pen Flow notes. Supports filtering by folder, favorites, pinned, or trashed, and a text search over title and content.",
   inputSchema: {
     search: z.string().trim().optional().describe("Case-insensitive text to match in title or content."),
-    folder_id: z.string().uuid().nullable().optional().describe("Filter by folder id; pass null for notes without a folder."),
+    folder_id: z
+      .string()
+      .uuid()
+      .nullable()
+      .optional()
+      .describe("Filter by folder id; pass null for notes without a folder."),
     favorite: z.boolean().optional(),
     pinned: z.boolean().optional(),
     trashed: z.boolean().optional().describe("Defaults to false — trashed notes are hidden."),

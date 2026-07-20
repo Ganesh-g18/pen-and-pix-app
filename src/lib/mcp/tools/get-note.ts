@@ -4,20 +4,16 @@ import { z } from "zod";
 import type { Database } from "@/integrations/supabase/types";
 
 function supabaseForUser(ctx: ToolContext) {
-  return createClient<Database>(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_PUBLISHABLE_KEY!,
-    {
-      global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
-      auth: { persistSession: false, autoRefreshToken: false },
-    },
-  );
+  return createClient<Database>(process.env.SUPABASE_URL!, process.env.SUPABASE_PUBLISHABLE_KEY!, {
+    global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
 }
 
 export default defineTool({
   name: "get_note",
   title: "Get note",
-  description: "Fetch a single InkFlow note by id, including its full content.",
+  description: "Fetch a single Pen Flow note by id, including its full content.",
   inputSchema: {
     id: z.string().uuid().describe("The note id."),
   },

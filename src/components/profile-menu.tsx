@@ -39,7 +39,7 @@ export function ProfileMenu() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `inkflow-notes-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `Pen Flow-notes-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -75,8 +75,16 @@ export function ProfileMenu() {
         aria-label="Profile menu"
       >
         {user?.user_metadata?.avatar_url ? (
-          <img src={user.user_metadata.avatar_url as string} alt="" className="h-full w-full rounded-full object-cover" />
-        ) : user ? initials : <UserIcon className="h-4 w-4 text-muted-foreground" />}
+          <img
+            src={user.user_metadata.avatar_url as string}
+            alt=""
+            className="h-full w-full rounded-full object-cover"
+          />
+        ) : user ? (
+          initials
+        ) : (
+          <UserIcon className="h-4 w-4 text-muted-foreground" />
+        )}
       </button>
 
       <AnimatePresence>
@@ -110,7 +118,14 @@ export function ProfileMenu() {
 
             {user ? (
               <>
-                <MenuItem icon={<Settings className="h-4 w-4" />} label="Account settings" onClick={() => { setOpen(false); navigate({ to: "/settings" }); }} />
+                <MenuItem
+                  icon={<Settings className="h-4 w-4" />}
+                  label="Account settings"
+                  onClick={() => {
+                    setOpen(false);
+                    navigate({ to: "/settings" });
+                  }}
+                />
                 <MenuItem icon={<RefreshCw className="h-4 w-4" />} label="Sync now" onClick={handleSyncNow} />
                 <MenuItem icon={<Download className="h-4 w-4" />} label="Export notes" onClick={exportNotes} />
                 <div className="my-1 h-px bg-border/60" />
@@ -118,11 +133,27 @@ export function ProfileMenu() {
               </>
             ) : (
               <>
-                <MenuItem icon={<Settings className="h-4 w-4" />} label="Account settings" onClick={() => { setOpen(false); navigate({ to: "/settings" }); }} />
-                <MenuItem icon={<LogIn className="h-4 w-4" />} label="Sign in" onClick={() => navigate({ to: "/auth" })} />
+                <MenuItem
+                  icon={<Settings className="h-4 w-4" />}
+                  label="Account settings"
+                  onClick={() => {
+                    setOpen(false);
+                    navigate({ to: "/settings" });
+                  }}
+                />
+                <MenuItem
+                  icon={<LogIn className="h-4 w-4" />}
+                  label="Sign in"
+                  onClick={() => navigate({ to: "/auth" })}
+                />
 
                 <MenuItem icon={<Download className="h-4 w-4" />} label="Export notes" onClick={exportNotes} />
-                <MenuItem icon={<Trash2 className="h-4 w-4" />} label="Clear local data" onClick={clearLocal} destructive />
+                <MenuItem
+                  icon={<Trash2 className="h-4 w-4" />}
+                  label="Clear local data"
+                  onClick={clearLocal}
+                  destructive
+                />
               </>
             )}
           </motion.div>
@@ -132,7 +163,17 @@ export function ProfileMenu() {
   );
 }
 
-function MenuItem({ icon, label, onClick, destructive }: { icon: React.ReactNode; label: string; onClick: () => void; destructive?: boolean }) {
+function MenuItem({
+  icon,
+  label,
+  onClick,
+  destructive,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  destructive?: boolean;
+}) {
   return (
     <button
       onClick={onClick}

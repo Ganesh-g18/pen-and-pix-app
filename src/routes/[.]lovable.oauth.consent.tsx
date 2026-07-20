@@ -42,9 +42,7 @@ export const Route = createFileRoute("/.lovable/oauth/consent")({
     <div className="min-h-screen grid place-items-center px-6 py-12">
       <div className="max-w-md text-center">
         <h1 className="font-display text-xl">Could not load authorization request</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          {String((error as Error)?.message ?? error)}
-        </p>
+        <p className="mt-2 text-sm text-muted-foreground">{String((error as Error)?.message ?? error)}</p>
       </div>
     </div>
   ),
@@ -107,7 +105,10 @@ function Consent() {
   return (
     <div className="min-h-screen grid place-items-center px-6 py-12 relative overflow-hidden">
       <div className="pointer-events-none absolute inset-0 opacity-50">
-        <div className="absolute -top-40 -left-32 h-96 w-96 rounded-full blur-3xl" style={{ background: "var(--gradient-accent)" }} />
+        <div
+          className="absolute -top-40 -left-32 h-96 w-96 rounded-full blur-3xl"
+          style={{ background: "var(--gradient-accent)" }}
+        />
       </div>
 
       <motion.div
@@ -121,7 +122,7 @@ function Consent() {
           </div>
           <div>
             <div className="font-display text-lg leading-none">Authorize access</div>
-            <div className="text-[11px] text-muted-foreground mt-1">InkFlow · MCP</div>
+            <div className="text-[11px] text-muted-foreground mt-1">Pen Flow · MCP</div>
           </div>
         </div>
 
@@ -131,12 +132,10 @@ function Consent() {
           </div>
         ) : (
           <>
-            <h1 className="font-display text-2xl tracking-tight">
-              Connect {clientName} to InkFlow?
-            </h1>
+            <h1 className="font-display text-2xl tracking-tight">Connect {clientName} to Pen Flow?</h1>
             <p className="text-sm text-muted-foreground mt-2">
-              This lets <span className="font-medium text-foreground">{clientName}</span> use InkFlow as you —
-              reading and modifying your notes and folders through the MCP tools.
+              This lets <span className="font-medium text-foreground">{clientName}</span> use Pen Flow as you — reading
+              and modifying your notes and folders through the MCP tools.
             </p>
 
             {scopes.length > 0 && (
@@ -147,7 +146,7 @@ function Consent() {
             )}
 
             <p className="text-[11px] text-muted-foreground mt-3">
-              This does not bypass InkFlow's permissions — your notes stay scoped to your account.
+              This does not bypass Pen Flow's permissions — your notes stay scoped to your account.
             </p>
 
             {error && <div className="mt-3 text-xs text-destructive">{error}</div>}

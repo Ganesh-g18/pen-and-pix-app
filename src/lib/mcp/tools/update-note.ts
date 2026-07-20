@@ -4,21 +4,17 @@ import { z } from "zod";
 import type { Database, TablesUpdate } from "@/integrations/supabase/types";
 
 function supabaseForUser(ctx: ToolContext) {
-  return createClient<Database>(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_PUBLISHABLE_KEY!,
-    {
-      global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
-      auth: { persistSession: false, autoRefreshToken: false },
-    },
-  );
+  return createClient<Database>(process.env.SUPABASE_URL!, process.env.SUPABASE_PUBLISHABLE_KEY!, {
+    global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
 }
 
 export default defineTool({
   name: "update_note",
   title: "Update note",
   description:
-    "Update fields on an existing InkFlow note. Only the provided fields are changed. Use trashed=true to move to trash.",
+    "Update fields on an existing Pen Flow note. Only the provided fields are changed. Use trashed=true to move to trash.",
   inputSchema: {
     id: z.string().uuid(),
     title: z.string().trim().max(200).optional(),

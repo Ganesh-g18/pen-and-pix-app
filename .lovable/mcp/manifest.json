@@ -11,15 +11,15 @@
   },
   "mcp": {
     "server": {
-      "name": "inkflow-mcp",
+      "name": "Pen Flow-mcp",
       "version": "0.1.0",
-      "title": "InkFlow"
+      "title": "Pen Flow"
     },
     "tools": [
       {
         "name": "list_notes",
         "title": "List notes",
-        "description": "List the signed-in user's InkFlow notes. Supports filtering by folder, favorites, pinned, or trashed, and a text search over title and content.",
+        "description": "List the signed-in user's Pen Flow notes. Supports filtering by folder, favorites, pinned, or trashed, and a text search over title and content.",
         "annotations": {
           "readOnlyHint": true,
           "idempotentHint": true,
@@ -69,7 +69,7 @@
       {
         "name": "get_note",
         "title": "Get note",
-        "description": "Fetch a single InkFlow note by id, including its full content.",
+        "description": "Fetch a single Pen Flow note by id, including its full content.",
         "annotations": {
           "readOnlyHint": true,
           "idempotentHint": true,
@@ -95,7 +95,7 @@
       {
         "name": "create_note",
         "title": "Create note",
-        "description": "Create a new text note in InkFlow for the signed-in user.",
+        "description": "Create a new text note in Pen Flow for the signed-in user.",
         "annotations": {
           "readOnlyHint": false,
           "destructiveHint": false,
@@ -151,7 +151,7 @@
       {
         "name": "update_note",
         "title": "Update note",
-        "description": "Update fields on an existing InkFlow note. Only the provided fields are changed. Use trashed=true to move to trash.",
+        "description": "Update fields on an existing Pen Flow note. Only the provided fields are changed. Use trashed=true to move to trash.",
         "annotations": {
           "readOnlyHint": false,
           "destructiveHint": false,
@@ -224,7 +224,7 @@
       {
         "name": "delete_note",
         "title": "Delete note",
-        "description": "Permanently delete an InkFlow note. This cannot be undone — to soft-delete, use update_note with trashed=true instead.",
+        "description": "Permanently delete an Pen Flow note. This cannot be undone — to soft-delete, use update_note with trashed=true instead.",
         "annotations": {
           "readOnlyHint": false,
           "destructiveHint": true,
@@ -250,7 +250,7 @@
       {
         "name": "list_folders",
         "title": "List folders",
-        "description": "List the signed-in user's InkFlow folders.",
+        "description": "List the signed-in user's Pen Flow folders.",
         "annotations": {
           "readOnlyHint": true,
           "idempotentHint": true,

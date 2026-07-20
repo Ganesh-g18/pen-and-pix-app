@@ -12,11 +12,11 @@ import listFolders from "./tools/list-folders";
 const projectRef = import.meta.env.VITE_SUPABASE_PROJECT_ID ?? "project-ref-unset";
 
 export default defineMcp({
-  name: "inkflow-mcp",
-  title: "InkFlow",
+  name: "Pen Flow-mcp",
+  title: "Pen Flow",
   version: "0.1.0",
   instructions:
-    "Tools for InkFlow — the signed-in user's notes and folders. Use list_notes/get_note to read, create_note/update_note to author, and delete_note to permanently remove. Prefer update_note with trashed=true over delete_note for reversible removal.",
+    "Tools for Pen Flow — the signed-in user's notes and folders. Use list_notes/get_note to read, create_note/update_note to author, and delete_note to permanently remove. Prefer update_note with trashed=true over delete_note for reversible removal.",
   auth: auth.oauth.issuer({
     issuer: `https://${projectRef}.supabase.co/auth/v1`,
     acceptedAudiences: "authenticated",

@@ -8,9 +8,29 @@ import { supabase } from "@/integrations/supabase/client";
 import { getLastSync, stopCloudSync } from "@/lib/cloud-sync";
 import { formatDistanceToNow } from "date-fns";
 import {
-  ArrowLeft, Search, User as UserIcon, Shield, Database, Palette, PenLine,
-  Keyboard, Bell, Globe, Lock, RefreshCw, Link2, Info, AlertTriangle,
-  Check, Upload, Download, LogOut, Trash2, Camera, Mail, ChevronRight,
+  ArrowLeft,
+  Search,
+  User as UserIcon,
+  Shield,
+  Database,
+  Palette,
+  PenLine,
+  Keyboard,
+  Bell,
+  Globe,
+  Lock,
+  RefreshCw,
+  Link2,
+  Info,
+  AlertTriangle,
+  Check,
+  Upload,
+  Download,
+  LogOut,
+  Trash2,
+  Camera,
+  Mail,
+  ChevronRight,
 } from "lucide-react";
 
 export const Route = createFileRoute("/settings")({
@@ -18,16 +38,41 @@ export const Route = createFileRoute("/settings")({
 });
 
 type SectionId =
-  | "profile" | "security" | "storage" | "appearance" | "notes"
-  | "shortcuts" | "notifications" | "locale" | "privacy"
-  | "backup" | "connected" | "about" | "danger";
+  | "profile"
+  | "security"
+  | "storage"
+  | "appearance"
+  | "notes"
+  | "shortcuts"
+  | "notifications"
+  | "locale"
+  | "privacy"
+  | "backup"
+  | "connected"
+  | "about"
+  | "danger";
 
-const SECTIONS: { id: SectionId; label: string; icon: React.ComponentType<{ className?: string }>; keywords: string }[] = [
+const SECTIONS: {
+  id: SectionId;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  keywords: string;
+}[] = [
   { id: "profile", label: "Profile", icon: UserIcon, keywords: "profile name email avatar photo username account" },
   { id: "security", label: "Security", icon: Shield, keywords: "password 2fa two factor sessions delete" },
   { id: "storage", label: "Storage", icon: Database, keywords: "storage cloud used limit sync export import cache" },
-  { id: "appearance", label: "Appearance", icon: Palette, keywords: "theme dark light accent color font density glass animations" },
-  { id: "notes", label: "Note Preferences", icon: PenLine, keywords: "pen thickness paper canvas smoothing shape recognition" },
+  {
+    id: "appearance",
+    label: "Appearance",
+    icon: Palette,
+    keywords: "theme dark light accent color font density glass animations",
+  },
+  {
+    id: "notes",
+    label: "Note Preferences",
+    icon: PenLine,
+    keywords: "pen thickness paper canvas smoothing shape recognition",
+  },
   { id: "shortcuts", label: "Keyboard Shortcuts", icon: Keyboard, keywords: "shortcuts hotkeys keybindings" },
   { id: "notifications", label: "Notifications", icon: Bell, keywords: "notifications email alerts" },
   { id: "locale", label: "Language & Region", icon: Globe, keywords: "language locale timezone date time units" },
@@ -60,7 +105,11 @@ function SettingsPage() {
   return (
     <div className="min-h-screen">
       <header className="sticky top-0 z-20 glass-strong border-b border-border/60 px-6 py-4 flex items-center gap-3">
-        <Link to="/" className="grid h-9 w-9 place-items-center rounded-xl hover:bg-accent transition" aria-label="Back">
+        <Link
+          to="/"
+          className="grid h-9 w-9 place-items-center rounded-xl hover:bg-accent transition"
+          aria-label="Back"
+        >
           <ArrowLeft className="h-4 w-4" />
         </Link>
         <div className="flex-1">
@@ -71,11 +120,14 @@ function SettingsPage() {
 
       {guestMode && !user && (
         <div className="mx-6 mt-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 flex items-start gap-3">
-          <div className="text-amber-500 mt-0.5"><AlertTriangle className="h-5 w-5" /></div>
+          <div className="text-amber-500 mt-0.5">
+            <AlertTriangle className="h-5 w-5" />
+          </div>
           <div className="flex-1 text-sm">
             <div className="font-semibold">You are currently using Guest Mode</div>
             <div className="text-muted-foreground mt-0.5">
-              Your notes are stored only on this device. Sign in to enable cloud backup, sync across devices, and collaboration.
+              Your notes are stored only on this device. Sign in to enable cloud backup, sync across devices, and
+              collaboration.
             </div>
           </div>
           <button
@@ -124,7 +176,11 @@ function SettingsPage() {
             onChange={(e) => setActive(e.target.value as SectionId)}
             className="w-full rounded-2xl glass-strong border border-border/60 px-4 py-3 text-sm outline-none"
           >
-            {SECTIONS.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+            {SECTIONS.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.label}
+              </option>
+            ))}
           </select>
         </div>
 
@@ -182,7 +238,15 @@ function Row({ label, hint, children }: { label: string; hint?: string; children
   );
 }
 
-function Toggle({ checked, onChange, disabled }: { checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
+function Toggle({
+  checked,
+  onChange,
+  disabled,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  disabled?: boolean;
+}) {
   return (
     <button
       onClick={() => !disabled && onChange(!checked)}
@@ -206,19 +270,34 @@ function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
   );
 }
 
-function Select({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: { value: string; label: string }[] }) {
+function Select({
+  value,
+  onChange,
+  options,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+}) {
   return (
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
       className="rounded-xl bg-background/60 border border-border/60 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring/40"
     >
-      {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+      {options.map((o) => (
+        <option key={o.value} value={o.value}>
+          {o.label}
+        </option>
+      ))}
     </select>
   );
 }
 
-function Button({ variant = "default", ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "default" | "primary" | "destructive" | "ghost" }) {
+function Button({
+  variant = "default",
+  ...props
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "default" | "primary" | "destructive" | "ghost" }) {
   const base = "inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm transition disabled:opacity-50";
   const styles = {
     default: "border border-border/60 hover:bg-accent",
@@ -235,14 +314,24 @@ function Button({ variant = "default", ...props }: React.ButtonHTMLAttributes<HT
   );
 }
 
-function Badge({ children, tone = "default" }: { children: React.ReactNode; tone?: "default" | "success" | "warning" | "muted" }) {
+function Badge({
+  children,
+  tone = "default",
+}: {
+  children: React.ReactNode;
+  tone?: "default" | "success" | "warning" | "muted";
+}) {
   const tones = {
     default: "bg-primary/15 text-primary",
     success: "bg-green-500/15 text-green-600 dark:text-green-400",
     warning: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
     muted: "bg-muted text-muted-foreground",
   };
-  return <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${tones[tone]}`}>{children}</span>;
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${tones[tone]}`}>
+      {children}
+    </span>
+  );
 }
 
 function ComingSoon() {
@@ -252,7 +341,10 @@ function ComingSoon() {
 function useSettings() {
   const settings = useStore((s) => s.settings);
   const updateSettings = useStore((s) => s.updateSettings);
-  return { settings, set: <K extends keyof Settings>(k: K, v: Settings[K]) => updateSettings({ [k]: v } as Partial<Settings>) };
+  return {
+    settings,
+    set: <K extends keyof Settings>(k: K, v: Settings[K]) => updateSettings({ [k]: v } as Partial<Settings>),
+  };
 }
 
 /* --------------------------- Sections --------------------------- */
@@ -336,14 +428,29 @@ function ProfileSection() {
 
       {editing ? (
         <div className="space-y-3 pt-4">
-          <Row label="Full Name"><Input value={name} onChange={(e) => setName(e.target.value)} className="w-64" /></Row>
-          <Row label="Username"><Input value={username} onChange={(e) => setUsername(e.target.value)} className="w-64" /></Row>
+          <Row label="Full Name">
+            <Input value={name} onChange={(e) => setName(e.target.value)} className="w-64" />
+          </Row>
+          <Row label="Username">
+            <Input value={username} onChange={(e) => setUsername(e.target.value)} className="w-64" />
+          </Row>
           <Row label="Email" hint={user ? "Changing email requires verification" : "Sign in to set your email"}>
-            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-64" disabled={!user} />
+            <Input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-64"
+              disabled={!user}
+            />
           </Row>
           <div className="flex justify-end gap-2 pt-2">
-            <Button variant="ghost" onClick={() => setEditing(false)}>Cancel</Button>
-            <Button variant="primary" onClick={save}><Check className="h-4 w-4" />Save Changes</Button>
+            <Button variant="ghost" onClick={() => setEditing(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={save}>
+              <Check className="h-4 w-4" />
+              Save Changes
+            </Button>
           </div>
         </div>
       ) : (
@@ -351,7 +458,9 @@ function ProfileSection() {
           <Row label="Full Name">{name || <span className="text-muted-foreground">Not set</span>}</Row>
           <Row label="Username">@{username || "guest"}</Row>
           <Row label="Email">{email || <span className="text-muted-foreground">Not set</span>}</Row>
-          <Row label="Account Type"><Badge tone={user ? "success" : "warning"}>{user ? "Free" : "Guest"}</Badge></Row>
+          <Row label="Account Type">
+            <Badge tone={user ? "success" : "warning"}>{user ? "Free" : "Guest"}</Badge>
+          </Row>
           <Row label="Account Created">{created ? created.toLocaleDateString() : "—"}</Row>
           <Row label="Last Login">{lastSignIn ? formatDistanceToNow(lastSignIn, { addSuffix: true }) : "—"}</Row>
         </div>
@@ -372,7 +481,8 @@ function SecuritySection() {
     const { error } = await supabase.auth.updateUser({ password: next });
     if (error) return toast.error(error.message);
     toast.success("Password updated");
-    setCurrent(""); setNext("");
+    setCurrent("");
+    setNext("");
   };
 
   const resetEmail = async () => {
@@ -396,11 +506,20 @@ function SecuritySection() {
   return (
     <>
       <Card title="Password" description="Change your account password">
-        <Row label="Current password"><Input type="password" value={current} onChange={(e) => setCurrent(e.target.value)} className="w-64" /></Row>
-        <Row label="New password" hint="Minimum 8 characters"><Input type="password" value={next} onChange={(e) => setNext(e.target.value)} className="w-64" /></Row>
+        <Row label="Current password">
+          <Input type="password" value={current} onChange={(e) => setCurrent(e.target.value)} className="w-64" />
+        </Row>
+        <Row label="New password" hint="Minimum 8 characters">
+          <Input type="password" value={next} onChange={(e) => setNext(e.target.value)} className="w-64" />
+        </Row>
         <div className="flex justify-end gap-2 pt-2">
-          <Button onClick={resetEmail} disabled={!user}><Mail className="h-4 w-4" />Reset via email</Button>
-          <Button variant="primary" onClick={changePassword} disabled={!user}>Change password</Button>
+          <Button onClick={resetEmail} disabled={!user}>
+            <Mail className="h-4 w-4" />
+            Reset via email
+          </Button>
+          <Button variant="primary" onClick={changePassword} disabled={!user}>
+            Change password
+          </Button>
         </div>
       </Card>
 
@@ -416,14 +535,18 @@ function SecuritySection() {
         </Row>
         <div className="flex justify-end pt-2">
           <Button variant="destructive" onClick={signOutAll} disabled={!user}>
-            <LogOut className="h-4 w-4" />Sign out from all devices
+            <LogOut className="h-4 w-4" />
+            Sign out from all devices
           </Button>
         </div>
       </Card>
 
       <Card title="Delete account" description="Permanently delete your account and all associated data">
         <div className="flex justify-end">
-          <Button variant="destructive" onClick={deleteAccount}><Trash2 className="h-4 w-4" />Delete account</Button>
+          <Button variant="destructive" onClick={deleteAccount}>
+            <Trash2 className="h-4 w-4" />
+            Delete account
+          </Button>
         </div>
       </Card>
     </>
@@ -453,20 +576,26 @@ function StorageSection() {
     const blob = new Blob([JSON.stringify(Object.values(notes), null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = `inkflow-notes-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click(); URL.revokeObjectURL(url);
+    a.href = url;
+    a.download = `Pen Flow-notes-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
     toast.success("Export downloaded");
   };
 
   const importNotes = () => {
     const input = document.createElement("input");
-    input.type = "file"; input.accept = "application/json";
+    input.type = "file";
+    input.accept = "application/json";
     input.onchange = async () => {
-      const f = input.files?.[0]; if (!f) return;
+      const f = input.files?.[0];
+      if (!f) return;
       try {
         const data = JSON.parse(await f.text());
         toast.success(`Imported ${Array.isArray(data) ? data.length : 0} notes`);
-      } catch { toast.error("Invalid file"); }
+      } catch {
+        toast.error("Invalid file");
+      }
     };
     input.click();
   };
@@ -489,11 +618,16 @@ function StorageSection() {
       <Card title="Storage usage" description={user ? "Your cloud storage" : "Local device storage"}>
         <div className="mb-4">
           <div className="flex justify-between text-sm mb-2">
-            <span>{formatBytes(sizeBytes)} of {formatBytes(limit)}</span>
+            <span>
+              {formatBytes(sizeBytes)} of {formatBytes(limit)}
+            </span>
             <span className="text-muted-foreground">{pct.toFixed(1)}%</span>
           </div>
           <div className="h-2 rounded-full bg-muted overflow-hidden">
-            <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: "var(--gradient-accent)" }} />
+            <div
+              className="h-full rounded-full transition-all"
+              style={{ width: `${pct}%`, background: "var(--gradient-accent)" }}
+            />
           </div>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -503,12 +637,28 @@ function StorageSection() {
           <Stat label="Shared" value={0} />
         </div>
         <div className="flex flex-wrap gap-2 pt-4">
-          <Button onClick={syncNow} disabled={!user}><RefreshCw className="h-4 w-4" />Sync Now</Button>
-          <Button onClick={exportAll}><Download className="h-4 w-4" />Export All Notes</Button>
-          <Button onClick={importNotes}><Upload className="h-4 w-4" />Import Notes</Button>
-          <Button onClick={clearCache}><Trash2 className="h-4 w-4" />Clear Cache</Button>
+          <Button onClick={syncNow} disabled={!user}>
+            <RefreshCw className="h-4 w-4" />
+            Sync Now
+          </Button>
+          <Button onClick={exportAll}>
+            <Download className="h-4 w-4" />
+            Export All Notes
+          </Button>
+          <Button onClick={importNotes}>
+            <Upload className="h-4 w-4" />
+            Import Notes
+          </Button>
+          <Button onClick={clearCache}>
+            <Trash2 className="h-4 w-4" />
+            Clear Cache
+          </Button>
         </div>
-        {lastSync && <div className="text-xs text-muted-foreground mt-3">Last sync: {formatDistanceToNow(lastSync, { addSuffix: true })}</div>}
+        {lastSync && (
+          <div className="text-xs text-muted-foreground mt-3">
+            Last sync: {formatDistanceToNow(lastSync, { addSuffix: true })}
+          </div>
+        )}
       </Card>
     </>
   );
@@ -545,11 +695,13 @@ function AppearanceSection() {
   }, [settings.accentColor, settings.fontSize, settings.density, settings.animations, settings.glassmorphism]);
 
   const themes: { v: Settings["themeMode"]; label: string }[] = [
-    { v: "light", label: "Light" }, { v: "dark", label: "Dark" }, { v: "system", label: "System" },
+    { v: "light", label: "Light" },
+    { v: "dark", label: "Dark" },
+    { v: "system", label: "System" },
   ];
 
   return (
-    <Card title="Appearance" description="Customize how InkFlow looks">
+    <Card title="Appearance" description="Customize how Pen Flow looks">
       <Row label="Theme">
         <div className="flex gap-1 rounded-xl bg-muted p-1">
           {themes.map((t) => (
@@ -563,7 +715,9 @@ function AppearanceSection() {
                 }
               }}
               className={`px-3 py-1.5 text-xs rounded-lg transition ${settings.themeMode === t.v ? "bg-background shadow" : ""}`}
-            >{t.label}</button>
+            >
+              {t.label}
+            </button>
           ))}
         </div>
       </Row>
@@ -578,21 +732,34 @@ function AppearanceSection() {
               aria-label={`Accent ${c}`}
             />
           ))}
-          <input type="color" value={settings.accentColor} onChange={(e) => set("accentColor", e.target.value)} className="h-7 w-9 rounded cursor-pointer" />
+          <input
+            type="color"
+            value={settings.accentColor}
+            onChange={(e) => set("accentColor", e.target.value)}
+            className="h-7 w-9 rounded cursor-pointer"
+          />
         </div>
       </Row>
       <Row label="Font size">
         <Select
           value={settings.fontSize}
           onChange={(v) => set("fontSize", v as Settings["fontSize"])}
-          options={[{ value: "sm", label: "Small" }, { value: "md", label: "Medium" }, { value: "lg", label: "Large" }]}
+          options={[
+            { value: "sm", label: "Small" },
+            { value: "md", label: "Medium" },
+            { value: "lg", label: "Large" },
+          ]}
         />
       </Row>
       <Row label="UI density">
         <Select
           value={settings.density}
           onChange={(v) => set("density", v as Settings["density"])}
-          options={[{ value: "compact", label: "Compact" }, { value: "comfortable", label: "Comfortable" }, { value: "spacious", label: "Spacious" }]}
+          options={[
+            { value: "compact", label: "Compact" },
+            { value: "comfortable", label: "Comfortable" },
+            { value: "spacious", label: "Spacious" },
+          ]}
         />
       </Row>
       <Row label="Animations" hint="Motion and transitions">
@@ -613,45 +780,85 @@ function NotesSection() {
         <Select
           value={settings.defaultPen}
           onChange={(v) => set("defaultPen", v as Settings["defaultPen"])}
-          options={[{ value: "pen", label: "Pen" }, { value: "highlighter", label: "Highlighter" }, { value: "marker", label: "Marker" }]}
+          options={[
+            { value: "pen", label: "Pen" },
+            { value: "highlighter", label: "Highlighter" },
+            { value: "marker", label: "Marker" },
+          ]}
         />
       </Row>
       <Row label="Pen color">
-        <input type="color" value={settings.defaultPenColor} onChange={(e) => set("defaultPenColor", e.target.value)} className="h-8 w-12 rounded cursor-pointer" />
+        <input
+          type="color"
+          value={settings.defaultPenColor}
+          onChange={(e) => set("defaultPenColor", e.target.value)}
+          className="h-8 w-12 rounded cursor-pointer"
+        />
       </Row>
       <Row label="Pen thickness" hint={`${settings.defaultPenThickness}px`}>
         <input
-          type="range" min={1} max={10} value={settings.defaultPenThickness}
-          onChange={(e) => set("defaultPenThickness", Number(e.target.value))} className="w-48"
+          type="range"
+          min={1}
+          max={10}
+          value={settings.defaultPenThickness}
+          onChange={(e) => set("defaultPenThickness", Number(e.target.value))}
+          className="w-48"
         />
       </Row>
       <Row label="Highlighter color">
-        <input type="color" value={settings.defaultHighlighter} onChange={(e) => set("defaultHighlighter", e.target.value)} className="h-8 w-12 rounded cursor-pointer" />
+        <input
+          type="color"
+          value={settings.defaultHighlighter}
+          onChange={(e) => set("defaultHighlighter", e.target.value)}
+          className="h-8 w-12 rounded cursor-pointer"
+        />
       </Row>
       <Row label="Default paper">
         <Select
           value={settings.defaultPaper}
           onChange={(v) => set("defaultPaper", v as Settings["defaultPaper"])}
-          options={[{ value: "blank", label: "Blank" }, { value: "grid", label: "Grid" }, { value: "dots", label: "Dots" }, { value: "lined", label: "Lined" }]}
+          options={[
+            { value: "blank", label: "Blank" },
+            { value: "grid", label: "Grid" },
+            { value: "dots", label: "Dots" },
+            { value: "lined", label: "Lined" },
+          ]}
         />
       </Row>
       <Row label="Page size">
         <Select
           value={settings.defaultPageSize}
           onChange={(v) => set("defaultPageSize", v as Settings["defaultPageSize"])}
-          options={[{ value: "A4", label: "A4" }, { value: "Letter", label: "Letter" }, { value: "Legal", label: "Legal" }, { value: "Infinite", label: "Infinite" }]}
+          options={[
+            { value: "A4", label: "A4" },
+            { value: "Letter", label: "Letter" },
+            { value: "Legal", label: "Legal" },
+            { value: "Infinite", label: "Infinite" },
+          ]}
         />
       </Row>
       <Row label="Auto-save interval" hint={`${settings.autoSaveInterval}s`}>
         <input
-          type="range" min={1} max={60} value={settings.autoSaveInterval}
-          onChange={(e) => set("autoSaveInterval", Number(e.target.value))} className="w-48"
+          type="range"
+          min={1}
+          max={60}
+          value={settings.autoSaveInterval}
+          onChange={(e) => set("autoSaveInterval", Number(e.target.value))}
+          className="w-48"
         />
       </Row>
-      <Row label="Infinite canvas"><Toggle checked={settings.infiniteCanvas} onChange={(v) => set("infiniteCanvas", v)} /></Row>
-      <Row label="Shape recognition"><Toggle checked={settings.shapeRecognition} onChange={(v) => set("shapeRecognition", v)} /></Row>
-      <Row label="Handwriting smoothing"><Toggle checked={settings.handwritingSmoothing} onChange={(v) => set("handwritingSmoothing", v)} /></Row>
-      <Row label="Remember last tool"><Toggle checked={settings.rememberLastTool} onChange={(v) => set("rememberLastTool", v)} /></Row>
+      <Row label="Infinite canvas">
+        <Toggle checked={settings.infiniteCanvas} onChange={(v) => set("infiniteCanvas", v)} />
+      </Row>
+      <Row label="Shape recognition">
+        <Toggle checked={settings.shapeRecognition} onChange={(v) => set("shapeRecognition", v)} />
+      </Row>
+      <Row label="Handwriting smoothing">
+        <Toggle checked={settings.handwritingSmoothing} onChange={(v) => set("handwritingSmoothing", v)} />
+      </Row>
+      <Row label="Remember last tool">
+        <Toggle checked={settings.rememberLastTool} onChange={(v) => set("rememberLastTool", v)} />
+      </Row>
     </Card>
   );
 }
@@ -676,12 +883,19 @@ const SHORTCUTS = [
 
 function ShortcutsSection() {
   const [q, setQ] = useState("");
-  const filtered = SHORTCUTS.filter((s) => `${s.action} ${s.keys} ${s.category}`.toLowerCase().includes(q.toLowerCase()));
+  const filtered = SHORTCUTS.filter((s) =>
+    `${s.action} ${s.keys} ${s.category}`.toLowerCase().includes(q.toLowerCase()),
+  );
   return (
     <Card title="Keyboard Shortcuts" description="Speed up everything you do">
       <div className="relative mb-4">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Search shortcuts…" value={q} onChange={(e) => setQ(e.target.value)} className="w-full pl-9" />
+        <Input
+          placeholder="Search shortcuts…"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          className="w-full pl-9"
+        />
       </div>
       <div className="overflow-hidden rounded-xl border border-border/60">
         <table className="w-full text-sm">
@@ -697,7 +911,9 @@ function ShortcutsSection() {
               <tr key={i} className="border-t border-border/40">
                 <td className="px-4 py-2">{s.action}</td>
                 <td className="px-4 py-2 text-muted-foreground">{s.category}</td>
-                <td className="px-4 py-2 text-right"><kbd className="rounded bg-muted px-2 py-1 text-xs font-mono">{s.keys}</kbd></td>
+                <td className="px-4 py-2 text-right">
+                  <kbd className="rounded bg-muted px-2 py-1 text-xs font-mono">{s.keys}</kbd>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -736,32 +952,63 @@ function LocaleSection() {
   return (
     <Card title="Language & Region">
       <Row label="Language">
-        <Select value={settings.language} onChange={(v) => set("language", v)} options={[
-          { value: "en-US", label: "English (US)" }, { value: "en-GB", label: "English (UK)" },
-          { value: "es-ES", label: "Español" }, { value: "fr-FR", label: "Français" },
-          { value: "de-DE", label: "Deutsch" }, { value: "ja-JP", label: "日本語" },
-        ]} />
+        <Select
+          value={settings.language}
+          onChange={(v) => set("language", v)}
+          options={[
+            { value: "en-US", label: "English (US)" },
+            { value: "en-GB", label: "English (UK)" },
+            { value: "es-ES", label: "Español" },
+            { value: "fr-FR", label: "Français" },
+            { value: "de-DE", label: "Deutsch" },
+            { value: "ja-JP", label: "日本語" },
+          ]}
+        />
       </Row>
       <Row label="Time zone">
-        <Select value={settings.timeZone} onChange={(v) => set("timeZone", v)} options={[
-          { value: "auto", label: "Auto (system)" }, { value: "UTC", label: "UTC" },
-          { value: "America/New_York", label: "New York" }, { value: "Europe/London", label: "London" },
-          { value: "Asia/Tokyo", label: "Tokyo" },
-        ]} />
+        <Select
+          value={settings.timeZone}
+          onChange={(v) => set("timeZone", v)}
+          options={[
+            { value: "auto", label: "Auto (system)" },
+            { value: "UTC", label: "UTC" },
+            { value: "America/New_York", label: "New York" },
+            { value: "Europe/London", label: "London" },
+            { value: "Asia/Tokyo", label: "Tokyo" },
+          ]}
+        />
       </Row>
       <Row label="Date format">
-        <Select value={settings.dateFormat} onChange={(v) => set("dateFormat", v)} options={[
-          { value: "YYYY-MM-DD", label: "2026-07-14" }, { value: "MM/DD/YYYY", label: "07/14/2026" },
-          { value: "DD/MM/YYYY", label: "14/07/2026" }, { value: "MMM D, YYYY", label: "Jul 14, 2026" },
-        ]} />
+        <Select
+          value={settings.dateFormat}
+          onChange={(v) => set("dateFormat", v)}
+          options={[
+            { value: "YYYY-MM-DD", label: "2026-07-14" },
+            { value: "MM/DD/YYYY", label: "07/14/2026" },
+            { value: "DD/MM/YYYY", label: "14/07/2026" },
+            { value: "MMM D, YYYY", label: "Jul 14, 2026" },
+          ]}
+        />
       </Row>
       <Row label="Time format">
-        <Select value={settings.timeFormat} onChange={(v) => set("timeFormat", v as Settings["timeFormat"])}
-          options={[{ value: "12", label: "12-hour" }, { value: "24", label: "24-hour" }]} />
+        <Select
+          value={settings.timeFormat}
+          onChange={(v) => set("timeFormat", v as Settings["timeFormat"])}
+          options={[
+            { value: "12", label: "12-hour" },
+            { value: "24", label: "24-hour" },
+          ]}
+        />
       </Row>
       <Row label="Measurement units">
-        <Select value={settings.units} onChange={(v) => set("units", v as Settings["units"])}
-          options={[{ value: "metric", label: "Metric" }, { value: "imperial", label: "Imperial" }]} />
+        <Select
+          value={settings.units}
+          onChange={(v) => set("units", v as Settings["units"])}
+          options={[
+            { value: "metric", label: "Metric" },
+            { value: "imperial", label: "Imperial" },
+          ]}
+        />
       </Row>
     </Card>
   );
@@ -773,7 +1020,10 @@ function PrivacySection() {
   const download = () => {
     const blob = new Blob([JSON.stringify({ notes, settings }, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = "inkflow-personal-data.json"; a.click();
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "Pen Flow-personal-data.json";
+    a.click();
     URL.revokeObjectURL(url);
     toast.success("Personal data downloaded");
   };
@@ -783,18 +1033,33 @@ function PrivacySection() {
         <Row label="Private profile" hint="Hide your profile from other users">
           <Toggle checked={settings.privateProfile} onChange={(v) => set("privateProfile", v)} />
         </Row>
-        <Row label="Allow collaboration requests"><Toggle checked={settings.allowCollabRequests} onChange={(v) => set("allowCollabRequests", v)} /></Row>
-        <Row label="Anonymous analytics" hint="Help improve InkFlow"><Toggle checked={settings.anonymousAnalytics} onChange={(v) => set("anonymousAnalytics", v)} /></Row>
-        <Row label="Crash reports"><Toggle checked={settings.crashReports} onChange={(v) => set("crashReports", v)} /></Row>
-        <Row label="Personalization" hint="Personalized recommendations"><Toggle checked={settings.personalization} onChange={(v) => set("personalization", v)} /></Row>
+        <Row label="Allow collaboration requests">
+          <Toggle checked={settings.allowCollabRequests} onChange={(v) => set("allowCollabRequests", v)} />
+        </Row>
+        <Row label="Anonymous analytics" hint="Help improve Pen Flow">
+          <Toggle checked={settings.anonymousAnalytics} onChange={(v) => set("anonymousAnalytics", v)} />
+        </Row>
+        <Row label="Crash reports">
+          <Toggle checked={settings.crashReports} onChange={(v) => set("crashReports", v)} />
+        </Row>
+        <Row label="Personalization" hint="Personalized recommendations">
+          <Toggle checked={settings.personalization} onChange={(v) => set("personalization", v)} />
+        </Row>
       </Card>
       <Card title="Your data">
         <Row label="Download personal data" hint="Get a copy of your notes and settings">
-          <Button onClick={download}><Download className="h-4 w-4" />Download</Button>
+          <Button onClick={download}>
+            <Download className="h-4 w-4" />
+            Download
+          </Button>
         </Row>
         <Row label="Delete all cloud data" hint="Permanent — cannot be undone">
-          <Button variant="destructive" onClick={() => confirm("Delete all cloud data?") && toast.success("Requested deletion")}>
-            <Trash2 className="h-4 w-4" />Delete
+          <Button
+            variant="destructive"
+            onClick={() => confirm("Delete all cloud data?") && toast.success("Requested deletion")}
+          >
+            <Trash2 className="h-4 w-4" />
+            Delete
           </Button>
         </Row>
       </Card>
@@ -821,10 +1086,19 @@ function BackupSection() {
         <Badge tone="default">1 device</Badge>
       </Row>
       <div className="flex flex-wrap gap-2 pt-4">
-        <Button onClick={syncNow} disabled={!user}><RefreshCw className="h-4 w-4" />Sync Now</Button>
-        <Button onClick={() => toast.success("Backup created")} disabled={!user}>Backup Now</Button>
-        <Button onClick={() => toast.info("No backup to restore")} disabled={!user}>Restore Backup</Button>
-        <Button onClick={() => toast.info("No conflicts")} disabled={!user}>Resolve Conflicts</Button>
+        <Button onClick={syncNow} disabled={!user}>
+          <RefreshCw className="h-4 w-4" />
+          Sync Now
+        </Button>
+        <Button onClick={() => toast.success("Backup created")} disabled={!user}>
+          Backup Now
+        </Button>
+        <Button onClick={() => toast.info("No backup to restore")} disabled={!user}>
+          Restore Backup
+        </Button>
+        <Button onClick={() => toast.info("No conflicts")} disabled={!user}>
+          Resolve Conflicts
+        </Button>
       </div>
     </Card>
   );
@@ -847,13 +1121,30 @@ function ConnectedSection() {
   );
 }
 
-function Provider({ name, linked, email, comingSoon }: { name: string; linked: boolean; email?: string; comingSoon?: boolean }) {
+function Provider({
+  name,
+  linked,
+  email,
+  comingSoon,
+}: {
+  name: string;
+  linked: boolean;
+  email?: string;
+  comingSoon?: boolean;
+}) {
   return (
     <Row label={name} hint={linked ? email : "Not linked"}>
-      {comingSoon ? <ComingSoon /> : linked ? (
+      {comingSoon ? (
+        <ComingSoon />
+      ) : linked ? (
         <div className="flex items-center gap-2">
-          <Badge tone="success"><Check className="h-3 w-3" />Linked</Badge>
-          <Button variant="ghost" onClick={() => toast.info(`${name} unlinking coming soon`)}>Unlink</Button>
+          <Badge tone="success">
+            <Check className="h-3 w-3" />
+            Linked
+          </Badge>
+          <Button variant="ghost" onClick={() => toast.info(`${name} unlinking coming soon`)}>
+            Unlink
+          </Button>
         </div>
       ) : (
         <Button onClick={() => toast.info(`Link ${name} from the sign-in page`)}>Link</Button>
@@ -864,16 +1155,30 @@ function Provider({ name, linked, email, comingSoon }: { name: string; linked: b
 
 function AboutSection() {
   return (
-    <Card title="About InkFlow">
+    <Card title="About Pen Flow">
       <Row label="App version">1.0.0</Row>
       <Row label="Build number">2026.07.14</Row>
-      <Row label="Release channel"><Badge tone="default">Stable</Badge></Row>
-      <Row label="Open source licenses"><Button variant="ghost" onClick={() => toast.info("View on GitHub")}>View</Button></Row>
-      <Row label="Terms of Service"><Button variant="ghost" onClick={() => window.open("#", "_blank")}>Open</Button></Row>
-      <Row label="Privacy Policy"><Button variant="ghost" onClick={() => window.open("#", "_blank")}>Open</Button></Row>
+      <Row label="Release channel">
+        <Badge tone="default">Stable</Badge>
+      </Row>
+      <Row label="Open source licenses">
+        <Button variant="ghost" onClick={() => toast.info("View on GitHub")}>
+          View
+        </Button>
+      </Row>
+      <Row label="Terms of Service">
+        <Button variant="ghost" onClick={() => window.open("#", "_blank")}>
+          Open
+        </Button>
+      </Row>
+      <Row label="Privacy Policy">
+        <Button variant="ghost" onClick={() => window.open("#", "_blank")}>
+          Open
+        </Button>
+      </Row>
       <div className="flex flex-wrap gap-2 pt-4">
         <Button onClick={() => toast.success("You're on the latest version")}>Check for updates</Button>
-        <Button onClick={() => toast.info("Support: support@inkflow.app")}>Contact support</Button>
+        <Button onClick={() => toast.info("Support: support@Pen Flow.app")}>Contact support</Button>
         <Button onClick={() => toast.info("Bug reported")}>Report a bug</Button>
         <Button onClick={() => toast.success("Thanks for the feedback!")}>Send feedback</Button>
       </div>
@@ -906,23 +1211,43 @@ function DangerSection() {
       </div>
       <p className="text-sm text-muted-foreground mb-4">Destructive actions. Proceed with caution.</p>
       <Row label="Delete all local notes" hint="Removes notes stored on this device">
-        <Button variant="destructive" onClick={confirmAnd("Delete all local notes?", () => { clearAll(); toast.success("Local notes deleted"); })}>
-          <Trash2 className="h-4 w-4" />Delete local
+        <Button
+          variant="destructive"
+          onClick={confirmAnd("Delete all local notes?", () => {
+            clearAll();
+            toast.success("Local notes deleted");
+          })}
+        >
+          <Trash2 className="h-4 w-4" />
+          Delete local
         </Button>
       </Row>
       <Row label="Delete all cloud notes" hint="Removes notes from cloud storage">
-        <Button variant="destructive" disabled={!user}
-          onClick={confirmAnd("Delete all cloud notes?", () => toast.success("Cloud notes deleted"))}>
-          <Trash2 className="h-4 w-4" />Delete cloud
+        <Button
+          variant="destructive"
+          disabled={!user}
+          onClick={confirmAnd("Delete all cloud notes?", () => toast.success("Cloud notes deleted"))}
+        >
+          <Trash2 className="h-4 w-4" />
+          Delete cloud
         </Button>
       </Row>
       <Row label="Sign out" hint="Sign out of this device">
-        <Button variant="destructive" onClick={doSignOut}><LogOut className="h-4 w-4" />Sign out</Button>
+        <Button variant="destructive" onClick={doSignOut}>
+          <LogOut className="h-4 w-4" />
+          Sign out
+        </Button>
       </Row>
       <Row label="Delete account permanently" hint="This action cannot be undone">
-        <Button variant="destructive" disabled={!user}
-          onClick={confirmAnd("Permanently delete your account? This cannot be undone.", () => toast.error("Contact support to complete deletion"))}>
-          <Trash2 className="h-4 w-4" />Delete account
+        <Button
+          variant="destructive"
+          disabled={!user}
+          onClick={confirmAnd("Permanently delete your account? This cannot be undone.", () =>
+            toast.error("Contact support to complete deletion"),
+          )}
+        >
+          <Trash2 className="h-4 w-4" />
+          Delete account
         </Button>
       </Row>
     </section>

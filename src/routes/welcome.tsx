@@ -39,8 +39,14 @@ function Welcome() {
   return (
     <div className="min-h-screen grid place-items-center px-6 py-12 relative overflow-hidden">
       <div className="pointer-events-none absolute inset-0 opacity-60">
-        <div className="absolute -top-40 -left-32 h-96 w-96 rounded-full blur-3xl" style={{ background: "var(--gradient-accent)" }} />
-        <div className="absolute -bottom-40 -right-32 h-96 w-96 rounded-full blur-3xl opacity-70" style={{ background: "var(--gradient-accent)" }} />
+        <div
+          className="absolute -top-40 -left-32 h-96 w-96 rounded-full blur-3xl"
+          style={{ background: "var(--gradient-accent)" }}
+        />
+        <div
+          className="absolute -bottom-40 -right-32 h-96 w-96 rounded-full blur-3xl opacity-70"
+          style={{ background: "var(--gradient-accent)" }}
+        />
       </div>
 
       <motion.div
@@ -53,15 +59,13 @@ function Welcome() {
             <PenLine className="h-5 w-5" />
           </div>
           <div>
-            <div className="font-display text-2xl gradient-text leading-none">InkFlow</div>
+            <div className="font-display text-2xl gradient-text leading-none">Pen Flow</div>
             <div className="text-[11px] text-muted-foreground mt-0.5">Notes reimagined</div>
           </div>
         </div>
 
         <h1 className="font-display text-3xl tracking-tight">Welcome</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Pick how you'd like to start. You can switch anytime.
-        </p>
+        <p className="text-sm text-muted-foreground mt-1">Pick how you'd like to start. You can switch anytime.</p>
 
         <div className="mt-6 space-y-2">
           <button
@@ -82,8 +86,12 @@ function Welcome() {
           </Link>
 
           <div className="relative py-3">
-            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border/60" /></div>
-            <div className="relative flex justify-center"><span className="bg-background px-2 text-[11px] uppercase tracking-widest text-muted-foreground">or</span></div>
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-border/60" />
+            </div>
+            <div className="relative flex justify-center">
+              <span className="bg-background px-2 text-[11px] uppercase tracking-widest text-muted-foreground">or</span>
+            </div>
           </div>
 
           <button

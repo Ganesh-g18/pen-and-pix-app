@@ -4,14 +4,10 @@ import { z } from "zod";
 import type { Database } from "@/integrations/supabase/types";
 
 function supabaseForUser(ctx: ToolContext) {
-  return createClient<Database>(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_PUBLISHABLE_KEY!,
-    {
-      global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
-      auth: { persistSession: false, autoRefreshToken: false },
-    },
-  );
+  return createClient<Database>(process.env.SUPABASE_URL!, process.env.SUPABASE_PUBLISHABLE_KEY!, {
+    global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
 }
 
 function uuid() {
@@ -21,7 +17,7 @@ function uuid() {
 export default defineTool({
   name: "create_note",
   title: "Create note",
-  description: "Create a new text note in InkFlow for the signed-in user.",
+  description: "Create a new text note in Pen Flow for the signed-in user.",
   inputSchema: {
     title: z.string().trim().max(200).optional().describe("Note title. Defaults to 'Untitled note'."),
     content: z.string().optional().describe("Note body (plain text or markdown)."),
