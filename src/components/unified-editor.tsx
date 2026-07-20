@@ -6,7 +6,7 @@ import TaskItem from "@tiptap/extension-task-item";
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import type { Stroke, PaperType, PenStyle, PinnedPen, ToolPreset, TextBlock, PaperOptions } from "@/lib/store";
 import { useStore } from "@/lib/store";
-import { EditorToolbar, type EditorTool, type EraserMode, type ToolConfigKey } from "./editor-toolbar";
+import { EditorToolbar, type EditorTool, type EraserMode, type ToolConfigKey, type ShapeKind } from "./editor-toolbar";
 import { TextBlockLayer } from "./text-block-layer";
 import { TextToolPanel } from "./text-tool-panel";
 
@@ -53,6 +53,8 @@ export function UnifiedEditor({
 
   const [tool, setTool] = useState<EditorTool>("text");
   const [penStyle, setPenStyle] = useState<PenStyle>("ballpoint");
+  const [shapeKind, setShapeKind] = useState<ShapeKind>("rect");
+  const shapeStartRef = useRef<{ x: number; y: number } | null>(null);
   const [eraserMode, setEraserMode] = useState<EraserMode>(settings.eraserPreset?.mode ?? "stroke");
   const [eraserSize, setEraserSize] = useState<number>(settings.eraserPreset?.size ?? 12);
   const [eraserSoftness, setEraserSoftness] = useState<number>(settings.eraserPreset?.softness ?? 0);
@@ -175,7 +177,7 @@ export function UnifiedEditor({
     force((n) => n + 1);
   };
 
-  const inkActive = tool === "pen" || tool === "highlighter" || tool === "eraser";
+  const inkActive = tool === "pen" || tool === "highlighter" || tool === "eraser" || tool === "shape";
 
   const strokeToolFor = (): Stroke["tool"] => {
     if (tool === "highlighter") return "highlighter";
@@ -197,6 +199,20 @@ export function UnifiedEditor({
     if (tool === "eraser") {
       eraseSessionRef.current = { prev: strokes, working: [...strokes], changed: false };
       hitErase(pt.x, pt.y);
+      return;
+    }
+
+    if (tool === "shape") {
+      shapeStartRef.current = { x: pt.x, y: pt.y };
+      drawingRef.current = {
+        id: Math.random().toString(36).slice(2, 10),
+        tool: "pen",
+        color: activeConfig.color,
+        size: activeConfig.size,
+        opacity: activeConfig.opacity,
+        points: buildShapePoints(shapeKind, pt.x, pt.y, pt.x, pt.y),
+      };
+      force((n) => n + 1);
       return;
     }
 
@@ -225,6 +241,12 @@ export function UnifiedEditor({
     if (tool === "eraser") { hitErase(pt.x, pt.y); return; }
     const s = drawingRef.current;
     if (!s) return;
+    if (tool === "shape" && shapeStartRef.current) {
+      const start = shapeStartRef.current;
+      s.points = buildShapePoints(shapeKind, start.x, start.y, pt.x, pt.y);
+      force((n) => n + 1);
+      return;
+    }
     const events = (e.nativeEvent as PointerEvent).getCoalescedEvents?.() ?? [e.nativeEvent as PointerEvent];
     const svg = svgRef.current!;
     const r = svg.getBoundingClientRect();
@@ -240,7 +262,10 @@ export function UnifiedEditor({
     const s = drawingRef.current;
     drawingRef.current = null;
     drawingPointerIdRef.current = null;
-    if (s && s.points.length >= 3) {
+    if (tool === "shape") {
+      shapeStartRef.current = null;
+      if (s && s.points.length >= 6) onAddStroke(s);
+    } else if (s && s.points.length >= 3) {
       // Bake pressure into per-stroke size for constant-width tools if pressure enabled.
       const bake = shouldBakePressure(tool, penStyle) && activeConfig.pressure;
       if (bake) {
@@ -572,6 +597,8 @@ export function UnifiedEditor({
         onUndo={onUndoStroke}
         onRedo={onRedoStroke}
         onClear={onClearStrokes}
+        shapeKind={shapeKind}
+        onShapeKindChange={setShapeKind}
       />
 
       {tool === "text" && onTextBlocksChange && (
@@ -657,4 +684,75 @@ function strokeToPath(s: Stroke): string {
   const last = pts.length - 3;
   d += ` L ${pts[last]} ${pts[last + 1]}`;
   return d;
+}
+
+// Sample points along the outline of a shape so it can be stored/edited as a normal stroke.
+function buildShapePoints(kind: ShapeKind, x0: number, y0: number, x1: number, y1: number): number[] {
+  const pts: number[] = [];
+  const push = (x: number, y: number) => pts.push(x, y, 0.5);
+
+  if (kind === "line" || kind === "arrow") {
+    const steps = 24;
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      push(x0 + (x1 - x0) * t, y0 + (y1 - y0) * t);
+    }
+    if (kind === "arrow") {
+      const dx = x1 - x0, dy = y1 - y0;
+      const len = Math.hypot(dx, dy) || 1;
+      const ux = dx / len, uy = dy / len;
+      const head = Math.min(28, Math.max(10, len * 0.22));
+      const ang = Math.PI / 7;
+      const cos = Math.cos(ang), sin = Math.sin(ang);
+      // left barb
+      const lx = x1 - head * (ux * cos + uy * sin);
+      const ly = y1 - head * (uy * cos - ux * sin);
+      // right barb
+      const rx = x1 - head * (ux * cos - uy * sin);
+      const ry = y1 - head * (uy * cos + ux * sin);
+      const seg = 10;
+      for (let i = 1; i <= seg; i++) { const t = i / seg; push(x1 + (lx - x1) * t, y1 + (ly - y1) * t); }
+      for (let i = seg - 1; i >= 0; i--) { const t = i / seg; push(x1 + (lx - x1) * t, y1 + (ly - y1) * t); }
+      for (let i = 1; i <= seg; i++) { const t = i / seg; push(x1 + (rx - x1) * t, y1 + (ry - y1) * t); }
+    }
+    return pts;
+  }
+
+  const minX = Math.min(x0, x1), maxX = Math.max(x0, x1);
+  const minY = Math.min(y0, y1), maxY = Math.max(y0, y1);
+
+  if (kind === "rect") {
+    const stepsX = Math.max(6, Math.round((maxX - minX) / 6));
+    const stepsY = Math.max(6, Math.round((maxY - minY) / 6));
+    for (let i = 0; i <= stepsX; i++) push(minX + ((maxX - minX) * i) / stepsX, minY);
+    for (let i = 1; i <= stepsY; i++) push(maxX, minY + ((maxY - minY) * i) / stepsY);
+    for (let i = 1; i <= stepsX; i++) push(maxX - ((maxX - minX) * i) / stepsX, maxY);
+    for (let i = 1; i <= stepsY; i++) push(minX, maxY - ((maxY - minY) * i) / stepsY);
+    return pts;
+  }
+
+  if (kind === "circle") {
+    const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+    const rx = (maxX - minX) / 2, ry = (maxY - minY) / 2;
+    const steps = Math.max(24, Math.round((rx + ry) * 0.6));
+    for (let i = 0; i <= steps; i++) {
+      const t = (i / steps) * Math.PI * 2;
+      push(cx + Math.cos(t) * rx, cy + Math.sin(t) * ry);
+    }
+    return pts;
+  }
+
+  if (kind === "triangle") {
+    const apex = { x: (minX + maxX) / 2, y: minY };
+    const bl = { x: minX, y: maxY };
+    const br = { x: maxX, y: maxY };
+    const seg = 20;
+    const edge = (a: { x: number; y: number }, b: { x: number; y: number }) => {
+      for (let i = 0; i <= seg; i++) { const t = i / seg; push(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t); }
+    };
+    edge(apex, br); edge(br, bl); edge(bl, apex);
+    return pts;
+  }
+
+  return pts;
 }

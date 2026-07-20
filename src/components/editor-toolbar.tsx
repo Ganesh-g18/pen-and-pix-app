@@ -20,13 +20,20 @@ import {
   Pipette,
   Bookmark,
   BookmarkPlus,
+  Square,
+  Circle,
+  Triangle,
+  Minus,
+  ArrowRight,
+  Shapes as ShapesIcon,
 } from "lucide-react";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { PenStyle, PinnedPen, ToolPreset } from "@/lib/store";
 import { useStore } from "@/lib/store";
 
-export type EditorTool = "select" | "text" | "pen" | "highlighter" | "eraser";
+export type ShapeKind = "rect" | "circle" | "triangle" | "line" | "arrow";
+export type EditorTool = "select" | "text" | "pen" | "highlighter" | "eraser" | "shape";
 export type EraserMode = "stroke" | "spot";
 export type ToolConfigKey = PenStyle | "highlighter";
 
@@ -70,7 +77,17 @@ interface Props {
   onUndo: () => void;
   onRedo: () => void;
   onClear: () => void;
+  shapeKind: ShapeKind;
+  onShapeKindChange: (s: ShapeKind) => void;
 }
+
+const SHAPE_LIBRARY: { id: ShapeKind; label: string; Icon: typeof Square }[] = [
+  { id: "rect", label: "Rectangle", Icon: Square },
+  { id: "circle", label: "Ellipse", Icon: Circle },
+  { id: "triangle", label: "Triangle", Icon: Triangle },
+  { id: "line", label: "Line", Icon: Minus },
+  { id: "arrow", label: "Arrow", Icon: ArrowRight },
+];
 
 export const EditorToolbar = memo(function EditorToolbar({
   tool,
@@ -89,6 +106,8 @@ export const EditorToolbar = memo(function EditorToolbar({
   onUndo,
   onRedo,
   onClear,
+  shapeKind,
+  onShapeKindChange,
 }: Props) {
   const settings = useStore((s) => s.settings);
   const pinnedPens = settings.pinnedPens ?? EMPTY_PINNED_PENS;
@@ -100,12 +119,14 @@ export const EditorToolbar = memo(function EditorToolbar({
   const [penListOpen, setPenListOpen] = useState(false);
   const [hiOpen, setHiOpen] = useState(false);
   const [eraserOpen, setEraserOpen] = useState(false);
+  const [shapeOpen, setShapeOpen] = useState(false);
 
   const closeAllPopovers = () => {
     setPenOpen(false);
     setHiOpen(false);
     setEraserOpen(false);
     setPenListOpen(false);
+    setShapeOpen(false);
   };
 
   const rootRef = useRef<HTMLDivElement>(null);
@@ -461,7 +482,62 @@ export const EditorToolbar = memo(function EditorToolbar({
           )}
         </div>
 
+        {/* Shapes */}
+        <div className="relative flex shrink-0 items-center">
+          <button
+            className={btn(tool === "shape")}
+            onClick={() => {
+              if (lpFired.current) { lpFired.current = false; return; }
+              setPenOpen(false); setHiOpen(false); setEraserOpen(false); setPenListOpen(false);
+              if (tool === "shape") setShapeOpen((v) => !v);
+              else { onToolChange("shape"); setShapeOpen(false); }
+            }}
+            title={`Shapes · ${shapeKind}`}
+            aria-label={`Shapes — ${shapeKind}`}
+            style={{ color: tool === "shape" ? activeConfig.color : undefined }}
+          >
+            {(() => {
+              const S = SHAPE_LIBRARY.find((x) => x.id === shapeKind)?.Icon ?? ShapesIcon;
+              return <S className="h-4 w-4 transition-all duration-200" />;
+            })()}
+          </button>
+          <button
+            className="grid h-8 w-3 place-items-center text-muted-foreground hover:text-foreground"
+            onClick={() => {
+              setPenOpen(false); setHiOpen(false); setEraserOpen(false); setPenListOpen(false);
+              onToolChange("shape");
+              setShapeOpen((v) => !v);
+            }}
+            aria-label="Shape library"
+          >
+            <ChevronDown className="h-3 w-3" />
+          </button>
+          {shapeOpen && (
+            <div className={`${popover} w-56 rounded-xl bg-card text-card-foreground border border-border p-2 shadow-float`}>
+              <div className="grid grid-cols-5 gap-1">
+                {SHAPE_LIBRARY.map(({ id, label, Icon }) => (
+                  <button
+                    key={id}
+                    onClick={() => { onShapeKindChange(id); setShapeOpen(false); }}
+                    className={`flex flex-col items-center gap-1 rounded-lg px-1.5 py-2 text-[10px] transition ${
+                      shapeKind === id ? "bg-primary/15 text-primary" : "hover:bg-accent"
+                    }`}
+                    title={label}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span className="truncate">{label}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="mt-2 border-t border-border pt-2">
+                <div className="mb-1 text-[10px] text-muted-foreground">Color & size use current pen settings.</div>
+              </div>
+            </div>
+          )}
+        </div>
+
         <div className="mx-1 h-5 w-px shrink-0 bg-border" />
+
 
         {/* Pinned pens strip */}
         {pinnedPens.length > 0 && (
