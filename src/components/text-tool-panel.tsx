@@ -476,11 +476,6 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
         <Btn title="Send backward" onClick={sendBackward}><ChevronsDown className="h-3.5 w-3.5" /></Btn>
         <Btn title="Delete box" onClick={remove}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Btn>
       </div>
-      {!editingBlock && (
-        <div className="pointer-events-none absolute inset-x-0 -top-6 text-center text-[10px] text-muted-foreground">
-          Click anywhere on the page to type
-        </div>
-      )}
       {renderPopover()}
     </div>
   );
