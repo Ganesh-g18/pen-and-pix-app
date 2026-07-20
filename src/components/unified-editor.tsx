@@ -429,6 +429,8 @@ export function UnifiedEditor({
               onChange={onTextBlocksChange}
               toolActive={tool === "text" ? "text" : tool === "select" ? "select" : "ink"}
               surfaceRef={surfaceRef}
+              editingId={editingTextId}
+              onEditingChange={setEditingTextId}
             />
           )}
 
