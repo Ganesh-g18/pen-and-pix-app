@@ -1,6 +1,5 @@
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef } from "react";
 import type { TextBlock } from "@/lib/store";
-import { Copy, Trash2 } from "lucide-react";
 
 interface Props {
   blocks: TextBlock[];
@@ -15,46 +14,38 @@ interface Props {
 }
 
 /**
- * Freeform text blocks.
- * - Text tool + click empty space  → create block AND immediately focus (no double-click).
- * - Text tool + click existing box  → focus that box, caret at click location.
- * - Select tool                     → drag to move, corner handle to resize.
- * - Esc                             → exit editing but keep the text tool active.
- * - Delete / Backspace              → remove selected blocks (when not editing).
- * - Ctrl/Cmd + D                    → duplicate selected blocks.
+ * Freeform inline text — OneNote-style.
+ *
+ * There are no visible text boxes. Each "block" is just an absolutely-positioned
+ * span of editable text with NO border, background, ring, or resize handles.
+ * The Text tool turns the whole surface into an insertion cursor: clicking
+ * anywhere places a caret at that exact spot and lets the user type instantly.
+ *
+ * - Text tool + click empty space  → create a bare inline block, focus at click.
+ * - Text tool + click existing text → place caret at the click position.
+ * - Esc                            → blur, keep the text tool active.
+ * - Empty block on blur            → auto-removed (no invisible artefacts).
  */
+const MAX_WIDTH = 720;
+
 export const TextBlockLayer = memo(function TextBlockLayer({
   blocks, onChange, toolActive, surfaceRef, editingId: editingIdProp, onEditingChange,
 }: Props) {
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [editingIdInternal, setEditingIdInternal] = useState<string | null>(null);
-  const editingId = editingIdProp !== undefined ? editingIdProp : editingIdInternal;
+  const editingIdRef = useRef<string | null>(null);
+  const editingId = editingIdProp ?? editingIdRef.current;
   const setEditingId = useCallback((id: string | null) => {
-    setEditingIdInternal(id);
+    editingIdRef.current = id;
     onEditingChange?.(id);
   }, [onEditingChange]);
 
-  const editorRef = useRef<HTMLDivElement>(null);
-  const dragState = useRef<{
-    kind: "move" | "resize";
-    startX: number; startY: number;
-    original: Record<string, TextBlock>;
-    resizeId?: string;
-    moved?: boolean;
-  } | null>(null);
-  const pendingCaretPoint = useRef<{ x: number; y: number } | null>(null);
-
-  const setBlocks = useCallback((updater: (prev: TextBlock[]) => TextBlock[]) => {
-    onChange(updater(blocks));
-  }, [blocks, onChange]);
+  const blocksRef = useRef(blocks);
+  blocksRef.current = blocks;
 
   /** Focus a block and (optionally) place caret at a client-x/y point. */
   const focusBlock = useCallback((id: string, clientPoint?: { x: number; y: number } | null) => {
     setEditingId(id);
-    setSelected(new Set([id]));
-    // wait for contenteditable to be applied
     requestAnimationFrame(() => {
-      const el = document.querySelector<HTMLDivElement>(`[data-text-block="${id}"] [contenteditable]`);
+      const el = document.querySelector<HTMLDivElement>(`[data-text-block="${id}"]`);
       if (!el) return;
       el.focus();
       const sel = window.getSelection();
@@ -62,7 +53,6 @@ export const TextBlockLayer = memo(function TextBlockLayer({
       sel.removeAllRanges();
       let placed = false;
       if (clientPoint) {
-        // Prefer caretRangeFromPoint (Chromium/Safari); fall back to caretPositionFromPoint (Firefox).
         const doc = document as Document & {
           caretRangeFromPoint?: (x: number, y: number) => Range | null;
           caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null;
@@ -88,7 +78,7 @@ export const TextBlockLayer = memo(function TextBlockLayer({
     });
   }, [setEditingId]);
 
-  // Insert / focus block on surface click in Text tool mode.
+  // Surface click in Text mode → create new block or focus existing at caret.
   useEffect(() => {
     const surface = surfaceRef.current;
     if (!surface) return;
@@ -96,130 +86,57 @@ export const TextBlockLayer = memo(function TextBlockLayer({
       if (toolActive !== "text") return;
       if (e.button !== 0) return;
       const target = e.target as HTMLElement;
-      // Click on an existing block: let the block's own handler focus + place caret.
-      if (target.closest("[data-text-block]")) return;
-      // Ignore clicks on tiptap doc (users may still tap tiptap for structured text).
+
+      // Click on existing inline text → focus at caret position.
+      const existing = target.closest<HTMLElement>("[data-text-block]");
+      if (existing) {
+        const id = existing.getAttribute("data-text-block");
+        if (id) {
+          e.preventDefault();
+          focusBlock(id, { x: e.clientX, y: e.clientY });
+        }
+        return;
+      }
+
+      // Ignore clicks that land on the base tiptap doc (keep structured typing).
       if (target.closest(".tiptap")) return;
+
       const r = surface.getBoundingClientRect();
       const x = e.clientX - r.left;
       const y = e.clientY - r.top;
       const id = Math.random().toString(36).slice(2, 10);
-      const nb: TextBlock = { id, x, y, width: 260, height: 40, html: "" };
-      pendingCaretPoint.current = null;
-      onChange([...blocks, nb]);
-      // Focus on next frame — element will have been mounted by then.
+      const nb: TextBlock = { id, x, y, width: 0, height: 0, html: "" };
+      onChange([...blocksRef.current, nb]);
+      // Focus on the next frame so the element is mounted.
       requestAnimationFrame(() => focusBlock(id, null));
     };
     surface.addEventListener("mousedown", onDown);
     return () => surface.removeEventListener("mousedown", onDown);
-  }, [toolActive, surfaceRef, blocks, onChange, focusBlock]);
+  }, [toolActive, surfaceRef, onChange, focusBlock]);
 
-  // Keyboard shortcuts (when not editing)
+  // Exit editing when the tool changes away from text.
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement;
-      const editingActive = !!target?.closest("[contenteditable='true']");
-      // Esc always exits edit mode (but keeps the tool selected).
-      if (e.key === "Escape" && editingActive) {
-        e.preventDefault();
-        (target as HTMLElement).blur();
-        setEditingId(null);
-        return;
-      }
-      if (editingActive || target?.tagName === "INPUT" || target?.tagName === "TEXTAREA") return;
-      if (selected.size === 0) return;
-      if (e.key === "Delete" || e.key === "Backspace") {
-        e.preventDefault();
-        setBlocks((prev) => prev.filter((b) => !selected.has(b.id)));
-        setSelected(new Set());
-      } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "d") {
-        e.preventDefault();
-        const clones: TextBlock[] = [];
-        blocks.forEach((b) => {
-          if (selected.has(b.id)) {
-            clones.push({ ...b, id: Math.random().toString(36).slice(2, 10), x: b.x + 20, y: b.y + 20 });
-          }
-        });
-        setBlocks((prev) => [...prev, ...clones]);
-        setSelected(new Set(clones.map((c) => c.id)));
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [selected, blocks, setBlocks, setEditingId]);
-
-  const startMoveOrEdit = (e: React.PointerEvent, block: TextBlock) => {
-    // In text tool: never drag; treat as focus-and-place-caret.
-    if (toolActive === "text") {
-      if (editingId === block.id) return; // already editing; let native caret handling work
-      e.stopPropagation();
-      focusBlock(block.id, { x: e.clientX, y: e.clientY });
-      return;
+    if (toolActive !== "text" && editingIdRef.current) {
+      const el = document.querySelector<HTMLDivElement>(`[data-text-block="${editingIdRef.current}"]`);
+      el?.blur();
+      setEditingId(null);
     }
-    if (editingId === block.id) return;
-    (e.target as Element).setPointerCapture?.(e.pointerId);
-    e.stopPropagation();
-    let nextSel: Set<string>;
-    if (e.shiftKey) {
-      nextSel = new Set(selected);
-      nextSel.has(block.id) ? nextSel.delete(block.id) : nextSel.add(block.id);
-    } else if (!selected.has(block.id)) {
-      nextSel = new Set([block.id]);
-    } else {
-      nextSel = new Set(selected);
-    }
-    setSelected(nextSel);
-    const orig: Record<string, TextBlock> = {};
-    blocks.forEach((b) => { if (nextSel.has(b.id)) orig[b.id] = { ...b }; });
-    dragState.current = { kind: "move", startX: e.clientX, startY: e.clientY, original: orig, moved: false };
-  };
-
-  const startResize = (e: React.PointerEvent, block: TextBlock) => {
-    (e.target as Element).setPointerCapture?.(e.pointerId);
-    e.stopPropagation();
-    dragState.current = {
-      kind: "resize", startX: e.clientX, startY: e.clientY,
-      original: { [block.id]: { ...block } }, resizeId: block.id, moved: false,
-    };
-  };
-
-  const onLayerPointerMove = (e: React.PointerEvent) => {
-    const st = dragState.current;
-    if (!st) return;
-    const dx = e.clientX - st.startX;
-    const dy = e.clientY - st.startY;
-    if (Math.abs(dx) + Math.abs(dy) > 3) st.moved = true;
-    if (st.kind === "move") {
-      setBlocks((prev) => prev.map((b) => {
-        const o = st.original[b.id];
-        if (!o) return b;
-        return { ...b, x: Math.max(0, o.x + dx), y: Math.max(0, o.y + dy) };
-      }));
-    } else if (st.kind === "resize" && st.resizeId) {
-      const o = st.original[st.resizeId];
-      setBlocks((prev) => prev.map((b) => b.id === st.resizeId
-        ? { ...b, width: Math.max(80, o.width + dx), height: Math.max(30, o.height + dy) }
-        : b));
-    }
-  };
-
-  const onLayerPointerUp = () => { dragState.current = null; };
+  }, [toolActive, setEditingId]);
 
   const commitEdit = (id: string, html: string) => {
-    setBlocks((prev) => prev.map((b) => b.id === id ? { ...b, html } : b));
+    onChange(blocksRef.current.map((b) => b.id === id ? { ...b, html } : b));
   };
 
-  /** Auto-scroll the nearest scrollable ancestor when the caret nears an edge. */
+  const removeEmpty = (id: string) => {
+    onChange(blocksRef.current.filter((b) => b.id !== id));
+  };
+
   const edgeAutoScroll = useCallback(() => {
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0) return;
     const range = sel.getRangeAt(0).cloneRange();
     range.collapse(true);
-    let rect = range.getBoundingClientRect();
-    if (rect.top === 0 && rect.bottom === 0 && editingId) {
-      const el = document.querySelector<HTMLDivElement>(`[data-text-block="${editingId}"] [contenteditable]`);
-      if (el) rect = el.getBoundingClientRect();
-    }
+    const rect = range.getBoundingClientRect();
     const margin = 80;
     let node: HTMLElement | null = surfaceRef.current;
     while (node) {
@@ -233,131 +150,64 @@ export const TextBlockLayer = memo(function TextBlockLayer({
       }
       node = node.parentElement;
     }
-    if (rect.bottom > window.innerHeight - margin) window.scrollBy({ top: rect.bottom - (window.innerHeight - margin), behavior: "smooth" });
-    else if (rect.top < margin) window.scrollBy({ top: rect.top - margin, behavior: "smooth" });
-  }, [editingId, surfaceRef]);
-
-  // Exit editing when the tool changes away from text
-  useEffect(() => {
-    if (toolActive !== "text" && editingId) {
-      const el = document.querySelector<HTMLDivElement>(`[data-text-block="${editingId}"] [contenteditable]`);
-      el?.blur();
-      setEditingId(null);
-    }
-  }, [toolActive, editingId, setEditingId]);
+  }, [surfaceRef]);
 
   return (
-    <div
-      className="pointer-events-none absolute inset-0"
-      ref={editorRef}
-      onPointerMove={onLayerPointerMove}
-      onPointerUp={onLayerPointerUp}
-    >
+    <div className="pointer-events-none absolute inset-0">
       {blocks.map((b) => {
-        const isSel = selected.has(b.id);
-        const isEditing = editingId === b.id;
         const isEmpty = !b.html || b.html === "<br>";
-        const cursorStyle =
-          isEditing ? "text" : toolActive === "text" ? "text" : "move";
+        const isEditing = editingId === b.id;
         return (
           <div
             key={b.id}
             data-text-block={b.id}
-            className={`pointer-events-auto absolute rounded-md transition-shadow ${
-              isSel || isEditing ? "ring-2 ring-primary/60" : "ring-1 ring-transparent hover:ring-border/60"
-            } ${isEditing ? "bg-background/60 shadow-float" : ""}`}
+            contentEditable={toolActive === "text"}
+            suppressContentEditableWarning
+            spellCheck
+            data-placeholder={isEditing && isEmpty ? "Type…" : undefined}
+            className={`text-inline-block absolute text-[15px] leading-relaxed outline-none focus:outline-none ${
+              toolActive === "text" ? "pointer-events-auto" : "pointer-events-none"
+            }`}
             style={{
-              left: b.x, top: b.y, width: b.width, minHeight: b.height,
-              cursor: cursorStyle,
+              left: b.x,
+              top: b.y,
+              maxWidth: MAX_WIDTH,
+              minWidth: 8,
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
+              fontFamily: "var(--font-sans)",
+              caretColor: "hsl(var(--primary))",
               zIndex: (b.zIndex ?? 0) + 1,
             }}
-            onPointerDown={(e) => startMoveOrEdit(e, b)}
-          >
-            <div
-              contentEditable={isEditing}
-              suppressContentEditableWarning
-              spellCheck
-              data-placeholder={isEditing && isEmpty ? "Type…" : undefined}
-              className={`min-h-full w-full rounded-md p-2 text-[15px] leading-relaxed outline-none focus:outline-none text-block-editable ${
-                isEditing ? "caret-primary" : ""
-              }`}
-              style={{
-                fontFamily: "var(--font-sans)",
-                whiteSpace: "pre-wrap",
-                wordBreak: "break-word",
-                caretColor: "hsl(var(--primary))",
-              }}
-              onBlur={(e) => {
-                commitEdit(b.id, (e.currentTarget as HTMLDivElement).innerHTML);
-                setEditingId(editingId === b.id ? null : editingId);
-              }}
-              onInput={(e) => {
-                const el = e.currentTarget as HTMLDivElement;
-                const container = el.parentElement as HTMLDivElement;
-                if (container) {
-                  container.style.minHeight = "0px";
-                  const needed = el.scrollHeight + 4;
-                  container.style.minHeight = `${needed}px`;
-                  if (needed !== b.height) {
-                    setBlocks((prev) => prev.map((x) => x.id === b.id ? { ...x, height: needed } : x));
-                  }
-                }
-                edgeAutoScroll();
-              }}
-              onKeyDown={(e) => {
-                e.stopPropagation();
-                if (e.key === "Escape") {
-                  e.preventDefault();
-                  (e.currentTarget as HTMLDivElement).blur();
-                  setEditingId(null);
-                  return;
-                }
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  document.execCommand("insertLineBreak");
-                  requestAnimationFrame(edgeAutoScroll);
-                }
-              }}
-              dangerouslySetInnerHTML={
-                isEditing
-                  ? { __html: b.html || "" }
-                  : { __html: b.html || "<span style=\"opacity:.5\">Type…</span>" }
+            onFocus={() => setEditingId(b.id)}
+            onBlur={(e) => {
+              const html = (e.currentTarget as HTMLDivElement).innerHTML;
+              const text = (e.currentTarget as HTMLDivElement).textContent ?? "";
+              if (!text.trim() && (!html || html === "<br>")) {
+                removeEmpty(b.id);
+              } else {
+                commitEdit(b.id, html);
               }
-            />
-
-            {isSel && !isEditing && (
-              <>
-                <div
-                  onPointerDown={(e) => startResize(e, b)}
-                  className="absolute right-[-4px] bottom-[-4px] h-3 w-3 rounded-sm bg-primary shadow"
-                  style={{ cursor: "nwse-resize" }}
-                />
-                <div className="absolute -top-8 right-0 flex gap-0.5 rounded-lg border border-border bg-card p-0.5 shadow-float">
-                  <button
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const clone: TextBlock = { ...b, id: Math.random().toString(36).slice(2, 10), x: b.x + 20, y: b.y + 20 };
-                      setBlocks((prev) => [...prev, clone]);
-                      setSelected(new Set([clone.id]));
-                    }}
-                    className="grid h-6 w-6 place-items-center rounded hover:bg-accent"
-                    title="Duplicate"
-                  ><Copy className="h-3 w-3" /></button>
-                  <button
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setBlocks((prev) => prev.filter((x) => x.id !== b.id));
-                      setSelected(new Set());
-                    }}
-                    className="grid h-6 w-6 place-items-center rounded text-destructive hover:bg-destructive/10"
-                    title="Delete"
-                  ><Trash2 className="h-3 w-3" /></button>
-                </div>
-              </>
-            )}
-          </div>
+              if (editingIdRef.current === b.id) setEditingId(null);
+            }}
+            onInput={() => edgeAutoScroll()}
+            onKeyDown={(e) => {
+              e.stopPropagation();
+              if (e.key === "Escape") {
+                e.preventDefault();
+                (e.currentTarget as HTMLDivElement).blur();
+                return;
+              }
+              if (e.key === "Enter" && !e.shiftKey) {
+                // Let default Enter create a new line (block behaves like a paragraph).
+                // Browsers default to inserting <div> or <br>; normalise to <br> for tight spacing.
+                e.preventDefault();
+                document.execCommand("insertLineBreak");
+                requestAnimationFrame(edgeAutoScroll);
+              }
+            }}
+            dangerouslySetInnerHTML={{ __html: b.html || "" }}
+          />
         );
       })}
     </div>
