@@ -1,5 +1,18 @@
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { TextBlock } from "@/lib/store";
+
+/** Treat blocks as empty only when neither text nor meaningful markup exists. */
+function isBlockEmpty(html: string, text: string): boolean {
+  if (text.trim().length > 0) return false;
+  if (!html) return true;
+  // Strip <br>, whitespace, and empty formatting wrappers.
+  const stripped = html
+    .replace(/<br\s*\/?>(?=|$)/gi, "")
+    .replace(/<(span|div|p|font|b|i|u|em|strong)[^>]*>\s*<\/\1>/gi, "")
+    .replace(/&nbsp;/gi, "")
+    .replace(/\s+/g, "");
+  return stripped.length === 0;
+}
 
 interface Props {
   blocks: TextBlock[];
