@@ -420,7 +420,7 @@ export function UnifiedEditor({
           className={`relative w-full ${paperClass}`}
           style={{ height: docHeight, minHeight: "100%", ...paperStyle }}
         >
-          <div className="absolute inset-0" style={{ pointerEvents: inkActive ? "none" : "auto" }}>
+          <div className="absolute inset-0" style={{ pointerEvents: tool === "select" ? "auto" : "none" }}>
             {editor && <EditorContent editor={editor} />}
           </div>
 
