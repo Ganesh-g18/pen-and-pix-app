@@ -163,16 +163,9 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
     onBlocksChange(blocks.filter((b) => b.id !== editingBlock.id));
   };
 
-  const adjustSize = (delta: number) => {
+  const applySize = (px: number) => {
     withSelection(() => {
-      const sel = window.getSelection();
-      if (!sel || sel.rangeCount === 0) return;
-      const r = sel.getRangeAt(0);
-      const el = (r.startContainer.nodeType === 1
-        ? (r.startContainer as HTMLElement)
-        : r.startContainer.parentElement) as HTMLElement | null;
-      const px = parseFloat(getComputedStyle(el ?? document.body).fontSize) || 16;
-      const next = Math.max(8, Math.min(96, Math.round(px + delta)));
+      const next = Math.max(8, Math.min(96, Math.round(px)));
       document.execCommand("styleWithCSS", false, "true");
       document.execCommand("fontSize", false, "7");
       document.querySelectorAll<HTMLElement>("font[size='7']").forEach((f) => {
@@ -182,6 +175,15 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
         f.replaceWith(span);
       });
     });
+  };
+
+  const adjustSize = (delta: number) => {
+    const sel = window.getSelection();
+    const r = sel && sel.rangeCount > 0 ? sel.getRangeAt(0) : null;
+    const node = r?.startContainer;
+    const el = (node?.nodeType === 1 ? node : node?.parentElement) as HTMLElement | null;
+    const px = parseFloat(getComputedStyle(el ?? document.body).fontSize) || 16;
+    applySize(px + delta);
   };
 
   const applyBlockStyle = (patch: Partial<React.CSSProperties>) => {
