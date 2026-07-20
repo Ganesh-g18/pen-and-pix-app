@@ -4,15 +4,19 @@ import Placeholder from "@tiptap/extension-placeholder";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
-import type { Stroke, PaperType, PenStyle, PinnedPen, ToolPreset } from "@/lib/store";
+import type { Stroke, PaperType, PenStyle, PinnedPen, ToolPreset, TextBlock, PaperOptions } from "@/lib/store";
 import { useStore } from "@/lib/store";
 import { EditorToolbar, type EditorTool, type EraserMode, type ToolConfigKey } from "./editor-toolbar";
+import { TextBlockLayer } from "./text-block-layer";
 
 interface Props {
   content: string;
   strokes: Stroke[];
   paper: PaperType;
+  paperOptions?: PaperOptions;
+  textBlocks?: TextBlock[];
   onContentChange: (html: string) => void;
+  onTextBlocksChange?: (blocks: TextBlock[]) => void;
   onAddStroke: (s: Stroke) => void;
   onUndoStroke: () => void;
   onRedoStroke: () => void;
