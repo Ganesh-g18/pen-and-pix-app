@@ -414,11 +414,21 @@ export function UnifiedEditor({
           ref={surfaceRef}
           data-editor-surface
           className={`relative w-full ${paperClass}`}
-          style={{ height: docHeight, minHeight: "100%" }}
+          style={{ height: docHeight, minHeight: "100%", ...paperStyle }}
         >
           <div className="absolute inset-0" style={{ pointerEvents: inkActive ? "none" : "auto" }}>
             {editor && <EditorContent editor={editor} />}
           </div>
+
+          {/* Freeform text blocks — sit above tiptap, below ink SVG. */}
+          {onTextBlocksChange && (
+            <TextBlockLayer
+              blocks={textBlocks ?? []}
+              onChange={onTextBlocksChange}
+              toolActive={tool === "text" ? "text" : tool === "select" ? "select" : "ink"}
+              surfaceRef={surfaceRef}
+            />
+          )}
 
           <svg
             ref={svgRef}
