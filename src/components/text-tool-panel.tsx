@@ -13,10 +13,7 @@ const FONTS = [
   "Inter", "Instrument Serif", "Georgia", "Times New Roman",
   "Helvetica", "Arial", "Courier New", "Menlo", "JetBrains Mono",
 ];
-const SIZES = [
-  { label: "10", val: "1" }, { label: "13", val: "2" }, { label: "16", val: "3" },
-  { label: "18", val: "4" }, { label: "24", val: "5" }, { label: "32", val: "6" }, { label: "48", val: "7" },
-];
+const SIZES = [10, 13, 16, 18, 24, 32, 48];
 const HIGHLIGHTS = ["#fde68a", "#bbf7d0", "#bfdbfe", "#fecaca", "#e9d5ff", "#fed7aa", "transparent"];
 const COLORS = ["#0b0b0f", "#dc2626", "#059669", "#2563eb", "#a855f7", "#eab308", "#ec4899", "#ffffff"];
 
@@ -166,16 +163,9 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
     onBlocksChange(blocks.filter((b) => b.id !== editingBlock.id));
   };
 
-  const adjustSize = (delta: number) => {
+  const applySize = (px: number) => {
     withSelection(() => {
-      const sel = window.getSelection();
-      if (!sel || sel.rangeCount === 0) return;
-      const r = sel.getRangeAt(0);
-      const el = (r.startContainer.nodeType === 1
-        ? (r.startContainer as HTMLElement)
-        : r.startContainer.parentElement) as HTMLElement | null;
-      const px = parseFloat(getComputedStyle(el ?? document.body).fontSize) || 16;
-      const next = Math.max(8, Math.min(96, Math.round(px + delta)));
+      const next = Math.max(8, Math.min(96, Math.round(px)));
       document.execCommand("styleWithCSS", false, "true");
       document.execCommand("fontSize", false, "7");
       document.querySelectorAll<HTMLElement>("font[size='7']").forEach((f) => {
@@ -185,6 +175,15 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
         f.replaceWith(span);
       });
     });
+  };
+
+  const adjustSize = (delta: number) => {
+    const sel = window.getSelection();
+    const r = sel && sel.rangeCount > 0 ? sel.getRangeAt(0) : null;
+    const node = r?.startContainer;
+    const el = (node?.nodeType === 1 ? node : node?.parentElement) as HTMLElement | null;
+    const px = parseFloat(getComputedStyle(el ?? document.body).fontSize) || 16;
+    applySize(px + delta);
   };
 
   const applyBlockStyle = (patch: Partial<React.CSSProperties>) => {
@@ -389,12 +388,12 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
         {/* Font size */}
         <select
           onMouseDown={(e) => e.stopPropagation()}
-          onChange={(e) => cmd("fontSize", e.target.value)}
-          defaultValue="3"
+          onChange={(e) => applySize(parseInt(e.target.value, 10))}
+          defaultValue="16"
           className="h-8 rounded-md bg-transparent px-1 text-xs outline-none hover:bg-accent"
           title="Font size"
         >
-          {SIZES.map((s) => <option key={s.val} value={s.val}>{s.label}</option>)}
+          {SIZES.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
         <Btn title="Decrease size" onClick={() => adjustSize(-2)}><Minus className="h-3.5 w-3.5" /></Btn>
         <Btn title="Increase size" onClick={() => adjustSize(+2)}><Plus className="h-3.5 w-3.5" /></Btn>

@@ -47,47 +47,62 @@ export async function exportAsPdf(surface: HTMLElement, note: Note) {
     import("jspdf"),
   ]);
 
-  // Snapshot the full editor surface (text + ink layers) at high DPI.
-  const canvas = await html2canvas(surface, {
-    scale: Math.min(2, window.devicePixelRatio || 1) * 1.5,
-    backgroundColor: getComputedStyle(document.body).backgroundColor || "#ffffff",
-    useCORS: true,
-    logging: false,
-    windowWidth: surface.scrollWidth,
-    windowHeight: surface.scrollHeight,
-  });
+  // Temporarily expand scroll containers so html2canvas captures full content.
+  const restores: Array<() => void> = [];
+  const expand = (el: HTMLElement) => {
+    const prev = { overflow: el.style.overflow, height: el.style.height, maxHeight: el.style.maxHeight };
+    el.style.overflow = "visible";
+    el.style.height = "auto";
+    el.style.maxHeight = "none";
+    restores.push(() => Object.assign(el.style, prev));
+  };
+  let node: HTMLElement | null = surface;
+  while (node && node !== document.body) { expand(node); node = node.parentElement; }
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 
-  // A4 portrait in mm at 72dpi baseline.
-  const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-  const pageW = pdf.internal.pageSize.getWidth();
-  const pageH = pdf.internal.pageSize.getHeight();
-  const margin = 8;
-  const usableW = pageW - margin * 2;
-  const usableH = pageH - margin * 2;
+  try {
+    const canvas = await html2canvas(surface, {
+      scale: Math.min(2, window.devicePixelRatio || 1) * 1.5,
+      backgroundColor: getComputedStyle(document.body).backgroundColor || "#ffffff",
+      useCORS: true,
+      logging: false,
+      windowWidth: surface.scrollWidth,
+      windowHeight: surface.scrollHeight,
+    });
 
-  // Scale ratio: canvas px -> pdf mm
-  const pxPerMm = canvas.width / usableW;
-  const pageSlicePx = Math.floor(usableH * pxPerMm);
+    // A4 portrait in mm at 72dpi baseline.
+    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const margin = 8;
+    const usableW = pageW - margin * 2;
+    const usableH = pageH - margin * 2;
 
-  let offsetY = 0;
-  let first = true;
-  while (offsetY < canvas.height) {
-    const sliceH = Math.min(pageSlicePx, canvas.height - offsetY);
-    const slice = document.createElement("canvas");
-    slice.width = canvas.width;
-    slice.height = sliceH;
-    const ctx = slice.getContext("2d")!;
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, slice.width, slice.height);
-    ctx.drawImage(canvas, 0, offsetY, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
-    const img = slice.toDataURL("image/jpeg", 0.92);
-    if (!first) pdf.addPage();
-    pdf.addImage(img, "JPEG", margin, margin, usableW, sliceH / pxPerMm);
-    offsetY += sliceH;
-    first = false;
+    const pxPerMm = canvas.width / usableW;
+    const pageSlicePx = Math.floor(usableH * pxPerMm);
+
+    let offsetY = 0;
+    let first = true;
+    while (offsetY < canvas.height) {
+      const sliceH = Math.min(pageSlicePx, canvas.height - offsetY);
+      const slice = document.createElement("canvas");
+      slice.width = canvas.width;
+      slice.height = sliceH;
+      const ctx = slice.getContext("2d")!;
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, slice.width, slice.height);
+      ctx.drawImage(canvas, 0, offsetY, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+      const img = slice.toDataURL("image/jpeg", 0.92);
+      if (!first) pdf.addPage();
+      pdf.addImage(img, "JPEG", margin, margin, usableW, sliceH / pxPerMm);
+      offsetY += sliceH;
+      first = false;
+    }
+
+    pdf.save(`${safeName(note.title)}.pdf`);
+  } finally {
+    restores.forEach((fn) => fn());
   }
-
-  pdf.save(`${safeName(note.title)}.pdf`);
 }
 
 function safeName(s: string) {
