@@ -77,7 +77,17 @@ interface Props {
   onUndo: () => void;
   onRedo: () => void;
   onClear: () => void;
+  shapeKind: ShapeKind;
+  onShapeKindChange: (s: ShapeKind) => void;
 }
+
+const SHAPE_LIBRARY: { id: ShapeKind; label: string; Icon: typeof Square }[] = [
+  { id: "rect", label: "Rectangle", Icon: Square },
+  { id: "circle", label: "Ellipse", Icon: Circle },
+  { id: "triangle", label: "Triangle", Icon: Triangle },
+  { id: "line", label: "Line", Icon: Minus },
+  { id: "arrow", label: "Arrow", Icon: ArrowRight },
+];
 
 export const EditorToolbar = memo(function EditorToolbar({
   tool,
