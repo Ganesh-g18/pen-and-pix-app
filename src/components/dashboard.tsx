@@ -13,7 +13,10 @@ import {
   Sparkles,
   FileText,
   PenLine,
+  Download,
 } from "lucide-react";
+import { exportNoteQuickPdf } from "@/lib/export-note";
+import { toast } from "sonner";
 import { useMemo, useState } from "react";
 import { useStore } from "@/lib/store";
 import { CommandPalette } from "@/components/command-palette";
@@ -266,15 +269,34 @@ export function Dashboard() {
                             Restore
                           </button>
                         ) : (
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              deleteNote(n.id);
-                            }}
-                            className="grid h-7 w-7 place-items-center rounded-lg hover:bg-destructive/15 text-muted-foreground hover:text-destructive"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
+                          <>
+                            <button
+                              onClick={async (e) => {
+                                e.preventDefault();
+                                try {
+                                  await exportNoteQuickPdf(n);
+                                  toast.success("PDF downloaded");
+                                } catch (err) {
+                                  console.error(err);
+                                  toast.error("Could not export PDF");
+                                }
+                              }}
+                              className="grid h-7 w-7 place-items-center rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground"
+                              aria-label="Download as PDF"
+                              title="Download as PDF"
+                            >
+                              <Download className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                deleteNote(n.id);
+                              }}
+                              className="grid h-7 w-7 place-items-center rounded-lg hover:bg-destructive/15 text-muted-foreground hover:text-destructive"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </>
                         )}
                       </div>
                     </div>
