@@ -1,10 +1,10 @@
-import { memo, useCallback, useEffect, useRef } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import type { TextBlock } from "@/lib/store";
 
 interface Props {
   blocks: TextBlock[];
   onChange: (blocks: TextBlock[]) => void;
-  /** Active tool from the parent editor. Text tool enables click-to-insert. */
+  /** Active tool from the parent editor. Text tool enables click-to-insert; Select tool enables drag-to-move. */
   toolActive: "select" | "text" | "ink";
   /** Container ref used for coordinate math (document coordinate space). */
   surfaceRef: React.RefObject<HTMLDivElement | null>;
@@ -16,17 +16,14 @@ interface Props {
 /**
  * Freeform inline text — OneNote-style.
  *
- * There are no visible text boxes. Each "block" is just an absolutely-positioned
- * span of editable text with NO border, background, ring, or resize handles.
- * The Text tool turns the whole surface into an insertion cursor: clicking
- * anywhere places a caret at that exact spot and lets the user type instantly.
- *
  * - Text tool + click empty space  → create a bare inline block, focus at click.
  * - Text tool + click existing text → place caret at the click position.
- * - Esc                            → blur, keep the text tool active.
+ * - Select tool + drag on text     → move the block; click alone leaves it in place.
+ * - Esc                            → blur, keep the active tool.
  * - Empty block on blur            → auto-removed (no invisible artefacts).
  */
 const MAX_WIDTH = 720;
+const DRAG_THRESHOLD = 4; // px before a click promotes to a drag
 
 export const TextBlockLayer = memo(function TextBlockLayer({
   blocks, onChange, toolActive, surfaceRef, editingId: editingIdProp, onEditingChange,
@@ -40,6 +37,8 @@ export const TextBlockLayer = memo(function TextBlockLayer({
 
   const blocksRef = useRef(blocks);
   blocksRef.current = blocks;
+
+  const [draggingId, setDraggingId] = useState<string | null>(null);
 
   /** Focus a block and (optionally) place caret at a client-x/y point. */
   const focusBlock = useCallback((id: string, clientPoint?: { x: number; y: number } | null) => {
@@ -107,7 +106,6 @@ export const TextBlockLayer = memo(function TextBlockLayer({
       const id = Math.random().toString(36).slice(2, 10);
       const nb: TextBlock = { id, x, y, width: 0, height: 0, html: "" };
       onChange([...blocksRef.current, nb]);
-      // Focus on the next frame so the element is mounted.
       requestAnimationFrame(() => focusBlock(id, null));
     };
     surface.addEventListener("mousedown", onDown);
@@ -131,14 +129,55 @@ export const TextBlockLayer = memo(function TextBlockLayer({
     onChange(blocksRef.current.filter((b) => b.id !== id));
   };
 
+  /** Drag-to-move (Select tool). */
+  const beginDrag = useCallback((e: React.PointerEvent, id: string) => {
+    if (toolActive !== "select") return;
+    if (e.button !== 0) return;
+    const surface = surfaceRef.current;
+    if (!surface) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const block = blocksRef.current.find((b) => b.id === id);
+    if (!block) return;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const originX = block.x;
+    const originY = block.y;
+    const pointerId = e.pointerId;
+    const targetEl = e.currentTarget as HTMLDivElement;
+    let dragging = false;
+
+    const onMove = (ev: PointerEvent) => {
+      if (ev.pointerId !== pointerId) return;
+      const dx = ev.clientX - startX;
+      const dy = ev.clientY - startY;
+      if (!dragging && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+      if (!dragging) {
+        dragging = true;
+        setDraggingId(id);
+        try { targetEl.setPointerCapture(pointerId); } catch { /* noop */ }
+      }
+      onChange(blocksRef.current.map((b) => b.id === id ? { ...b, x: Math.max(0, originX + dx), y: Math.max(0, originY + dy) } : b));
+    };
+    const onUp = (ev: PointerEvent) => {
+      if (ev.pointerId !== pointerId) return;
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+      try { targetEl.releasePointerCapture(pointerId); } catch { /* noop */ }
+      setDraggingId(null);
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+  }, [toolActive, surfaceRef, onChange]);
+
   const edgeAutoScroll = useCallback(() => {
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0) return;
     const range = sel.getRangeAt(0).cloneRange();
     range.collapse(true);
     const rect = range.getBoundingClientRect();
-    // A collapsed range on an empty new line can report an all-zero rect; that
-    // would trick the scroller into jumping to the top of the page.
     if (rect.top === 0 && rect.bottom === 0 && rect.left === 0) return;
     const margin = 80;
     let node: HTMLElement | null = surfaceRef.current;
@@ -155,11 +194,15 @@ export const TextBlockLayer = memo(function TextBlockLayer({
     }
   }, [surfaceRef]);
 
+  const interactive = toolActive === "text" || toolActive === "select";
+
   return (
     <div className="pointer-events-none absolute inset-0">
       {blocks.map((b) => {
         const isEmpty = !b.html || b.html === "<br>";
         const isEditing = editingId === b.id;
+        const isDragging = draggingId === b.id;
+        const selectMode = toolActive === "select";
         return (
           <div
             key={b.id}
@@ -169,7 +212,9 @@ export const TextBlockLayer = memo(function TextBlockLayer({
             spellCheck
             data-placeholder={isEditing && isEmpty ? "Type…" : undefined}
             className={`text-inline-block absolute text-[15px] leading-relaxed outline-none focus:outline-none ${
-              toolActive === "text" ? "pointer-events-auto" : "pointer-events-none"
+              interactive ? "pointer-events-auto" : "pointer-events-none"
+            } ${selectMode ? (isDragging ? "cursor-grabbing" : "cursor-grab") : ""} ${
+              selectMode ? "ring-1 ring-primary/30 hover:ring-primary/60 rounded-sm" : ""
             }`}
             style={{
               left: b.x,
@@ -181,7 +226,10 @@ export const TextBlockLayer = memo(function TextBlockLayer({
               fontFamily: "var(--font-sans)",
               caretColor: "hsl(var(--primary))",
               zIndex: (b.zIndex ?? 0) + 1,
+              userSelect: selectMode ? "none" : undefined,
+              touchAction: selectMode ? "none" : undefined,
             }}
+            onPointerDown={selectMode ? (e) => beginDrag(e, b.id) : undefined}
             onFocus={() => setEditingId(b.id)}
             onBlur={(e) => {
               const html = (e.currentTarget as HTMLDivElement).innerHTML;
@@ -202,8 +250,6 @@ export const TextBlockLayer = memo(function TextBlockLayer({
                 return;
               }
               if (e.key === "Enter" && !e.shiftKey) {
-                // Let default Enter create a new line (block behaves like a paragraph).
-                // Browsers default to inserting <div> or <br>; normalise to <br> for tight spacing.
                 e.preventDefault();
                 document.execCommand("insertLineBreak");
                 requestAnimationFrame(edgeAutoScroll);
