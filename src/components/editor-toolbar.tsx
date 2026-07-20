@@ -20,13 +20,20 @@ import {
   Pipette,
   Bookmark,
   BookmarkPlus,
+  Square,
+  Circle,
+  Triangle,
+  Minus,
+  ArrowRight,
+  Shapes as ShapesIcon,
 } from "lucide-react";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { PenStyle, PinnedPen, ToolPreset } from "@/lib/store";
 import { useStore } from "@/lib/store";
 
-export type EditorTool = "select" | "text" | "pen" | "highlighter" | "eraser";
+export type ShapeKind = "rect" | "circle" | "triangle" | "line" | "arrow";
+export type EditorTool = "select" | "text" | "pen" | "highlighter" | "eraser" | "shape";
 export type EraserMode = "stroke" | "spot";
 export type ToolConfigKey = PenStyle | "highlighter";
 
