@@ -131,7 +131,6 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
 
   const applyFont = (f: string) => {
     lastFontRef.current = f;
-    updateSettings({ lastFont: f });
     cmd("fontName", f);
     setOpenMenu(null);
   };
