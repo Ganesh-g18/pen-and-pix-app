@@ -167,6 +167,43 @@ export const TextBlockLayer = memo(function TextBlockLayer({
     setBlocks((prev) => prev.map((b) => b.id === id ? { ...b, html } : b));
   };
 
+  /** Auto-scroll the nearest scrollable ancestor when the caret nears an edge. */
+  const edgeAutoScroll = useCallback(() => {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    const range = sel.getRangeAt(0).cloneRange();
+    range.collapse(true);
+    let rect = range.getBoundingClientRect();
+    // Empty line: rect is 0,0 — fall back to editing element
+    if (rect.top === 0 && rect.bottom === 0 && editingId) {
+      const el = document.querySelector<HTMLDivElement>(`[data-text-block="${editingId}"] [contenteditable]`);
+      if (el) rect = el.getBoundingClientRect();
+    }
+    const margin = 80;
+    // Walk up to find scrollable ancestors and nudge them.
+    let node: HTMLElement | null = surfaceRef.current;
+    while (node) {
+      const cs = getComputedStyle(node);
+      const scrollable = /(auto|scroll)/.test(cs.overflowY) && node.scrollHeight > node.clientHeight;
+      if (scrollable) {
+        const nr = node.getBoundingClientRect();
+        if (rect.bottom > nr.bottom - margin) {
+          node.scrollBy({ top: rect.bottom - (nr.bottom - margin), behavior: "smooth" });
+        } else if (rect.top < nr.top + margin) {
+          node.scrollBy({ top: rect.top - (nr.top + margin), behavior: "smooth" });
+        }
+        break;
+      }
+      node = node.parentElement;
+    }
+    // Also nudge window if needed.
+    if (rect.bottom > window.innerHeight - margin) {
+      window.scrollBy({ top: rect.bottom - (window.innerHeight - margin), behavior: "smooth" });
+    } else if (rect.top < margin) {
+      window.scrollBy({ top: rect.top - margin, behavior: "smooth" });
+    }
+  }, [editingId, surfaceRef]);
+
   // Editing container ref for format toolbar
   return (
     <div
@@ -178,6 +215,7 @@ export const TextBlockLayer = memo(function TextBlockLayer({
       {blocks.map((b) => {
         const isSel = selected.has(b.id);
         const isEditing = editingId === b.id;
+        const isEmpty = !b.html || b.html === "<br>";
         return (
           <div
             key={b.id}
@@ -196,27 +234,53 @@ export const TextBlockLayer = memo(function TextBlockLayer({
               contentEditable={isEditing}
               suppressContentEditableWarning
               spellCheck
-              className="min-h-full w-full rounded-md p-2 text-[15px] leading-relaxed outline-none focus:outline-none"
+              data-placeholder={isEditing && isEmpty ? "Type…" : undefined}
+              className={`min-h-full w-full rounded-md p-2 text-[15px] leading-relaxed outline-none focus:outline-none text-block-editable ${
+                isEditing ? "caret-primary" : ""
+              }`}
               style={{
                 fontFamily: "var(--font-sans)",
                 whiteSpace: "pre-wrap",
                 wordBreak: "break-word",
+                caretColor: "hsl(var(--primary))",
               }}
               onBlur={(e) => {
                 commitEdit(b.id, (e.currentTarget as HTMLDivElement).innerHTML);
                 setEditingId((cur) => (cur === b.id ? null : cur));
               }}
               onInput={(e) => {
-                // Auto-grow height
+                // Auto-grow height to fit content (grows and shrinks).
                 const el = e.currentTarget as HTMLDivElement;
                 const container = el.parentElement as HTMLDivElement;
-                if (container && el.scrollHeight > b.height) {
-                  container.style.minHeight = `${el.scrollHeight + 8}px`;
+                if (container) {
+                  container.style.minHeight = "0px";
+                  const needed = el.scrollHeight + 4;
+                  container.style.minHeight = `${needed}px`;
+                  if (needed !== b.height) {
+                    setBlocks((prev) => prev.map((x) => x.id === b.id ? { ...x, height: needed } : x));
+                  }
+                }
+                edgeAutoScroll();
+              }}
+              onKeyDown={(e) => {
+                e.stopPropagation();
+                // Enter → new paragraph line; Shift+Enter → soft <br>.
+                // We force <br> in both cases for predictable plain multi-line typing,
+                // but Shift+Enter is explicitly a "soft" break (no paragraph split).
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  document.execCommand("insertLineBreak");
+                  // Fire edge scroll after DOM updates.
+                  requestAnimationFrame(edgeAutoScroll);
                 }
               }}
-              onKeyDown={(e) => { e.stopPropagation(); }}
-              dangerouslySetInnerHTML={{ __html: b.html || (isEditing ? "" : "<span style=\"opacity:.5\">Type…</span>") }}
+              dangerouslySetInnerHTML={
+                isEditing
+                  ? { __html: b.html || "" }
+                  : { __html: b.html || "<span style=\"opacity:.5\">Type…</span>" }
+              }
             />
+
 
             {isSel && !isEditing && (
               <>
