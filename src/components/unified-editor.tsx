@@ -456,6 +456,14 @@ export function UnifiedEditor({
       el.style.border = "none";
       el.style.background = activeConfig.color;
       el.style.opacity = String(activeConfig.opacity);
+    } else if (tool === "shape") {
+      el.style.width = "20px"; el.style.height = "20px";
+      el.style.borderRadius = "0";
+      el.style.border = "none";
+      el.style.opacity = "0.9";
+      el.style.background =
+        `linear-gradient(${activeConfig.color},${activeConfig.color}) center/100% 1.5px no-repeat,` +
+        `linear-gradient(${activeConfig.color},${activeConfig.color}) center/1.5px 100% no-repeat`;
     } else {
       const d = Math.max(6, activeConfig.size * 2 + 2);
       el.style.width = `${d}px`; el.style.height = `${d}px`;
@@ -569,6 +577,42 @@ export function UnifiedEditor({
               );
             })}
             {drawingRef.current && renderStrokePath(drawingRef.current, true, activeConfig.pressure)}
+            {tool === "shape" && shapeStartRef.current && drawingRef.current && (() => {
+              const s = shapeStartRef.current!;
+              const pts = drawingRef.current!.points;
+              let minX = s.x, minY = s.y, maxX = s.x, maxY = s.y;
+              for (let i = 0; i < pts.length; i += 3) {
+                if (pts[i] < minX) minX = pts[i]; if (pts[i] > maxX) maxX = pts[i];
+                if (pts[i+1] < minY) minY = pts[i+1]; if (pts[i+1] > maxY) maxY = pts[i+1];
+              }
+              const w = Math.round(maxX - minX);
+              const h = Math.round(maxY - minY);
+              return (
+                <g pointerEvents="none">
+                  <rect
+                    x={minX - 4} y={minY - 4}
+                    width={maxX - minX + 8} height={maxY - minY + 8}
+                    fill="none"
+                    stroke="hsl(var(--primary, 220 90% 56%))"
+                    strokeWidth={1}
+                    strokeDasharray="4 4"
+                    opacity={0.75}
+                  />
+                  {[[minX-4,minY-4],[maxX+4,minY-4],[minX-4,maxY+4],[maxX+4,maxY+4]].map(([hx,hy],i)=>(
+                    <rect key={i} x={hx-3} y={hy-3} width={6} height={6}
+                      fill="white" stroke="hsl(var(--primary, 220 90% 56%))" strokeWidth={1} />
+                  ))}
+                  <g transform={`translate(${maxX + 8}, ${maxY + 16})`}>
+                    <rect x={0} y={-11} rx={4} ry={4}
+                      width={String(w).length * 7 + String(h).length * 7 + 22} height={16}
+                      fill="hsl(var(--primary, 220 90% 56%))" opacity={0.95} />
+                    <text x={6} y={1} fill="white" fontSize={10} fontFamily="ui-sans-serif, system-ui" fontWeight={600}>
+                      {w} × {h}
+                    </text>
+                  </g>
+                </g>
+              );
+            })()}
           </svg>
         </div>
       </div>
