@@ -469,6 +469,13 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
 
         <Divider />
 
+        <Btn dataMenu="table" title="Insert table" onClick={(e) => openWith("table", e.currentTarget)}>
+          <TableIcon className="h-3.5 w-3.5" />
+        </Btn>
+
+        <Divider />
+
+
         <Btn title="Duplicate box" onClick={duplicate}><Copy className="h-3.5 w-3.5" /></Btn>
         <Btn title="Bring forward" onClick={bringForward}><ChevronsUp className="h-3.5 w-3.5" /></Btn>
         <Btn title="Send backward" onClick={sendBackward}><ChevronsDown className="h-3.5 w-3.5" /></Btn>
