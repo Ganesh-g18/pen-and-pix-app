@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { useStore } from "@/lib/store";
+import { useStore, type PaperOptions } from "@/lib/store";
 import { UnifiedEditor } from "@/components/unified-editor";
 import { CommandPalette } from "@/components/command-palette";
 import { flushNow, isCloudActive, subscribeStatus, type CloudStatus } from "@/lib/cloud-sync";
