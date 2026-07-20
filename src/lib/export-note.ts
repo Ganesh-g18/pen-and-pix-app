@@ -47,15 +47,28 @@ export async function exportAsPdf(surface: HTMLElement, note: Note) {
     import("jspdf"),
   ]);
 
-  // Snapshot the full editor surface (text + ink layers) at high DPI.
-  const canvas = await html2canvas(surface, {
-    scale: Math.min(2, window.devicePixelRatio || 1) * 1.5,
-    backgroundColor: getComputedStyle(document.body).backgroundColor || "#ffffff",
-    useCORS: true,
-    logging: false,
-    windowWidth: surface.scrollWidth,
-    windowHeight: surface.scrollHeight,
-  });
+  // Temporarily expand scroll containers so html2canvas captures full content.
+  const restores: Array<() => void> = [];
+  const expand = (el: HTMLElement) => {
+    const prev = { overflow: el.style.overflow, height: el.style.height, maxHeight: el.style.maxHeight };
+    el.style.overflow = "visible";
+    el.style.height = "auto";
+    el.style.maxHeight = "none";
+    restores.push(() => Object.assign(el.style, prev));
+  };
+  let node: HTMLElement | null = surface;
+  while (node && node !== document.body) { expand(node); node = node.parentElement; }
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+  try {
+    const canvas = await html2canvas(surface, {
+      scale: Math.min(2, window.devicePixelRatio || 1) * 1.5,
+      backgroundColor: getComputedStyle(document.body).backgroundColor || "#ffffff",
+      useCORS: true,
+      logging: false,
+      windowWidth: surface.scrollWidth,
+      windowHeight: surface.scrollHeight,
+    });
 
   // A4 portrait in mm at 72dpi baseline.
   const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
