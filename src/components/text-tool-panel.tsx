@@ -343,7 +343,7 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
       </div>
       {!editingBlock && (
         <div className="pointer-events-none absolute inset-x-0 -top-6 text-center text-[10px] text-muted-foreground">
-          Tap the note to add a text box
+          Click anywhere on the page to type
         </div>
       )}
     </div>
