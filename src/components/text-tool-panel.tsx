@@ -17,7 +17,7 @@ const SIZES = [10, 13, 16, 18, 24, 32, 48];
 const HIGHLIGHTS = ["#fde68a", "#bbf7d0", "#bfdbfe", "#fecaca", "#e9d5ff", "#fed7aa", "transparent"];
 const COLORS = ["#0b0b0f", "#dc2626", "#059669", "#2563eb", "#a855f7", "#eab308", "#ec4899", "#ffffff"];
 
-type MenuKey = null | "font" | "color" | "highlight" | "paragraph";
+type MenuKey = null | "font" | "color" | "highlight" | "paragraph" | "table";
 
 interface Props {
   editingId: string | null;
