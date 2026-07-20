@@ -372,6 +372,9 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
           </div>
         </div>
       );
+    } else if (openMenu === "table") {
+      width = 232;
+      content = <TableGridPicker onPick={(r, c, h) => { insertTable(r, c, h); setOpenMenu(null); }} />;
     }
     if (!content) return null;
     return createPortal(
