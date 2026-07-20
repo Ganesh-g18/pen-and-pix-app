@@ -512,8 +512,8 @@ export function UnifiedEditor({
             className="absolute inset-0 select-none"
             style={{
               cursor,
-              pointerEvents: inkActive ? "auto" : "none",
-              touchAction: inkActive ? "pinch-zoom" : "auto",
+              pointerEvents: inkActive ? "auto" : (tool === "select" ? "auto" : "none"),
+              touchAction: inkActive ? "pinch-zoom" : (tool === "select" ? "none" : "auto"),
             }}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
