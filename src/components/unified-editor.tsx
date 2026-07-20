@@ -6,7 +6,7 @@ import TaskItem from "@tiptap/extension-task-item";
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import type { Stroke, PaperType, PenStyle, PinnedPen, ToolPreset, TextBlock, PaperOptions } from "@/lib/store";
 import { useStore } from "@/lib/store";
-import { EditorToolbar, type EditorTool, type EraserMode, type ToolConfigKey } from "./editor-toolbar";
+import { EditorToolbar, type EditorTool, type EraserMode, type ToolConfigKey, type ShapeKind } from "./editor-toolbar";
 import { TextBlockLayer } from "./text-block-layer";
 import { TextToolPanel } from "./text-tool-panel";
 
