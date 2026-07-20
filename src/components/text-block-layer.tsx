@@ -1,6 +1,5 @@
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import type { TextBlock } from "@/lib/store";
-import { TextFormatToolbar } from "./text-format-toolbar";
 import { Copy, Trash2 } from "lucide-react";
 
 interface Props {
@@ -10,68 +9,124 @@ interface Props {
   toolActive: "select" | "text" | "ink";
   /** Container ref used for coordinate math (document coordinate space). */
   surfaceRef: React.RefObject<HTMLDivElement | null>;
+  /** Editing state broadcast to the parent so the text-tool panel can format the active block. */
+  editingId?: string | null;
+  onEditingChange?: (id: string | null) => void;
 }
 
 /**
- * Renders freeform, movable, resizable, editable text blocks that live on
- * the same infinite scroll surface as the Tiptap document and ink layer.
- *
- * Interactions:
- *   - Text tool + click on empty space   → insert a new block at click.
- *   - Text tool + double-click a block   → focus & edit.
- *   - Select tool                        → drag to move, corner handle to resize.
- *   - Multi-select                       → shift-click to add; drag any selected to move all.
- *   - Delete / Backspace                 → remove selected blocks (when not editing).
- *   - Ctrl/Cmd + D                       → duplicate selected blocks.
+ * Freeform text blocks.
+ * - Text tool + click empty space  → create block AND immediately focus (no double-click).
+ * - Text tool + click existing box  → focus that box, caret at click location.
+ * - Select tool                     → drag to move, corner handle to resize.
+ * - Esc                             → exit editing but keep the text tool active.
+ * - Delete / Backspace              → remove selected blocks (when not editing).
+ * - Ctrl/Cmd + D                    → duplicate selected blocks.
  */
 export const TextBlockLayer = memo(function TextBlockLayer({
-  blocks, onChange, toolActive, surfaceRef,
+  blocks, onChange, toolActive, surfaceRef, editingId: editingIdProp, onEditingChange,
 }: Props) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingIdInternal, setEditingIdInternal] = useState<string | null>(null);
+  const editingId = editingIdProp !== undefined ? editingIdProp : editingIdInternal;
+  const setEditingId = useCallback((id: string | null) => {
+    setEditingIdInternal(id);
+    onEditingChange?.(id);
+  }, [onEditingChange]);
+
   const editorRef = useRef<HTMLDivElement>(null);
   const dragState = useRef<{
     kind: "move" | "resize";
     startX: number; startY: number;
     original: Record<string, TextBlock>;
     resizeId?: string;
+    moved?: boolean;
   } | null>(null);
+  const pendingCaretPoint = useRef<{ x: number; y: number } | null>(null);
 
   const setBlocks = useCallback((updater: (prev: TextBlock[]) => TextBlock[]) => {
     onChange(updater(blocks));
   }, [blocks, onChange]);
 
-  // Insert block on canvas click in Text tool mode.
+  /** Focus a block and (optionally) place caret at a client-x/y point. */
+  const focusBlock = useCallback((id: string, clientPoint?: { x: number; y: number } | null) => {
+    setEditingId(id);
+    setSelected(new Set([id]));
+    // wait for contenteditable to be applied
+    requestAnimationFrame(() => {
+      const el = document.querySelector<HTMLDivElement>(`[data-text-block="${id}"] [contenteditable]`);
+      if (!el) return;
+      el.focus();
+      const sel = window.getSelection();
+      if (!sel) return;
+      sel.removeAllRanges();
+      let placed = false;
+      if (clientPoint) {
+        // Prefer caretRangeFromPoint (Chromium/Safari); fall back to caretPositionFromPoint (Firefox).
+        const doc = document as Document & {
+          caretRangeFromPoint?: (x: number, y: number) => Range | null;
+          caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null;
+        };
+        let range: Range | null = null;
+        if (typeof doc.caretRangeFromPoint === "function") {
+          range = doc.caretRangeFromPoint(clientPoint.x, clientPoint.y);
+        } else if (typeof doc.caretPositionFromPoint === "function") {
+          const pos = doc.caretPositionFromPoint(clientPoint.x, clientPoint.y);
+          if (pos) { range = document.createRange(); range.setStart(pos.offsetNode, pos.offset); range.collapse(true); }
+        }
+        if (range && el.contains(range.startContainer)) {
+          sel.addRange(range);
+          placed = true;
+        }
+      }
+      if (!placed) {
+        const r = document.createRange();
+        r.selectNodeContents(el);
+        r.collapse(false);
+        sel.addRange(r);
+      }
+    });
+  }, [setEditingId]);
+
+  // Insert / focus block on surface click in Text tool mode.
   useEffect(() => {
     const surface = surfaceRef.current;
     if (!surface) return;
-    const onClick = (e: MouseEvent) => {
+    const onDown = (e: MouseEvent) => {
       if (toolActive !== "text") return;
+      if (e.button !== 0) return;
       const target = e.target as HTMLElement;
-      // Skip clicks on existing blocks / tiptap
+      // Click on an existing block: let the block's own handler focus + place caret.
       if (target.closest("[data-text-block]")) return;
+      // Ignore clicks on tiptap doc (users may still tap tiptap for structured text).
       if (target.closest(".tiptap")) return;
       const r = surface.getBoundingClientRect();
       const x = e.clientX - r.left;
       const y = e.clientY - r.top;
       const id = Math.random().toString(36).slice(2, 10);
-      const nb: TextBlock = {
-        id, x, y, width: 260, height: 60,
-        html: "",
-      };
-      setBlocks((prev) => [...prev, nb]);
-      setSelected(new Set([id]));
-      setEditingId(id);
+      const nb: TextBlock = { id, x, y, width: 260, height: 40, html: "" };
+      pendingCaretPoint.current = null;
+      onChange([...blocks, nb]);
+      // Focus on next frame — element will have been mounted by then.
+      requestAnimationFrame(() => focusBlock(id, null));
     };
-    surface.addEventListener("click", onClick);
-    return () => surface.removeEventListener("click", onClick);
-  }, [toolActive, surfaceRef, setBlocks]);
+    surface.addEventListener("mousedown", onDown);
+    return () => surface.removeEventListener("mousedown", onDown);
+  }, [toolActive, surfaceRef, blocks, onChange, focusBlock]);
 
   // Keyboard shortcuts (when not editing)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
-      if (target?.closest("[contenteditable='true']") || target?.tagName === "INPUT" || target?.tagName === "TEXTAREA") return;
+      const editingActive = !!target?.closest("[contenteditable='true']");
+      // Esc always exits edit mode (but keeps the tool selected).
+      if (e.key === "Escape" && editingActive) {
+        e.preventDefault();
+        (target as HTMLElement).blur();
+        setEditingId(null);
+        return;
+      }
+      if (editingActive || target?.tagName === "INPUT" || target?.tagName === "TEXTAREA") return;
       if (selected.size === 0) return;
       if (e.key === "Delete" || e.key === "Backspace") {
         e.preventDefault();
@@ -91,13 +146,19 @@ export const TextBlockLayer = memo(function TextBlockLayer({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [selected, blocks, setBlocks]);
+  }, [selected, blocks, setBlocks, setEditingId]);
 
-  const startMove = (e: React.PointerEvent, block: TextBlock) => {
-    if (toolActive === "text" && editingId === block.id) return;
+  const startMoveOrEdit = (e: React.PointerEvent, block: TextBlock) => {
+    // In text tool: never drag; treat as focus-and-place-caret.
+    if (toolActive === "text") {
+      if (editingId === block.id) return; // already editing; let native caret handling work
+      e.stopPropagation();
+      focusBlock(block.id, { x: e.clientX, y: e.clientY });
+      return;
+    }
+    if (editingId === block.id) return;
     (e.target as Element).setPointerCapture?.(e.pointerId);
     e.stopPropagation();
-    // Selection
     let nextSel: Set<string>;
     if (e.shiftKey) {
       nextSel = new Set(selected);
@@ -110,7 +171,7 @@ export const TextBlockLayer = memo(function TextBlockLayer({
     setSelected(nextSel);
     const orig: Record<string, TextBlock> = {};
     blocks.forEach((b) => { if (nextSel.has(b.id)) orig[b.id] = { ...b }; });
-    dragState.current = { kind: "move", startX: e.clientX, startY: e.clientY, original: orig };
+    dragState.current = { kind: "move", startX: e.clientX, startY: e.clientY, original: orig, moved: false };
   };
 
   const startResize = (e: React.PointerEvent, block: TextBlock) => {
@@ -118,8 +179,7 @@ export const TextBlockLayer = memo(function TextBlockLayer({
     e.stopPropagation();
     dragState.current = {
       kind: "resize", startX: e.clientX, startY: e.clientY,
-      original: { [block.id]: { ...block } },
-      resizeId: block.id,
+      original: { [block.id]: { ...block } }, resizeId: block.id, moved: false,
     };
   };
 
@@ -128,6 +188,7 @@ export const TextBlockLayer = memo(function TextBlockLayer({
     if (!st) return;
     const dx = e.clientX - st.startX;
     const dy = e.clientY - st.startY;
+    if (Math.abs(dx) + Math.abs(dy) > 3) st.moved = true;
     if (st.kind === "move") {
       setBlocks((prev) => prev.map((b) => {
         const o = st.original[b.id];
@@ -144,25 +205,6 @@ export const TextBlockLayer = memo(function TextBlockLayer({
 
   const onLayerPointerUp = () => { dragState.current = null; };
 
-  const onBlockDoubleClick = (b: TextBlock) => {
-    setEditingId(b.id);
-    setSelected(new Set([b.id]));
-    // Focus after paint
-    setTimeout(() => {
-      const el = document.querySelector<HTMLDivElement>(`[data-text-block="${b.id}"] [contenteditable]`);
-      el?.focus();
-      // Move caret to end
-      const range = document.createRange();
-      if (el && el.childNodes.length) {
-        range.selectNodeContents(el);
-        range.collapse(false);
-        const sel = window.getSelection();
-        sel?.removeAllRanges();
-        sel?.addRange(range);
-      }
-    }, 10);
-  };
-
   const commitEdit = (id: string, html: string) => {
     setBlocks((prev) => prev.map((b) => b.id === id ? { ...b, html } : b));
   };
@@ -174,37 +216,36 @@ export const TextBlockLayer = memo(function TextBlockLayer({
     const range = sel.getRangeAt(0).cloneRange();
     range.collapse(true);
     let rect = range.getBoundingClientRect();
-    // Empty line: rect is 0,0 — fall back to editing element
     if (rect.top === 0 && rect.bottom === 0 && editingId) {
       const el = document.querySelector<HTMLDivElement>(`[data-text-block="${editingId}"] [contenteditable]`);
       if (el) rect = el.getBoundingClientRect();
     }
     const margin = 80;
-    // Walk up to find scrollable ancestors and nudge them.
     let node: HTMLElement | null = surfaceRef.current;
     while (node) {
       const cs = getComputedStyle(node);
       const scrollable = /(auto|scroll)/.test(cs.overflowY) && node.scrollHeight > node.clientHeight;
       if (scrollable) {
         const nr = node.getBoundingClientRect();
-        if (rect.bottom > nr.bottom - margin) {
-          node.scrollBy({ top: rect.bottom - (nr.bottom - margin), behavior: "smooth" });
-        } else if (rect.top < nr.top + margin) {
-          node.scrollBy({ top: rect.top - (nr.top + margin), behavior: "smooth" });
-        }
+        if (rect.bottom > nr.bottom - margin) node.scrollBy({ top: rect.bottom - (nr.bottom - margin), behavior: "smooth" });
+        else if (rect.top < nr.top + margin) node.scrollBy({ top: rect.top - (nr.top + margin), behavior: "smooth" });
         break;
       }
       node = node.parentElement;
     }
-    // Also nudge window if needed.
-    if (rect.bottom > window.innerHeight - margin) {
-      window.scrollBy({ top: rect.bottom - (window.innerHeight - margin), behavior: "smooth" });
-    } else if (rect.top < margin) {
-      window.scrollBy({ top: rect.top - margin, behavior: "smooth" });
-    }
+    if (rect.bottom > window.innerHeight - margin) window.scrollBy({ top: rect.bottom - (window.innerHeight - margin), behavior: "smooth" });
+    else if (rect.top < margin) window.scrollBy({ top: rect.top - margin, behavior: "smooth" });
   }, [editingId, surfaceRef]);
 
-  // Editing container ref for format toolbar
+  // Exit editing when the tool changes away from text
+  useEffect(() => {
+    if (toolActive !== "text" && editingId) {
+      const el = document.querySelector<HTMLDivElement>(`[data-text-block="${editingId}"] [contenteditable]`);
+      el?.blur();
+      setEditingId(null);
+    }
+  }, [toolActive, editingId, setEditingId]);
+
   return (
     <div
       className="pointer-events-none absolute inset-0"
@@ -216,19 +257,21 @@ export const TextBlockLayer = memo(function TextBlockLayer({
         const isSel = selected.has(b.id);
         const isEditing = editingId === b.id;
         const isEmpty = !b.html || b.html === "<br>";
+        const cursorStyle =
+          isEditing ? "text" : toolActive === "text" ? "text" : "move";
         return (
           <div
             key={b.id}
             data-text-block={b.id}
             className={`pointer-events-auto absolute rounded-md transition-shadow ${
-              isSel ? "ring-2 ring-primary/60" : "ring-1 ring-transparent hover:ring-border/60"
+              isSel || isEditing ? "ring-2 ring-primary/60" : "ring-1 ring-transparent hover:ring-border/60"
             } ${isEditing ? "bg-background/60 shadow-float" : ""}`}
             style={{
               left: b.x, top: b.y, width: b.width, minHeight: b.height,
-              cursor: isEditing ? "text" : "move",
+              cursor: cursorStyle,
+              zIndex: (b.zIndex ?? 0) + 1,
             }}
-            onPointerDown={(e) => { if (!isEditing) startMove(e, b); }}
-            onDoubleClick={() => onBlockDoubleClick(b)}
+            onPointerDown={(e) => startMoveOrEdit(e, b)}
           >
             <div
               contentEditable={isEditing}
@@ -246,10 +289,9 @@ export const TextBlockLayer = memo(function TextBlockLayer({
               }}
               onBlur={(e) => {
                 commitEdit(b.id, (e.currentTarget as HTMLDivElement).innerHTML);
-                setEditingId((cur) => (cur === b.id ? null : cur));
+                setEditingId(editingId === b.id ? null : editingId);
               }}
               onInput={(e) => {
-                // Auto-grow height to fit content (grows and shrinks).
                 const el = e.currentTarget as HTMLDivElement;
                 const container = el.parentElement as HTMLDivElement;
                 if (container) {
@@ -264,13 +306,15 @@ export const TextBlockLayer = memo(function TextBlockLayer({
               }}
               onKeyDown={(e) => {
                 e.stopPropagation();
-                // Enter → new paragraph line; Shift+Enter → soft <br>.
-                // We force <br> in both cases for predictable plain multi-line typing,
-                // but Shift+Enter is explicitly a "soft" break (no paragraph split).
+                if (e.key === "Escape") {
+                  e.preventDefault();
+                  (e.currentTarget as HTMLDivElement).blur();
+                  setEditingId(null);
+                  return;
+                }
                 if (e.key === "Enter") {
                   e.preventDefault();
                   document.execCommand("insertLineBreak");
-                  // Fire edge scroll after DOM updates.
                   requestAnimationFrame(edgeAutoScroll);
                 }
               }}
@@ -281,16 +325,13 @@ export const TextBlockLayer = memo(function TextBlockLayer({
               }
             />
 
-
             {isSel && !isEditing && (
               <>
-                {/* Resize handle */}
                 <div
                   onPointerDown={(e) => startResize(e, b)}
                   className="absolute right-[-4px] bottom-[-4px] h-3 w-3 rounded-sm bg-primary shadow"
                   style={{ cursor: "nwse-resize" }}
                 />
-                {/* Mini toolbar */}
                 <div className="absolute -top-8 right-0 flex gap-0.5 rounded-lg border border-border bg-card p-0.5 shadow-float">
                   <button
                     onPointerDown={(e) => e.stopPropagation()}
@@ -319,8 +360,6 @@ export const TextBlockLayer = memo(function TextBlockLayer({
           </div>
         );
       })}
-
-      <TextFormatToolbar containerRef={editorRef} active={editingId !== null} />
     </div>
   );
 });
