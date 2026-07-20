@@ -198,14 +198,15 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
     >
       <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar px-2 py-1.5">
         {/* Font family (compact dropdown w/ search) */}
-        <div className="relative flex items-center">
-          <Type className="pointer-events-none ml-1 mr-0.5 h-3.5 w-3.5 text-muted-foreground" />
+        <div className="relative">
           <button
+            type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => { setOpenMenu(openMenu === "font" ? null : "font"); setFontQuery(""); }}
-            className="h-8 rounded-md bg-transparent px-1 text-xs outline-none hover:bg-accent max-w-[7rem] truncate text-left"
+            className="inline-flex items-center h-8 rounded-md bg-transparent px-2 text-xs outline-none hover:bg-accent max-w-[8rem] truncate text-left text-muted-foreground hover:text-foreground"
             title="Font family"
           >
+            <Type className="mr-1 h-3.5 w-3.5" />
             Font
           </button>
           {openMenu === "font" && (
