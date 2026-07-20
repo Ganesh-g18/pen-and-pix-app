@@ -16,14 +16,33 @@ export interface Stroke {
   points: number[]; // flat [x,y,pressure, x,y,pressure, ...]
 }
 
+export interface TextBlock {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  html: string;
+  zIndex?: number;
+}
+
+export interface PaperOptions {
+  thickness?: number; // stroke width in px
+  spacing?: number;   // gap between rules / grid / dots
+  color?: string;     // any CSS color
+  margin?: number;    // left margin ruler width in px (0 = none)
+}
+
 export interface Note {
   id: string;
   title: string;
   emoji?: string;
   mode: NoteMode;
   paper: PaperType;
+  paperOptions?: PaperOptions;
   content: string; // tiptap HTML
   strokes: Stroke[];
+  textBlocks?: TextBlock[];
   folderId: string | null;
   tags: string[];
   pinned: boolean;
