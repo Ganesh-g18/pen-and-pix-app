@@ -119,12 +119,14 @@ export const EditorToolbar = memo(function EditorToolbar({
   const [penListOpen, setPenListOpen] = useState(false);
   const [hiOpen, setHiOpen] = useState(false);
   const [eraserOpen, setEraserOpen] = useState(false);
+  const [shapeOpen, setShapeOpen] = useState(false);
 
   const closeAllPopovers = () => {
     setPenOpen(false);
     setHiOpen(false);
     setEraserOpen(false);
     setPenListOpen(false);
+    setShapeOpen(false);
   };
 
   const rootRef = useRef<HTMLDivElement>(null);
