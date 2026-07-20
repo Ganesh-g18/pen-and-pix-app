@@ -53,6 +53,8 @@ export function UnifiedEditor({
 
   const [tool, setTool] = useState<EditorTool>("text");
   const [penStyle, setPenStyle] = useState<PenStyle>("ballpoint");
+  const [shapeKind, setShapeKind] = useState<ShapeKind>("rect");
+  const shapeStartRef = useRef<{ x: number; y: number } | null>(null);
   const [eraserMode, setEraserMode] = useState<EraserMode>(settings.eraserPreset?.mode ?? "stroke");
   const [eraserSize, setEraserSize] = useState<number>(settings.eraserPreset?.size ?? 12);
   const [eraserSoftness, setEraserSoftness] = useState<number>(settings.eraserPreset?.softness ?? 0);
