@@ -456,6 +456,14 @@ export function UnifiedEditor({
       el.style.border = "none";
       el.style.background = activeConfig.color;
       el.style.opacity = String(activeConfig.opacity);
+    } else if (tool === "shape") {
+      el.style.width = "20px"; el.style.height = "20px";
+      el.style.borderRadius = "0";
+      el.style.border = "none";
+      el.style.opacity = "0.9";
+      el.style.background =
+        `linear-gradient(${activeConfig.color},${activeConfig.color}) center/100% 1.5px no-repeat,` +
+        `linear-gradient(${activeConfig.color},${activeConfig.color}) center/1.5px 100% no-repeat`;
     } else {
       const d = Math.max(6, activeConfig.size * 2 + 2);
       el.style.width = `${d}px`; el.style.height = `${d}px`;
