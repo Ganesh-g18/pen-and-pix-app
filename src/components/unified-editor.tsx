@@ -41,7 +41,8 @@ const DEFAULT_PRESETS: Record<ToolConfigKey, ToolPreset> = {
 };
 
 export function UnifiedEditor({
-  content, strokes, paper, onContentChange,
+  content, strokes, paper, paperOptions, textBlocks, onContentChange,
+  onTextBlocksChange,
   onAddStroke, onUndoStroke, onRedoStroke,
   onClearStrokes, onReplaceStrokes, onCommitErase,
 }: Props) {
@@ -146,6 +147,13 @@ export function UnifiedEditor({
 
   const paperClass =
     paper === "grid" ? "paper-grid" : paper === "dots" ? "paper-dots" : paper === "lined" ? "paper-lined" : "";
+
+  const paperStyle: React.CSSProperties = paperOptions ? {
+    ["--paper-thickness" as unknown as string]: `${paperOptions.thickness ?? 1}px`,
+    ["--paper-spacing" as unknown as string]: `${paperOptions.spacing ?? 24}px`,
+    ...(paperOptions.color ? { ["--paper-color" as unknown as string]: paperOptions.color } : {}),
+    ...(paperOptions.margin ? { ["--paper-margin" as unknown as string]: `${paperOptions.margin}px` } : {}),
+  } : {};
 
   const getPoint = (e: React.PointerEvent) => {
     const svg = svgRef.current!;
