@@ -13,10 +13,7 @@ const FONTS = [
   "Inter", "Instrument Serif", "Georgia", "Times New Roman",
   "Helvetica", "Arial", "Courier New", "Menlo", "JetBrains Mono",
 ];
-const SIZES = [
-  { label: "10", val: "1" }, { label: "13", val: "2" }, { label: "16", val: "3" },
-  { label: "18", val: "4" }, { label: "24", val: "5" }, { label: "32", val: "6" }, { label: "48", val: "7" },
-];
+const SIZES = [10, 13, 16, 18, 24, 32, 48];
 const HIGHLIGHTS = ["#fde68a", "#bbf7d0", "#bfdbfe", "#fecaca", "#e9d5ff", "#fed7aa", "transparent"];
 const COLORS = ["#0b0b0f", "#dc2626", "#059669", "#2563eb", "#a855f7", "#eab308", "#ec4899", "#ffffff"];
 
