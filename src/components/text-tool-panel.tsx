@@ -208,6 +208,29 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
     range.insertNode(frag);
   });
 
+  const insertTable = (rows: number, cols: number, withHeader: boolean) => withSelection(() => {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    const range = sel.getRangeAt(0);
+    const cellStyle = "border:1px solid currentColor;padding:6px 8px;min-width:48px;vertical-align:top;";
+    const headStyle = cellStyle + "background:rgba(127,127,127,0.12);font-weight:600;";
+    let html = `<table data-inserted-table="1" style="border-collapse:collapse;margin:0.5em 0;width:auto;">`;
+    for (let r = 0; r < rows; r++) {
+      html += "<tr>";
+      for (let c = 0; c < cols; c++) {
+        const isHeader = withHeader && r === 0;
+        const tag = isHeader ? "th" : "td";
+        const style = isHeader ? headStyle : cellStyle;
+        html += `<${tag} style="${style}"><br></${tag}>`;
+      }
+      html += "</tr>";
+    }
+    html += "</table><p><br></p>";
+    const frag = range.createContextualFragment(html);
+    range.deleteContents();
+    range.insertNode(frag);
+  });
+
   const Btn = ({ onClick, title, children, active, dataMenu }: {
     onClick: (e: React.MouseEvent<HTMLButtonElement>) => void; title: string;
     children: React.ReactNode; active?: boolean; dataMenu?: string;
