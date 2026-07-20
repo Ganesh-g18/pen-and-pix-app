@@ -388,12 +388,12 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
         {/* Font size */}
         <select
           onMouseDown={(e) => e.stopPropagation()}
-          onChange={(e) => cmd("fontSize", e.target.value)}
-          defaultValue="3"
+          onChange={(e) => applySize(parseInt(e.target.value, 10))}
+          defaultValue="16"
           className="h-8 rounded-md bg-transparent px-1 text-xs outline-none hover:bg-accent"
           title="Font size"
         >
-          {SIZES.map((s) => <option key={s.val} value={s.val}>{s.label}</option>)}
+          {SIZES.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
         <Btn title="Decrease size" onClick={() => adjustSize(-2)}><Minus className="h-3.5 w-3.5" /></Btn>
         <Btn title="Increase size" onClick={() => adjustSize(+2)}><Plus className="h-3.5 w-3.5" /></Btn>
