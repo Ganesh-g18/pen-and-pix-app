@@ -490,3 +490,42 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
     </div>
   );
 }
+
+function TableGridPicker({ onPick }: { onPick: (rows: number, cols: number, header: boolean) => void }) {
+  const MAX_R = 8, MAX_C = 8;
+  const [hover, setHover] = useState<{ r: number; c: number }>({ r: 1, c: 1 });
+  const [header, setHeader] = useState(true);
+  return (
+    <div className="w-58 rounded-lg border border-border bg-card text-card-foreground shadow-float p-2">
+      <div className="mb-1.5 flex items-center justify-between text-[11px] text-muted-foreground">
+        <span>Insert table</span>
+        <span>{hover.r} × {hover.c}</span>
+      </div>
+      <div
+        className="grid gap-0.5"
+        style={{ gridTemplateColumns: `repeat(${MAX_C}, 16px)` }}
+        onMouseLeave={() => setHover({ r: 1, c: 1 })}
+      >
+        {Array.from({ length: MAX_R * MAX_C }).map((_, i) => {
+          const r = Math.floor(i / MAX_C) + 1;
+          const c = (i % MAX_C) + 1;
+          const on = r <= hover.r && c <= hover.c;
+          return (
+            <button
+              key={i}
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onMouseEnter={() => setHover({ r, c })}
+              onClick={() => onPick(hover.r, hover.c, header)}
+              className={`h-4 w-4 rounded-[3px] border ${on ? "bg-primary/60 border-primary" : "bg-background border-border"}`}
+            />
+          );
+        })}
+      </div>
+      <label className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground">
+        <input type="checkbox" checked={header} onChange={(e) => setHeader(e.target.checked)} />
+        First row as header
+      </label>
+    </div>
+  );
+}
