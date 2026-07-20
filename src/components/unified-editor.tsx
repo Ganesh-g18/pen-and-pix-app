@@ -597,6 +597,8 @@ export function UnifiedEditor({
         onUndo={onUndoStroke}
         onRedo={onRedoStroke}
         onClear={onClearStrokes}
+        shapeKind={shapeKind}
+        onShapeKindChange={setShapeKind}
       />
 
       {tool === "text" && onTextBlocksChange && (
