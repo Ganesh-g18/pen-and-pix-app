@@ -487,6 +487,14 @@ export function UnifiedEditor({
         onRedo={onRedoStroke}
         onClear={onClearStrokes}
       />
+
+      {tool === "text" && onTextBlocksChange && (
+        <TextToolPanel
+          editingId={editingTextId}
+          blocks={textBlocks ?? []}
+          onBlocksChange={onTextBlocksChange}
+        />
+      )}
     </div>
   );
 }
