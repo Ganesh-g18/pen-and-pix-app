@@ -241,6 +241,12 @@ export function UnifiedEditor({
     if (tool === "eraser") { hitErase(pt.x, pt.y); return; }
     const s = drawingRef.current;
     if (!s) return;
+    if (tool === "shape" && shapeStartRef.current) {
+      const start = shapeStartRef.current;
+      s.points = buildShapePoints(shapeKind, start.x, start.y, pt.x, pt.y);
+      force((n) => n + 1);
+      return;
+    }
     const events = (e.nativeEvent as PointerEvent).getCoalescedEvents?.() ?? [e.nativeEvent as PointerEvent];
     const svg = svgRef.current!;
     const r = svg.getBoundingClientRect();
