@@ -110,6 +110,7 @@ export function UnifiedEditor({
   const [, force] = useState(0);
   const [docHeight, setDocHeight] = useState(MIN_DOC_HEIGHT);
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
+  const [selectDrag, setSelectDrag] = useState<{ ids: Set<string>; dx: number; dy: number } | null>(null);
 
   const editor = useEditor({
     extensions: [
