@@ -44,7 +44,7 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const savedRangeRef = useRef<Range | null>(null);
-  const lastFontRef = useRef<string>(settings.lastFont ?? "Inter");
+  const lastFontRef = useRef<string>("Inter");
 
   const openWith = useCallback((menu: Exclude<MenuKey, null>, el: HTMLElement | null) => {
     if (!el) return;
