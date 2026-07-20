@@ -150,10 +150,9 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
 
   const applyBlockStyle = (patch: Partial<React.CSSProperties>) => {
     if (!editingBlock) return;
-    const el = document.querySelector<HTMLDivElement>(`[data-text-block="${editingBlock.id}"] [contenteditable]`);
+    const el = getEditableEl(editingBlock.id);
     if (!el) return;
     Object.entries(patch).forEach(([k, v]) => { (el.style as unknown as Record<string, string>)[k] = String(v); });
-    // persist as HTML on next input; force a commit now
     onBlocksChange(
       blocks.map((b) => b.id === editingBlock.id ? { ...b, html: el.innerHTML } : b),
     );
