@@ -177,7 +177,7 @@ export function UnifiedEditor({
     force((n) => n + 1);
   };
 
-  const inkActive = tool === "pen" || tool === "highlighter" || tool === "eraser";
+  const inkActive = tool === "pen" || tool === "highlighter" || tool === "eraser" || tool === "shape";
 
   const strokeToolFor = (): Stroke["tool"] => {
     if (tool === "highlighter") return "highlighter";
