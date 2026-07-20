@@ -197,30 +197,45 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
       onMouseDown={(e) => e.preventDefault()}
     >
       <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar px-2 py-1.5">
-        {/* Font family */}
-        <div className="relative">
+        {/* Font family (compact dropdown w/ search) */}
+        <div className="relative flex items-center">
+          <Type className="pointer-events-none ml-1 mr-0.5 h-3.5 w-3.5 text-muted-foreground" />
           <button
             onMouseDown={(e) => e.preventDefault()}
-            onClick={() => setOpenMenu(openMenu === "font" ? null : "font")}
-            className="flex items-center gap-1 rounded-md px-2 h-8 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
+            onClick={() => { setOpenMenu(openMenu === "font" ? null : "font"); setFontQuery(""); }}
+            className="h-8 rounded-md bg-transparent px-1 text-xs outline-none hover:bg-accent max-w-[7rem] truncate text-left"
             title="Font family"
           >
-            <Type className="h-3.5 w-3.5" /> Font
+            Font
           </button>
           {openMenu === "font" && (
-            <div className="absolute bottom-10 left-0 w-48 max-h-64 overflow-y-auto rounded-lg border border-border bg-card text-card-foreground shadow-float p-1 z-10">
-              {FONTS.map((f) => (
-                <button
-                  key={f}
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => { cmd("fontName", f); setOpenMenu(null); }}
-                  className="w-full rounded px-2 py-1.5 text-left text-sm hover:bg-accent"
-                  style={{ fontFamily: f }}
-                >{f}</button>
-              ))}
+            <div className="absolute bottom-10 left-0 w-52 rounded-lg border border-border bg-card text-card-foreground shadow-float p-1 z-10">
+              <input
+                autoFocus
+                value={fontQuery}
+                onChange={(e) => setFontQuery(e.target.value)}
+                onMouseDown={(e) => e.stopPropagation()}
+                placeholder="Search fonts…"
+                className="mb-1 w-full rounded-md border border-border bg-background px-2 py-1 text-xs outline-none focus:ring-1 focus:ring-ring"
+              />
+              <div className="max-h-56 overflow-y-auto">
+                {FONTS.filter((f) => f.toLowerCase().includes(fontQuery.trim().toLowerCase())).map((f) => (
+                  <button
+                    key={f}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => { cmd("fontName", f); setOpenMenu(null); }}
+                    className="w-full rounded px-2 py-1.5 text-left text-sm hover:bg-accent"
+                    style={{ fontFamily: f }}
+                  >{f}</button>
+                ))}
+                {FONTS.filter((f) => f.toLowerCase().includes(fontQuery.trim().toLowerCase())).length === 0 && (
+                  <div className="px-2 py-3 text-center text-xs text-muted-foreground">No matches</div>
+                )}
+              </div>
             </div>
           )}
         </div>
+
 
         {/* Font size (select + +/-) */}
         <select
