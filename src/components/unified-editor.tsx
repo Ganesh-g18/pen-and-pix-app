@@ -109,6 +109,7 @@ export function UnifiedEditor({
   const [erasePreview, setErasePreview] = useState<Stroke[] | null>(null);
   const [, force] = useState(0);
   const [docHeight, setDocHeight] = useState(MIN_DOC_HEIGHT);
+  const [editingTextId, setEditingTextId] = useState<string | null>(null);
 
   const editor = useEditor({
     extensions: [
