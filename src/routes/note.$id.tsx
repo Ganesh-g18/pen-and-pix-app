@@ -278,7 +278,10 @@ function NotePage() {
           content={note.content}
           strokes={note.strokes}
           paper={note.paper}
+          paperOptions={note.paperOptions}
+          textBlocks={note.textBlocks}
           onContentChange={(html) => updateNote(id, { content: html })}
+          onTextBlocksChange={(blocks) => updateNote(id, { textBlocks: blocks })}
           onAddStroke={(s) => addStroke(id, s)}
           onUndoStroke={() => undoStroke(id)}
           onRedoStroke={() => redoStroke(id)}
