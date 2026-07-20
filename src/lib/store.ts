@@ -70,6 +70,8 @@ export interface Settings {
   density: Density;
   animations: boolean;
   glassmorphism: boolean;
+  cornerRadius?: number; // px, default 16
+  toolbarSize?: number;  // 0.85..1.25 scale, default 1
   // Note prefs
   defaultPen: "pen" | "highlighter" | "marker";
   defaultPenColor: string;
@@ -194,6 +196,8 @@ const defaultSettings: Settings = {
   density: "comfortable",
   animations: true,
   glassmorphism: true,
+  cornerRadius: 16,
+  toolbarSize: 1,
   defaultPen: "pen",
   defaultPenColor: "#111827",
   defaultPenThickness: 2,
