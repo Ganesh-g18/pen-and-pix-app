@@ -37,6 +37,7 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
   const recentColors = settings.recentColors ?? [];
 
   const [openMenu, setOpenMenu] = useState<null | "font" | "size" | "color" | "highlight" | "paragraph">(null);
+  const [fontQuery, setFontQuery] = useState("");
   const rootRef = useRef<HTMLDivElement>(null);
   const savedRangeRef = useRef<Range | null>(null);
 
