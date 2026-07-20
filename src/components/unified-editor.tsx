@@ -330,6 +330,74 @@ export function UnifiedEditor({
     [eraserMode, eraserSize],
   );
 
+  // ---- Select-tool: drag drawn strokes (grouped by overlapping bounding boxes) ----
+  type BBox = { minX: number; minY: number; maxX: number; maxY: number };
+  const bboxOf = (s: Stroke): BBox => {
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    const pts = s.points;
+    for (let i = 0; i < pts.length; i += 3) {
+      const x = pts[i], y = pts[i + 1];
+      if (x < minX) minX = x; if (y < minY) minY = y;
+      if (x > maxX) maxX = x; if (y > maxY) maxY = y;
+    }
+    const pad = (s.size || 2) + 6;
+    return { minX: minX - pad, minY: minY - pad, maxX: maxX + pad, maxY: maxY + pad };
+  };
+  const bboxOverlap = (a: BBox, b: BBox) =>
+    !(a.maxX < b.minX || b.maxX < a.minX || a.maxY < b.minY || b.maxY < a.minY);
+
+  const beginStrokeDrag = (e: React.PointerEvent<SVGGElement>, seedId: string) => {
+    if (tool !== "select") return;
+    if (e.button && e.button !== 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const bboxes = new Map<string, BBox>();
+    for (const s of strokes) bboxes.set(s.id, bboxOf(s));
+    const group = new Set<string>([seedId]);
+    const queue = [seedId];
+    while (queue.length) {
+      const cur = queue.shift()!;
+      const cb = bboxes.get(cur);
+      if (!cb) continue;
+      for (const s of strokes) {
+        if (group.has(s.id)) continue;
+        const nb = bboxes.get(s.id);
+        if (nb && bboxOverlap(cb, nb)) { group.add(s.id); queue.push(s.id); }
+      }
+    }
+    const startX = e.clientX, startY = e.clientY;
+    const pointerId = e.pointerId;
+    const target = e.currentTarget;
+    try { target.setPointerCapture(pointerId); } catch { /* noop */ }
+    setSelectDrag({ ids: group, dx: 0, dy: 0 });
+    const prevStrokes = strokes;
+    const onMove = (ev: PointerEvent) => {
+      if (ev.pointerId !== pointerId) return;
+      setSelectDrag({ ids: group, dx: ev.clientX - startX, dy: ev.clientY - startY });
+    };
+    const onUp = (ev: PointerEvent) => {
+      if (ev.pointerId !== pointerId) return;
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+      try { target.releasePointerCapture(pointerId); } catch { /* noop */ }
+      const dx = ev.clientX - startX, dy = ev.clientY - startY;
+      setSelectDrag(null);
+      if (Math.hypot(dx, dy) < 2) return;
+      const next = prevStrokes.map((s) => {
+        if (!group.has(s.id)) return s;
+        const pts = s.points.slice();
+        for (let i = 0; i < pts.length; i += 3) { pts[i] += dx; pts[i + 1] += dy; }
+        return { ...s, points: pts };
+      });
+      if (onCommitErase) onCommitErase(prevStrokes, next);
+      else if (onReplaceStrokes) onReplaceStrokes(next);
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+  };
+
   // Cursor overlay — direct DOM writes, no re-render.
   const updateCursor = useCallback((cx: number, cy: number) => {
     const el = cursorRef.current;
