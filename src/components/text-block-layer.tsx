@@ -243,66 +243,116 @@ export const TextBlockLayer = memo(function TextBlockLayer({
   return (
     <div className="pointer-events-none absolute inset-0">
       {blocks.map((b) => {
-        const isEmpty = !b.html || b.html === "<br>";
         const isEditing = editingId === b.id;
         const isDragging = draggingId === b.id;
         const selectMode = toolActive === "select";
         return (
-          <div
+          <EditableBlock
             key={b.id}
-            data-text-block={b.id}
-            contentEditable={toolActive === "text"}
-            suppressContentEditableWarning
-            spellCheck
-            data-placeholder={isEditing && isEmpty ? "Type…" : undefined}
-            className={`text-inline-block absolute text-[15px] leading-relaxed outline-none focus:outline-none ${
-              interactive ? "pointer-events-auto" : "pointer-events-none"
-            } ${selectMode ? (isDragging ? "cursor-grabbing" : "cursor-grab") : ""} ${
-              selectMode ? "ring-1 ring-primary/30 hover:ring-primary/60 rounded-sm" : ""
-            }`}
-            style={{
-              left: b.x,
-              top: b.y,
-              maxWidth: MAX_WIDTH,
-              minWidth: 8,
-              whiteSpace: "pre-wrap",
-              wordBreak: "break-word",
-              fontFamily: "var(--font-sans)",
-              caretColor: "hsl(var(--primary))",
-              zIndex: (b.zIndex ?? 0) + 1,
-              userSelect: selectMode ? "none" : undefined,
-              touchAction: selectMode ? "none" : undefined,
-            }}
+            block={b}
+            toolActive={toolActive}
+            interactive={interactive}
+            selectMode={selectMode}
+            isEditing={isEditing}
+            isDragging={isDragging}
+            maxWidth={MAX_WIDTH}
             onPointerDown={selectMode ? (e) => beginDrag(e, b.id) : undefined}
             onFocus={() => setEditingId(b.id)}
-            onBlur={(e) => {
-              const html = (e.currentTarget as HTMLDivElement).innerHTML;
-              const text = (e.currentTarget as HTMLDivElement).textContent ?? "";
-              if (!text.trim() && (!html || html === "<br>")) {
+            onBlurCommit={(html, text) => {
+              if (isBlockEmpty(html, text)) {
                 removeEmpty(b.id);
               } else {
                 commitEdit(b.id, html);
               }
               if (editingIdRef.current === b.id) setEditingId(null);
             }}
-            onInput={() => edgeAutoScroll()}
-            onKeyDown={(e) => {
-              e.stopPropagation();
-              if (e.key === "Escape") {
-                e.preventDefault();
-                (e.currentTarget as HTMLDivElement).blur();
-                return;
-              }
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                document.execCommand("insertLineBreak");
-                requestAnimationFrame(edgeAutoScroll);
-              }
-            }}
-            dangerouslySetInnerHTML={{ __html: b.html || "" }}
+            onEdgeAutoScroll={edgeAutoScroll}
           />
         );
       })}
     </div>
   );
 });
+
+interface EditableBlockProps {
+  block: TextBlock;
+  toolActive: "select" | "text" | "ink";
+  interactive: boolean;
+  selectMode: boolean;
+  isEditing: boolean;
+  isDragging: boolean;
+  maxWidth: number;
+  onPointerDown?: (e: React.PointerEvent) => void;
+  onFocus: () => void;
+  onBlurCommit: (html: string, text: string) => void;
+  onEdgeAutoScroll: () => void;
+}
+
+const EditableBlock = memo(function EditableBlock({
+  block: b, toolActive, interactive, selectMode, isEditing, isDragging, maxWidth,
+  onPointerDown, onFocus, onBlurCommit, onEdgeAutoScroll,
+}: EditableBlockProps) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Sync incoming html into the DOM imperatively so that parent re-renders
+  // do NOT clobber the user's in-progress typing while the block is focused.
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (document.activeElement === el) return; // never overwrite live edits
+    const next = b.html || "";
+    if (el.innerHTML !== next) el.innerHTML = next;
+  }, [b.html]);
+
+  const isEmpty = !b.html || b.html === "<br>";
+
+  return (
+    <div
+      ref={ref}
+      data-text-block={b.id}
+      contentEditable={toolActive === "text"}
+      suppressContentEditableWarning
+      spellCheck
+      data-placeholder={isEditing && isEmpty ? "Type…" : undefined}
+      className={`text-inline-block absolute text-[15px] leading-relaxed outline-none focus:outline-none ${
+        interactive ? "pointer-events-auto" : "pointer-events-none"
+      } ${selectMode ? (isDragging ? "cursor-grabbing" : "cursor-grab") : ""} ${
+        selectMode ? "ring-1 ring-primary/30 hover:ring-primary/60 rounded-sm" : ""
+      }`}
+      style={{
+        left: b.x,
+        top: b.y,
+        maxWidth,
+        minWidth: 8,
+        whiteSpace: "pre-wrap",
+        wordBreak: "break-word",
+        fontFamily: "var(--font-sans)",
+        caretColor: "hsl(var(--primary))",
+        zIndex: (b.zIndex ?? 0) + 1,
+        userSelect: selectMode ? "none" : undefined,
+        touchAction: selectMode ? "none" : undefined,
+      }}
+      onPointerDown={onPointerDown}
+      onFocus={onFocus}
+      onBlur={(e) => {
+        const el = e.currentTarget as HTMLDivElement;
+        onBlurCommit(el.innerHTML, el.textContent ?? "");
+      }}
+      onInput={() => onEdgeAutoScroll()}
+      onKeyDown={(e) => {
+        e.stopPropagation();
+        if (e.key === "Escape") {
+          e.preventDefault();
+          (e.currentTarget as HTMLDivElement).blur();
+          return;
+        }
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          document.execCommand("insertLineBreak");
+          requestAnimationFrame(onEdgeAutoScroll);
+        }
+      }}
+    />
+  );
+});
+
