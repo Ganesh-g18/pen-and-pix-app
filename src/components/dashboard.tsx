@@ -13,7 +13,10 @@ import {
   Sparkles,
   FileText,
   PenLine,
+  Download,
 } from "lucide-react";
+import { exportNoteQuickPdf } from "@/lib/export-note";
+import { toast } from "sonner";
 import { useMemo, useState } from "react";
 import { useStore } from "@/lib/store";
 import { CommandPalette } from "@/components/command-palette";
