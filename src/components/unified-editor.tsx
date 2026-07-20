@@ -202,6 +202,20 @@ export function UnifiedEditor({
       return;
     }
 
+    if (tool === "shape") {
+      shapeStartRef.current = { x: pt.x, y: pt.y };
+      drawingRef.current = {
+        id: Math.random().toString(36).slice(2, 10),
+        tool: "pen",
+        color: activeConfig.color,
+        size: activeConfig.size,
+        opacity: activeConfig.opacity,
+        points: buildShapePoints(shapeKind, pt.x, pt.y, pt.x, pt.y),
+      };
+      force((n) => n + 1);
+      return;
+    }
+
     drawingRef.current = {
       id: Math.random().toString(36).slice(2, 10),
       tool: strokeToolFor(),
