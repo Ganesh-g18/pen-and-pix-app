@@ -3,9 +3,7 @@ import type { Note } from "@/lib/store";
 /** Serialize freeform text blocks as HTML for export. */
 function blocksToHtml(note: Note): string {
   if (!note.textBlocks?.length) return "";
-  return note.textBlocks
-    .map((b) => `<div style="margin:0.6em 0;">${b.html || ""}</div>`)
-    .join("\n");
+  return note.textBlocks.map((b) => `<div style="margin:0.6em 0;">${b.html || ""}</div>`).join("\n");
 }
 
 /** Extract plain text from text blocks. */
@@ -42,10 +40,7 @@ export async function exportAsMarkdown(note: Note) {
 
 /** Export a note as a WYSIWYG PDF snapshot of the editor surface. */
 export async function exportAsPdf(surface: HTMLElement, note: Note) {
-  const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
-    import("html2canvas"),
-    import("jspdf"),
-  ]);
+  const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([import("html2canvas"), import("jspdf")]);
 
   // Temporarily expand scroll containers so html2canvas captures full content.
   const restores: Array<() => void> = [];
@@ -57,17 +52,31 @@ export async function exportAsPdf(surface: HTMLElement, note: Note) {
     restores.push(() => Object.assign(el.style, prev));
   };
   let node: HTMLElement | null = surface;
-  while (node && node !== document.body) { expand(node); node = node.parentElement; }
+  while (node && node !== document.body) {
+    expand(node);
+    node = node.parentElement;
+  }
   await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 
   try {
+    const rect = surface.getBoundingClientRect();
+
     const canvas = await html2canvas(surface, {
-      scale: Math.min(2, window.devicePixelRatio || 1) * 1.5,
-      backgroundColor: getComputedStyle(document.body).backgroundColor || "#ffffff",
+      scale: Math.max(window.devicePixelRatio || 1, 2),
+      backgroundColor: "#ffffff",
       useCORS: true,
+      allowTaint: true,
+      foreignObjectRendering: true,
       logging: false,
-      windowWidth: surface.scrollWidth,
-      windowHeight: surface.scrollHeight,
+
+      width: Math.max(surface.scrollWidth, rect.width),
+      height: Math.max(surface.scrollHeight, rect.height),
+
+      windowWidth: Math.max(surface.scrollWidth, rect.width),
+      windowHeight: Math.max(surface.scrollHeight, rect.height),
+
+      scrollX: 0,
+      scrollY: 0,
     });
 
     // A4 portrait in mm at 72dpi baseline.
@@ -134,10 +143,7 @@ export async function exportNoteQuickPdf(note: Note) {
   document.body.appendChild(container);
 
   try {
-    const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
-      import("html2canvas"),
-      import("jspdf"),
-    ]);
+    const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([import("html2canvas"), import("jspdf")]);
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
     const canvas = await html2canvas(container, {
       scale: 2,
@@ -174,6 +180,7 @@ export async function exportNoteQuickPdf(note: Note) {
       offsetY += sliceH;
       first = false;
     }
+
     pdf.save(`${safeName(note.title)}.pdf`);
   } finally {
     container.remove();
@@ -181,11 +188,16 @@ export async function exportNoteQuickPdf(note: Note) {
 }
 
 function escapeHtml(s: string) {
-  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
+  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 }
 
 function safeName(s: string) {
-  return (s || "note").replace(/[^a-z0-9-_ ]/gi, "").trim().slice(0, 60) || "note";
+  return (
+    (s || "note")
+      .replace(/[^a-z0-9-_ ]/gi, "")
+      .trim()
+      .slice(0, 60) || "note"
+  );
 }
 
 function downloadBlob(blob: Blob, filename: string) {
