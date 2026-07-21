@@ -16,7 +16,7 @@ import {
   AlignJustify,
   Palette,
   Highlighter,
-  Type,
+  
   Minus,
   Plus,
   Copy,
