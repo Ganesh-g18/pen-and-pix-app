@@ -63,6 +63,7 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
   const [openMenu, setOpenMenu] = useState<MenuKey>(null);
   const [fontQuery, setFontQuery] = useState("");
   const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
+  const [currentSize, setCurrentSize] = useState<number>(16);
   const rootRef = useRef<HTMLDivElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const savedRangeRef = useRef<Range | null>(null);
