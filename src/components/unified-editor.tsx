@@ -60,6 +60,8 @@ export function UnifiedEditor({
   onReplaceStrokes,
   onCommitErase,
 }: Props) {
+
+  const [isExporting, setIsExporting] = useState(false);
   const settings = useStore((s) => s.settings);
   const updateSettings = useStore((s) => s.updateSettings);
 
@@ -120,6 +122,28 @@ export function UnifiedEditor({
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const surfaceRef = useRef<HTMLDivElement>(null);
+  const beginExport = useCallback(async () => {
+  setIsExporting(true);
+
+  // wait until React finishes rendering
+  await new Promise(requestAnimationFrame);
+
+  // wait for fonts
+  if ("fonts" in document) {
+    try {
+      await (document as any).fonts.ready;
+    } catch {}
+  }
+
+  // wait another frame so html2canvas captures a stable layout
+  await new Promise(requestAnimationFrame);
+
+  return surfaceRef.current;
+}, []);
+
+const endExport = useCallback(() => {
+  setIsExporting(false);
+}, []);
   const svgRef = useRef<SVGSVGElement>(null);
   const cursorRef = useRef<HTMLDivElement>(null);
   const drawingRef = useRef<Stroke | null>(null);
@@ -601,7 +625,8 @@ export function UnifiedEditor({
       >
         <div
           ref={surfaceRef}
-          data-editor-surface
+    data-editor-surface
+    data-exporting={isExporting}
           className={`relative w-full ${paperClass}`}
           style={{ height: docHeight, minHeight: "100%", cursor: tool === "text" ? "text" : undefined, ...paperStyle }}
         >
@@ -738,11 +763,16 @@ export function UnifiedEditor({
       </div>
 
       {/* Cursor preview overlay */}
-      <div
-        ref={cursorRef}
-        className="pointer-events-none fixed left-0 top-0 z-[45]"
-        style={{ display: "none", willChange: "transform" }}
-      />
+      {!isExporting && (
+<div
+    ref={cursorRef}
+    className="pointer-events-none fixed left-0 top-0 z-[45]"
+    style={{
+        display: "none",
+        willChange: "transform",
+    }}
+/>
+)}
 
       <EditorToolbar
         tool={tool}
@@ -764,8 +794,10 @@ export function UnifiedEditor({
         shapeKind={shapeKind}
         onShapeKindChange={setShapeKind}
       />
-
-      {tool === "text" && onTextBlocksChange && (
+)}
+      {!isExporting &&
+ tool === "text" &&
+ onTextBlocksChange && (
         <TextToolPanel editingId={editingTextId} blocks={textBlocks ?? []} onBlocksChange={onTextBlocksChange} />
       )}
     </div>
