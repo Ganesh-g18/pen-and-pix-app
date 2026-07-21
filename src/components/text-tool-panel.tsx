@@ -274,6 +274,7 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
   const applySize = (px: number) => {
     const next = Math.max(8, Math.min(96, Math.round(px)));
     applyInlineStyle({ fontSize: `${next}px` });
+    setCurrentSize(next);
   };
 
   const adjustSize = (delta: number) => {
