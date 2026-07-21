@@ -166,12 +166,29 @@ export const TextBlockLayer = memo(function TextBlockLayer({
       const y = e.clientY - r.top;
       const id = Math.random().toString(36).slice(2, 10);
       const nb: TextBlock = { id, x, y, width: 0, height: 0, html: "" };
+      setEditingId(id);
       onChange([...latest, nb]);
 
 setEditingId(id);
+useEffect(() => {
+    if (!isEditing) return;
 
-requestAnimationFrame(() => {
-    focusBlock(id, null);
+    const el = ref.current;
+    if (!el) return;
+
+    el.focus({ preventScroll: true });
+
+    const sel = window.getSelection();
+    if (!sel) return;
+
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    range.collapse(false);
+
+    sel.removeAllRanges();
+    sel.addRange(range);
+}, [isEditing]);
+
 });
     surface.addEventListener("mousedown", onDown);
     return () => surface.removeEventListener("mousedown", onDown);
