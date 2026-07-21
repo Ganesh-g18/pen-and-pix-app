@@ -3,15 +3,40 @@ import { createPortal } from "react-dom";
 import type { TextBlock } from "@/lib/store";
 import { useStore } from "@/lib/store";
 import {
-  Bold, Italic, Underline, Strikethrough, List, ListOrdered, ListChecks,
-  AlignLeft, AlignCenter, AlignRight, AlignJustify,
-  Palette, Highlighter, Type, Minus, Plus, Copy, Trash2, ChevronsUp, ChevronsDown,
-  IndentIncrease, IndentDecrease,
+  Bold,
+  Italic,
+  Underline,
+  Strikethrough,
+  List,
+  ListOrdered,
+  ListChecks,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  AlignJustify,
+  Palette,
+  Highlighter,
+  Type,
+  Minus,
+  Plus,
+  Copy,
+  Trash2,
+  ChevronsUp,
+  ChevronsDown,
+  IndentIncrease,
+  IndentDecrease,
 } from "lucide-react";
 
 const FONTS = [
-  "Inter", "Instrument Serif", "Georgia", "Times New Roman",
-  "Helvetica", "Arial", "Courier New", "Menlo", "JetBrains Mono",
+  "Inter",
+  "Instrument Serif",
+  "Georgia",
+  "Times New Roman",
+  "Helvetica",
+  "Arial",
+  "Courier New",
+  "Menlo",
+  "JetBrains Mono",
 ];
 const SIZES = [10, 13, 16, 18, 24, 32, 48];
 const HIGHLIGHTS = ["#fde68a", "#bbf7d0", "#bfdbfe", "#fecaca", "#e9d5ff", "#fed7aa", "transparent"];
@@ -73,7 +98,9 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
       if (popoverRef.current?.contains(t)) return;
       setOpenMenu(null);
     };
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpenMenu(null); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpenMenu(null);
+    };
     document.addEventListener("mousedown", onDown);
     document.addEventListener("keydown", onKey);
     return () => {
@@ -97,7 +124,7 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
     };
   }, [openMenu]);
 
-  const editingBlock = editingId ? blocks.find((b) => b.id === editingId) ?? null : null;
+  const editingBlock = editingId ? (blocks.find((b) => b.id === editingId) ?? null) : null;
 
   const getEditableEl = (id: string | null) =>
     id ? document.querySelector<HTMLDivElement>(`[data-text-block="${id}"]`) : null;
@@ -109,7 +136,11 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
       const sel = window.getSelection();
       if (sel && savedRangeRef.current) {
         sel.removeAllRanges();
-        try { sel.addRange(savedRangeRef.current); } catch { /* range detached */ }
+        try {
+          sel.addRange(savedRangeRef.current);
+        } catch {
+          /* range detached */
+        }
       } else if (sel && sel.rangeCount === 0) {
         const r = document.createRange();
         r.selectNodeContents(el);
@@ -119,28 +150,10 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
     }
     fn();
     if (el && editingId) {
-
-    requestAnimationFrame(() => {
-
-        const html = el.innerHTML;
-
-        onBlocksChange(
-
-            blocks.map((b) =>
-
-                b.id === editingId
-
-                    ? { ...b, html }
-
-                    : b
-
-            )
-
-        );
-
-    });
-
-}
+      const html = el.innerHTML;
+      onBlocksChange(blocks.map((b) => (b.id === editingId ? { ...b, html } : b)));
+    }
+  };
 
   const cmd = (name: string, value?: string) => withSelection(() => document.execCommand(name, false, value));
 
@@ -236,27 +249,37 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
     if (!editingBlock) return;
     const el = getEditableEl(editingBlock.id);
     if (!el) return;
-    Object.entries(patch).forEach(([k, v]) => { (el.style as unknown as Record<string, string>)[k] = String(v); });
-    onBlocksChange(
-      blocks.map((b) => b.id === editingBlock.id ? { ...b, html: el.innerHTML } : b),
-    );
+    Object.entries(patch).forEach(([k, v]) => {
+      (el.style as unknown as Record<string, string>)[k] = String(v);
+    });
+    onBlocksChange(blocks.map((b) => (b.id === editingBlock.id ? { ...b, html: el.innerHTML } : b)));
   };
 
-  const insertChecklist = () => withSelection(() => {
-    const sel = window.getSelection();
-    if (!sel || sel.rangeCount === 0) return;
-    const range = sel.getRangeAt(0);
-    const html = `<ul data-checklist="1" style="list-style:none;padding-left:0;">
+  const insertChecklist = () =>
+    withSelection(() => {
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0) return;
+      const range = sel.getRangeAt(0);
+      const html = `<ul data-checklist="1" style="list-style:none;padding-left:0;">
       <li><input type="checkbox" style="margin-right:0.5em;">Item</li>
     </ul>`;
-    const frag = range.createContextualFragment(html);
-    range.deleteContents();
-    range.insertNode(frag);
-  });
+      const frag = range.createContextualFragment(html);
+      range.deleteContents();
+      range.insertNode(frag);
+    });
 
-  const Btn = ({ onClick, title, children, active, dataMenu }: {
-    onClick: (e: React.MouseEvent<HTMLButtonElement>) => void; title: string;
-    children: React.ReactNode; active?: boolean; dataMenu?: string;
+  const Btn = ({
+    onClick,
+    title,
+    children,
+    active,
+    dataMenu,
+  }: {
+    onClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
+    title: string;
+    children: React.ReactNode;
+    active?: boolean;
+    dataMenu?: string;
   }) => (
     <button
       type="button"
@@ -319,7 +342,9 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
                   lastFontRef.current === f ? "bg-accent/60" : ""
                 }`}
                 style={{ fontFamily: f }}
-              >{f}</button>
+              >
+                {f}
+              </button>
             ))}
             {filtered.length === 0 && (
               <div className="px-2 py-3 text-center text-xs text-muted-foreground">No matches</div>
@@ -334,21 +359,44 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
           <div className="mb-1 text-[10px] uppercase tracking-wide text-muted-foreground">Preset</div>
           <div className="flex flex-wrap items-center gap-1.5">
             {COLORS.map((c) => (
-              <button key={c} type="button" onMouseDown={(e) => e.preventDefault()}
-                onClick={() => { cmd("foreColor", c); pushRecent(c); setOpenMenu(null); }}
-                className="h-5 w-5 rounded-full border border-border" style={{ background: c }} />
+              <button
+                key={c}
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  cmd("foreColor", c);
+                  pushRecent(c);
+                  setOpenMenu(null);
+                }}
+                className="h-5 w-5 rounded-full border border-border"
+                style={{ background: c }}
+              />
             ))}
-            <input type="color" onChange={(e) => { cmd("foreColor", e.target.value); pushRecent(e.target.value); }}
-              className="h-6 w-8 cursor-pointer rounded" />
+            <input
+              type="color"
+              onChange={(e) => {
+                cmd("foreColor", e.target.value);
+                pushRecent(e.target.value);
+              }}
+              className="h-6 w-8 cursor-pointer rounded"
+            />
           </div>
           {recentColors.length > 0 && (
             <>
               <div className="mt-2 mb-1 text-[10px] uppercase tracking-wide text-muted-foreground">Recent</div>
               <div className="flex flex-wrap gap-1.5">
                 {recentColors.map((c) => (
-                  <button key={c} type="button" onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => { cmd("foreColor", c); setOpenMenu(null); }}
-                    className="h-5 w-5 rounded-full border border-border" style={{ background: c }} />
+                  <button
+                    key={c}
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      cmd("foreColor", c);
+                      setOpenMenu(null);
+                    }}
+                    className="h-5 w-5 rounded-full border border-border"
+                    style={{ background: c }}
+                  />
                 ))}
               </div>
             </>
@@ -360,14 +408,24 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
       content = (
         <div className="rounded-lg border border-border bg-card shadow-float p-2 flex items-center gap-1.5">
           {HIGHLIGHTS.map((c) => (
-            <button key={c} type="button" onMouseDown={(e) => e.preventDefault()}
-              onClick={() => { cmd("hiliteColor", c); setOpenMenu(null); }}
+            <button
+              key={c}
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                cmd("hiliteColor", c);
+                setOpenMenu(null);
+              }}
               title={c === "transparent" ? "Clear" : c}
               className="h-5 w-5 rounded-full border border-border"
-              style={{ background: c === "transparent" ? "transparent" : c }} />
+              style={{ background: c === "transparent" ? "transparent" : c }}
+            />
           ))}
-          <input type="color" onChange={(e) => cmd("hiliteColor", e.target.value)}
-            className="h-6 w-8 cursor-pointer rounded" />
+          <input
+            type="color"
+            onChange={(e) => cmd("hiliteColor", e.target.value)}
+            className="h-6 w-8 cursor-pointer rounded"
+          />
         </div>
       );
     } else if (openMenu === "paragraph" && editingBlock) {
@@ -380,29 +438,36 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
               <span>Line height</span>
               <span>{(parseFloat(el?.style.lineHeight || "1.5") || 1.5).toFixed(2)}</span>
             </label>
-            <input type="range" min="1" max="3" step="0.05" defaultValue={el?.style.lineHeight || "1.5"}
+            <input
+              type="range"
+              min="1"
+              max="3"
+              step="0.05"
+              defaultValue={el?.style.lineHeight || "1.5"}
               onChange={(e) => applyBlockStyle({ lineHeight: e.target.value })}
-              className="w-full" />
+              className="w-full"
+            />
           </div>
           <div>
             <label className="mb-1 flex items-center justify-between text-[11px] text-muted-foreground">
               <span>Letter spacing</span>
             </label>
-            <input type="range" min="-2" max="10" step="0.1"
+            <input
+              type="range"
+              min="-2"
+              max="10"
+              step="0.1"
               defaultValue={parseFloat(el?.style.letterSpacing || "0") || 0}
               onChange={(e) => applyBlockStyle({ letterSpacing: `${e.target.value}px` })}
-              className="w-full" />
+              className="w-full"
+            />
           </div>
         </div>
       );
     }
     if (!content) return null;
     return createPortal(
-      <div
-        ref={popoverRef}
-        style={popoverStyle(width)}
-        onMouseDown={(e) => e.stopPropagation()}
-      >
+      <div ref={popoverRef} style={popoverStyle(width)} onMouseDown={(e) => e.stopPropagation()}>
         {content}
       </div>,
       document.body,
@@ -441,18 +506,34 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
             className="h-8 shrink-0 rounded-md bg-transparent px-1 text-xs outline-none hover:bg-accent"
             title="Font size"
           >
-            {SIZES.map((s) => <option key={s} value={s}>{s}</option>)}
+            {SIZES.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
           </select>
         </div>
-        <Btn title="Decrease size" onClick={() => adjustSize(-2)}><Minus className="h-3.5 w-3.5" /></Btn>
-        <Btn title="Increase size" onClick={() => adjustSize(+2)}><Plus className="h-3.5 w-3.5" /></Btn>
+        <Btn title="Decrease size" onClick={() => adjustSize(-2)}>
+          <Minus className="h-3.5 w-3.5" />
+        </Btn>
+        <Btn title="Increase size" onClick={() => adjustSize(+2)}>
+          <Plus className="h-3.5 w-3.5" />
+        </Btn>
 
         <Divider />
 
-        <Btn title="Bold (⌘B)" onClick={() => cmd("bold")}><Bold className="h-3.5 w-3.5" /></Btn>
-        <Btn title="Italic (⌘I)" onClick={() => cmd("italic")}><Italic className="h-3.5 w-3.5" /></Btn>
-        <Btn title="Underline (⌘U)" onClick={() => cmd("underline")}><Underline className="h-3.5 w-3.5" /></Btn>
-        <Btn title="Strikethrough" onClick={() => cmd("strikeThrough")}><Strikethrough className="h-3.5 w-3.5" /></Btn>
+        <Btn title="Bold (⌘B)" onClick={() => cmd("bold")}>
+          <Bold className="h-3.5 w-3.5" />
+        </Btn>
+        <Btn title="Italic (⌘I)" onClick={() => cmd("italic")}>
+          <Italic className="h-3.5 w-3.5" />
+        </Btn>
+        <Btn title="Underline (⌘U)" onClick={() => cmd("underline")}>
+          <Underline className="h-3.5 w-3.5" />
+        </Btn>
+        <Btn title="Strikethrough" onClick={() => cmd("strikeThrough")}>
+          <Strikethrough className="h-3.5 w-3.5" />
+        </Btn>
 
         <Divider />
 
@@ -465,21 +546,39 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
 
         <Divider />
 
-        <Btn title="Align left" onClick={() => cmd("justifyLeft")}><AlignLeft className="h-3.5 w-3.5" /></Btn>
-        <Btn title="Align center" onClick={() => cmd("justifyCenter")}><AlignCenter className="h-3.5 w-3.5" /></Btn>
-        <Btn title="Align right" onClick={() => cmd("justifyRight")}><AlignRight className="h-3.5 w-3.5" /></Btn>
-        <Btn title="Justify" onClick={() => cmd("justifyFull")}><AlignJustify className="h-3.5 w-3.5" /></Btn>
+        <Btn title="Align left" onClick={() => cmd("justifyLeft")}>
+          <AlignLeft className="h-3.5 w-3.5" />
+        </Btn>
+        <Btn title="Align center" onClick={() => cmd("justifyCenter")}>
+          <AlignCenter className="h-3.5 w-3.5" />
+        </Btn>
+        <Btn title="Align right" onClick={() => cmd("justifyRight")}>
+          <AlignRight className="h-3.5 w-3.5" />
+        </Btn>
+        <Btn title="Justify" onClick={() => cmd("justifyFull")}>
+          <AlignJustify className="h-3.5 w-3.5" />
+        </Btn>
 
         <Divider />
 
-        <Btn title="Bullet list (⌘⇧8)" onClick={() => cmd("insertUnorderedList")}><List className="h-3.5 w-3.5" /></Btn>
-        <Btn title="Numbered list (⌘⇧7)" onClick={() => cmd("insertOrderedList")}><ListOrdered className="h-3.5 w-3.5" /></Btn>
-        <Btn title="Checklist" onClick={insertChecklist}><ListChecks className="h-3.5 w-3.5" /></Btn>
+        <Btn title="Bullet list (⌘⇧8)" onClick={() => cmd("insertUnorderedList")}>
+          <List className="h-3.5 w-3.5" />
+        </Btn>
+        <Btn title="Numbered list (⌘⇧7)" onClick={() => cmd("insertOrderedList")}>
+          <ListOrdered className="h-3.5 w-3.5" />
+        </Btn>
+        <Btn title="Checklist" onClick={insertChecklist}>
+          <ListChecks className="h-3.5 w-3.5" />
+        </Btn>
 
         <Divider />
 
-        <Btn title="Outdent" onClick={() => cmd("outdent")}><IndentDecrease className="h-3.5 w-3.5" /></Btn>
-        <Btn title="Indent" onClick={() => cmd("indent")}><IndentIncrease className="h-3.5 w-3.5" /></Btn>
+        <Btn title="Outdent" onClick={() => cmd("outdent")}>
+          <IndentDecrease className="h-3.5 w-3.5" />
+        </Btn>
+        <Btn title="Indent" onClick={() => cmd("indent")}>
+          <IndentIncrease className="h-3.5 w-3.5" />
+        </Btn>
 
         <button
           type="button"
@@ -488,14 +587,24 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
           onClick={(e) => openWith("paragraph", e.currentTarget)}
           className="rounded-md px-2 h-8 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
           title="Paragraph"
-        >¶</button>
+        >
+          ¶
+        </button>
 
         <Divider />
 
-        <Btn title="Duplicate box" onClick={duplicate}><Copy className="h-3.5 w-3.5" /></Btn>
-        <Btn title="Bring forward" onClick={bringForward}><ChevronsUp className="h-3.5 w-3.5" /></Btn>
-        <Btn title="Send backward" onClick={sendBackward}><ChevronsDown className="h-3.5 w-3.5" /></Btn>
-        <Btn title="Delete box" onClick={remove}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Btn>
+        <Btn title="Duplicate box" onClick={duplicate}>
+          <Copy className="h-3.5 w-3.5" />
+        </Btn>
+        <Btn title="Bring forward" onClick={bringForward}>
+          <ChevronsUp className="h-3.5 w-3.5" />
+        </Btn>
+        <Btn title="Send backward" onClick={sendBackward}>
+          <ChevronsDown className="h-3.5 w-3.5" />
+        </Btn>
+        <Btn title="Delete box" onClick={remove}>
+          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+        </Btn>
       </div>
       {renderPopover()}
     </div>
