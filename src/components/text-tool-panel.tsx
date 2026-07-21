@@ -195,8 +195,21 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
   };
 
   const applyFont = (f: string) => {
+    console.log("Selected Font:", f);
+
+    const sel = window.getSelection();
+    console.log("Selection:", sel?.toString());
+    console.log("Range Count:", sel?.rangeCount);
+
     lastFontRef.current = f;
-    applyInlineStyle({ fontFamily: f });
+
+    applyInlineStyle({
+      fontFamily: f,
+    });
+
+    const el = getEditableEl(editingId);
+    console.log("HTML After:", el?.innerHTML);
+
     setOpenMenu(null);
   };
 
