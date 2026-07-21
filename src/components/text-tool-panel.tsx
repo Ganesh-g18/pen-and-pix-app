@@ -257,10 +257,14 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
   };
 
   const adjustSize = (delta: number) => {
+    // Prefer the saved range (selection is often lost when clicking toolbar
+    // buttons); fall back to live selection, then to the editable block itself.
     const sel = window.getSelection();
-    const r = sel && sel.rangeCount > 0 ? sel.getRangeAt(0) : null;
-    const node = r?.startContainer;
-    const el = (node?.nodeType === 1 ? node : node?.parentElement) as HTMLElement | null;
+    const liveRange = sel && sel.rangeCount > 0 ? sel.getRangeAt(0) : null;
+    const range = savedRangeRef.current ?? liveRange;
+    const node = range?.startContainer;
+    const fromRange = (node?.nodeType === 1 ? node : node?.parentElement) as HTMLElement | null;
+    const el = fromRange ?? getEditableEl(editingId);
     const px = parseFloat(getComputedStyle(el ?? document.body).fontSize) || 16;
     applySize(px + delta);
   };
