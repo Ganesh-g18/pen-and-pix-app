@@ -119,10 +119,28 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
     }
     fn();
     if (el && editingId) {
-      const html = el.innerHTML;
-      onBlocksChange(blocks.map((b) => b.id === editingId ? { ...b, html } : b));
-    }
-  };
+
+    requestAnimationFrame(() => {
+
+        const html = el.innerHTML;
+
+        onBlocksChange(
+
+            blocks.map((b) =>
+
+                b.id === editingId
+
+                    ? { ...b, html }
+
+                    : b
+
+            )
+
+        );
+
+    });
+
+}
 
   const cmd = (name: string, value?: string) => withSelection(() => document.execCommand(name, false, value));
 
