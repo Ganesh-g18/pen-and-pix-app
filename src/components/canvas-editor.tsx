@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import type { Stroke, PaperType } from "@/lib/store";
-import {
-  Pen, Highlighter, Eraser, Undo2, Trash2, Circle, Minus,
-} from "lucide-react";
+import { Pen, Highlighter, Eraser, Undo2, Trash2, Circle, Minus } from "lucide-react";
 
 type Tool = "pen" | "highlighter" | "marker" | "eraser";
 
@@ -44,13 +42,19 @@ export function CanvasEditor({ strokes, paper, onAddStroke, onUndo, onClear, onE
     drawingRef.current = null;
     drawingPointerIdRef.current = null;
     if (e) {
-      try { (e.target as Element).releasePointerCapture?.(e.pointerId); } catch { /* noop */ }
+      try {
+        (e.target as Element).releasePointerCapture?.(e.pointerId);
+      } catch {
+        /* noop */
+      }
     }
     force((n) => n + 1);
   };
 
   const onPointerDown = (e: React.PointerEvent) => {
     if (e.button && e.button !== 0) return;
+    e.preventDefault();
+    e.stopPropagation();
     activePointersRef.current.add(e.pointerId);
 
     // Second (or more) pointer down — cancel any in-progress drawing and let the browser handle gesture
@@ -86,6 +90,7 @@ export function CanvasEditor({ strokes, paper, onAddStroke, onUndo, onClear, onE
 
   const onPointerMove = (e: React.PointerEvent) => {
     // Ignore moves from pointers other than the one that started drawing
+    e.preventDefault();
     if (drawingPointerIdRef.current !== null && e.pointerId !== drawingPointerIdRef.current) return;
     if (activePointersRef.current.size >= 2) return;
     if (tool !== "eraser" && !drawingRef.current) return;
@@ -109,6 +114,7 @@ export function CanvasEditor({ strokes, paper, onAddStroke, onUndo, onClear, onE
   };
 
   const onPointerUp = (e: React.PointerEvent) => {
+    e.preventDefault();
     activePointersRef.current.delete(e.pointerId);
     if (drawingPointerIdRef.current !== null && e.pointerId !== drawingPointerIdRef.current) {
       // A non-drawing finger lifted; keep state as-is
@@ -129,7 +135,6 @@ export function CanvasEditor({ strokes, paper, onAddStroke, onUndo, onClear, onE
       force((n) => n + 1);
     }
   };
-
 
   const hitErase = useCallback(
     (x: number, y: number) => {
@@ -155,13 +160,15 @@ export function CanvasEditor({ strokes, paper, onAddStroke, onUndo, onClear, onE
     const onKey = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement)?.closest("input, textarea, [contenteditable]")) return;
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z") {
-        e.preventDefault(); onUndo(); return;
+        e.preventDefault();
+        onUndo();
+        return;
       }
       if (e.key === "p" || e.key === "P") setTool("pen");
       if (e.key === "h" || e.key === "H") setTool("highlighter");
       if (e.key === "b" || e.key === "B") setTool("marker");
       if (e.key === "e" || e.key === "E") setTool("eraser");
-      if (["1","2","3","4"].includes(e.key)) setSize([2,3,5,8][Number(e.key)-1]);
+      if (["1", "2", "3", "4"].includes(e.key)) setSize([2, 3, 5, 8][Number(e.key) - 1]);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -171,19 +178,32 @@ export function CanvasEditor({ strokes, paper, onAddStroke, onUndo, onClear, onE
     `grid h-9 w-9 place-items-center rounded-xl transition ${active ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-accent hover:text-foreground"}`;
 
   return (
-    <div className="relative flex-1 overflow-hidden">
+    <div
+      className="relative flex-1 overflow-hidden select-none"
+      style={{
+        WebkitUserSelect: "none",
+        userSelect: "none",
+        WebkitTouchCallout: "none",
+        WebkitTapHighlightColor: "transparent",
+      }}
+    >
       <div className={`absolute inset-0 ${paperClass}`}>
         <svg
           ref={svgRef}
           className="w-full h-full select-none"
-          style={{ cursor: tool === "eraser" ? "crosshair" : "crosshair", touchAction: "pinch-zoom" }}
+          style={{
+            cursor: "crosshair",
+            touchAction: "none",
+            WebkitUserSelect: "none",
+            userSelect: "none",
+            WebkitTouchCallout: "none",
+          }}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerCancel}
           onPointerLeave={onPointerUp}
         >
-
           {strokes.map((s) => (
             <path
               key={s.id}
@@ -212,17 +232,25 @@ export function CanvasEditor({ strokes, paper, onAddStroke, onUndo, onClear, onE
 
       {/* Floating toolbar */}
       <div className="absolute left-1/2 -translate-x-1/2 bottom-6 flex items-center gap-1 rounded-2xl glass-strong px-2 py-1.5 shadow-float">
-        <button className={btn(tool === "pen")} onClick={() => setTool("pen")} title="Pen (P)"><Pen className="h-4 w-4" /></button>
-        <button className={btn(tool === "highlighter")} onClick={() => setTool("highlighter")} title="Highlighter (H)"><Highlighter className="h-4 w-4" /></button>
-        <button className={btn(tool === "marker")} onClick={() => setTool("marker")} title="Marker (B)"><Circle className="h-4 w-4 fill-current" /></button>
-        <button className={btn(tool === "eraser")} onClick={() => setTool("eraser")} title="Eraser (E)"><Eraser className="h-4 w-4" /></button>
+        <button className={btn(tool === "pen")} onClick={() => setTool("pen")} title="Pen (P)">
+          <Pen className="h-4 w-4" />
+        </button>
+        <button className={btn(tool === "highlighter")} onClick={() => setTool("highlighter")} title="Highlighter (H)">
+          <Highlighter className="h-4 w-4" />
+        </button>
+        <button className={btn(tool === "marker")} onClick={() => setTool("marker")} title="Marker (B)">
+          <Circle className="h-4 w-4 fill-current" />
+        </button>
+        <button className={btn(tool === "eraser")} onClick={() => setTool("eraser")} title="Eraser (E)">
+          <Eraser className="h-4 w-4" />
+        </button>
         <div className="w-px h-6 bg-border mx-1" />
         {[2, 3, 5, 8].map((s, i) => (
           <button
             key={s}
             onClick={() => setSize(s)}
             className={`grid h-9 w-9 place-items-center rounded-xl transition ${size === s ? "bg-primary/15" : "hover:bg-accent"}`}
-            title={`Size ${i+1}`}
+            title={`Size ${i + 1}`}
           >
             <span className="rounded-full bg-current" style={{ width: s + 2, height: s + 2 }} />
           </button>
@@ -240,8 +268,18 @@ export function CanvasEditor({ strokes, paper, onAddStroke, onUndo, onClear, onE
           ))}
         </div>
         <div className="w-px h-6 bg-border mx-1" />
-        <button className={btn(false)} onClick={onUndo} title="Undo (⌘Z)"><Undo2 className="h-4 w-4" /></button>
-        <button className={btn(false)} onClick={() => { if (confirm("Clear canvas?")) onClear(); }} title="Clear"><Trash2 className="h-4 w-4" /></button>
+        <button className={btn(false)} onClick={onUndo} title="Undo (⌘Z)">
+          <Undo2 className="h-4 w-4" />
+        </button>
+        <button
+          className={btn(false)}
+          onClick={() => {
+            if (confirm("Clear canvas?")) onClear();
+          }}
+          title="Clear"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
       </div>
     </div>
   );
@@ -257,8 +295,10 @@ function strokeToPath(s: Stroke): string {
     return d;
   }
   for (let i = 3; i < pts.length - 3; i += 3) {
-    const x1 = pts[i], y1 = pts[i + 1];
-    const x2 = pts[i + 3], y2 = pts[i + 4];
+    const x1 = pts[i],
+      y1 = pts[i + 1];
+    const x2 = pts[i + 3],
+      y2 = pts[i + 4];
     const mx = (x1 + x2) / 2;
     const my = (y1 + y2) / 2;
     d += ` Q ${x1} ${y1} ${mx} ${my}`;
