@@ -118,22 +118,7 @@ const rect = surface.getBoundingClientRect();
         }
     },
 });
-      scale: Math.max(window.devicePixelRatio || 1, 2),
-      backgroundColor: "#ffffff",
-      useCORS: true,
-      allowTaint: true,
-      foreignObjectRendering: true,
-      logging: false,
 
-      width: Math.max(surface.scrollWidth, rect.width),
-      height: Math.max(surface.scrollHeight, rect.height),
-
-      windowWidth: Math.max(surface.scrollWidth, rect.width),
-      windowHeight: Math.max(surface.scrollHeight, rect.height),
-
-      scrollX: 0,
-      scrollY: 0,
-    });
 
     // A4 portrait in mm at 72dpi baseline.
     const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
