@@ -170,24 +170,16 @@ export const TextBlockLayer = memo(function TextBlockLayer({
       onChange([...latest, nb]);
 
 
-useEffect(() => {
-    if (!isEditing) return;
+// just now deleted useeffect
+      const id = Math.random().toString(36).slice(2, 10);
+const nb: TextBlock = { id, x, y, width: 0, height: 0, html: "" };
 
-    const el = ref.current;
-    if (!el) return;
+setEditingId(id);
+onChange([...latest, nb]);
 
-    el.focus({ preventScroll: true });
-
-    const sel = window.getSelection();
-    if (!sel) return;
-
-    const range = document.createRange();
-    range.selectNodeContents(el);
-    range.collapse(false);
-
-    sel.removeAllRanges();
-    sel.addRange(range);
-}, [isEditing]);
+requestAnimationFrame(() => {
+    focusBlock(id, null);
+});
 
 });
     surface.addEventListener("mousedown", onDown);
@@ -397,7 +389,7 @@ const EditableBlock = memo(function EditableBlock({
     <div
       ref={ref}
       data-text-block={b.id}
-      contentEditable={isEditing}
+      contentEditable
       suppressContentEditableWarning
       spellCheck
       data-placeholder={isEditing && isEmpty ? "Type…" : undefined}
