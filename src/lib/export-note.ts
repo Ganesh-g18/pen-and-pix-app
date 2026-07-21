@@ -59,9 +59,65 @@ export async function exportAsPdf(surface: HTMLElement, note: Note) {
   await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 
   try {
-    const rect = surface.getBoundingClientRect();
+    // Wait for the editor to become visually stable
+if ("fonts" in document) {
+  try {
+    await (document as any).fonts.ready;
+  } catch {}
+}
+
+await new Promise((resolve) =>
+  requestAnimationFrame(() =>
+    requestAnimationFrame(resolve)
+  )
+);
+
+const rect = surface.getBoundingClientRect();
 
     const canvas = await html2canvas(surface, {
+    scale: Math.max(window.devicePixelRatio || 1, 3),
+
+    backgroundColor: "#ffffff",
+
+    useCORS: true,
+
+    allowTaint: true,
+
+    foreignObjectRendering: true,
+
+    removeContainer: true,
+
+    logging: false,
+
+    imageTimeout: 0,
+
+    width: Math.max(surface.scrollWidth, rect.width),
+
+    height: Math.max(surface.scrollHeight, rect.height),
+
+    windowWidth: Math.max(surface.scrollWidth, rect.width),
+
+    windowHeight: Math.max(surface.scrollHeight, rect.height),
+
+    scrollX: 0,
+
+    scrollY: 0,
+
+    x: 0,
+
+    y: 0,
+
+    onclone(doc) {
+        const clonedSurface =
+            doc.querySelector("[data-editor-surface]");
+
+        if (clonedSurface instanceof HTMLElement) {
+            clonedSurface.style.overflow = "visible";
+            clonedSurface.style.height = "auto";
+            clonedSurface.style.maxHeight = "none";
+        }
+    },
+});
       scale: Math.max(window.devicePixelRatio || 1, 2),
       backgroundColor: "#ffffff",
       useCORS: true,
@@ -101,14 +157,14 @@ export async function exportAsPdf(surface: HTMLElement, note: Note) {
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, slice.width, slice.height);
       ctx.drawImage(canvas, 0, offsetY, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
-      const img = slice.toDataURL("image/jpeg", 0.92);
+      const img = slice.toDataURL("image/png");
       if (!first) pdf.addPage();
-      pdf.addImage(img, "JPEG", margin, margin, usableW, sliceH / pxPerMm);
+      pdf.addImage(img, "PNG", margin, margin, usableW, sliceH / pxPerMm);
       offsetY += sliceH;
       first = false;
     }
 
-    pdf.save(`${safeName(note.title)}.pdf`);
+    const blob = pdf.output("blob");  downloadBlob(     blob,     `${safeName(note.title)}.pdf` );
   } finally {
     restores.forEach((fn) => fn());
   }
@@ -174,14 +230,14 @@ export async function exportNoteQuickPdf(note: Note) {
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, slice.width, slice.height);
       ctx.drawImage(canvas, 0, offsetY, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
-      const img = slice.toDataURL("image/jpeg", 0.92);
+      const img = slice.toDataURL("image/png");
       if (!first) pdf.addPage();
-      pdf.addImage(img, "JPEG", margin, margin, usableW, sliceH / pxPerMm);
+      pdf.addImage(img, "PNG", margin, margin, usableW, sliceH / pxPerMm);
       offsetY += sliceH;
       first = false;
     }
 
-    pdf.save(`${safeName(note.title)}.pdf`);
+    const blob = pdf.output("blob");  downloadBlob(     blob,     `${safeName(note.title)}.pdf` );
   } finally {
     container.remove();
   }
