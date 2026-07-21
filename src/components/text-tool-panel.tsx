@@ -534,11 +534,11 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
           <select
             onMouseDown={(e) => e.stopPropagation()}
             onChange={(e) => applySize(parseInt(e.target.value, 10))}
-            defaultValue="16"
+            value={currentSize}
             className="h-8 shrink-0 rounded-md bg-transparent px-1 text-xs outline-none hover:bg-accent"
             title="Font size"
           >
-            {SIZES.map((s) => (
+            {(SIZES.includes(currentSize) ? SIZES : [...SIZES, currentSize].sort((a, b) => a - b)).map((s) => (
               <option key={s} value={s}>
                 {s}
               </option>
