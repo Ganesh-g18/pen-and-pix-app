@@ -53,8 +53,15 @@ export function CanvasEditor({ strokes, paper, onAddStroke, onUndo, onClear, onE
 
   const onPointerDown = (e: React.PointerEvent) => {
     if (e.button && e.button !== 0) return;
-    e.preventDefault();
-    e.stopPropagation();
+
+    // Only prevent browser behavior while actually drawing
+    if (e.pointerType === "touch") {
+      e.preventDefault();
+    }
+
+    if (tool !== "eraser") {
+      e.stopPropagation();
+    }
     activePointersRef.current.add(e.pointerId);
 
     // Second (or more) pointer down — cancel any in-progress drawing and let the browser handle gesture
@@ -90,7 +97,9 @@ export function CanvasEditor({ strokes, paper, onAddStroke, onUndo, onClear, onE
 
   const onPointerMove = (e: React.PointerEvent) => {
     // Ignore moves from pointers other than the one that started drawing
-    e.preventDefault();
+    if (e.pointerType === "touch") {
+      e.preventDefault();
+    }
     if (drawingPointerIdRef.current !== null && e.pointerId !== drawingPointerIdRef.current) return;
     if (activePointersRef.current.size >= 2) return;
     if (tool !== "eraser" && !drawingRef.current) return;
@@ -114,7 +123,9 @@ export function CanvasEditor({ strokes, paper, onAddStroke, onUndo, onClear, onE
   };
 
   const onPointerUp = (e: React.PointerEvent) => {
-    e.preventDefault();
+    if (e.pointerType === "touch") {
+      e.preventDefault();
+    }
     activePointersRef.current.delete(e.pointerId);
     if (drawingPointerIdRef.current !== null && e.pointerId !== drawingPointerIdRef.current) {
       // A non-drawing finger lifted; keep state as-is
@@ -194,8 +205,7 @@ export function CanvasEditor({ strokes, paper, onAddStroke, onUndo, onClear, onE
           style={{
             cursor: "crosshair",
             touchAction: "none",
-            WebkitUserSelect: "none",
-            userSelect: "none",
+
             WebkitTouchCallout: "none",
           }}
           onPointerDown={onPointerDown}
