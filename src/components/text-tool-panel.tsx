@@ -77,16 +77,36 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
 
   // Track editable selection so toolbar clicks retain user's caret/selection.
   useEffect(() => {
-    const onSel = () => {
+    let dragging = false;
+
+    const onMouseDown = () => {
+      dragging = true;
+    };
+
+    const onMouseUp = () => {
+      dragging = false;
+
       const sel = window.getSelection();
       if (!sel || sel.rangeCount === 0) return;
-      const r = sel.getRangeAt(0);
-      const anchor = r.startContainer as Node;
-      const el = anchor.nodeType === 1 ? (anchor as HTMLElement) : anchor.parentElement;
-      if (el?.closest("[contenteditable='true']")) savedRangeRef.current = r.cloneRange();
+
+      const range = sel.getRangeAt(0);
+      const anchor =
+        range.startContainer.nodeType === 1
+          ? (range.startContainer as HTMLElement)
+          : range.startContainer.parentElement;
+
+      if (anchor?.closest("[contenteditable='true']")) {
+        savedRangeRef.current = range.cloneRange();
+      }
     };
-    document.addEventListener("selectionchange", onSel);
-    return () => document.removeEventListener("selectionchange", onSel);
+
+    document.addEventListener("mousedown", onMouseDown);
+    document.addEventListener("mouseup", onMouseUp);
+
+    return () => {
+      document.removeEventListener("mousedown", onMouseDown);
+      document.removeEventListener("mouseup", onMouseUp);
+    };
   }, []);
 
   // Close on outside pointer / Escape.
