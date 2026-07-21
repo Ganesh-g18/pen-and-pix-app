@@ -119,6 +119,11 @@ export const TextBlockLayer = memo(function TextBlockLayer({
       if (existing) {
         const id = existing.getAttribute("data-text-block");
         if (id) {
+          // Allow the browser's native selection if this block is already being edited.
+          if (editingIdRef.current === id) {
+            return;
+          }
+
           e.preventDefault();
           focusBlock(id, { x: e.clientX, y: e.clientY });
         }
@@ -357,7 +362,7 @@ const EditableBlock = memo(function EditableBlock({
     <div
       ref={ref}
       data-text-block={b.id}
-      contentEditable={toolActive === "text"}
+      contentEditable={isEditing}
       suppressContentEditableWarning
       spellCheck
       data-placeholder={isEditing && isEmpty ? "Type…" : undefined}
@@ -373,7 +378,7 @@ const EditableBlock = memo(function EditableBlock({
         minWidth: 8,
         whiteSpace: "pre-wrap",
         wordBreak: "break-word",
-        fontFamily: "inherit",
+        fontFamily: undefined,
         caretColor: "hsl(var(--primary))",
         zIndex: (b.zIndex ?? 0) + 1,
         userSelect: selectMode ? "none" : undefined,
