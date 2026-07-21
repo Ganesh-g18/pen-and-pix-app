@@ -169,19 +169,10 @@ export const TextBlockLayer = memo(function TextBlockLayer({
       setEditingId(id);
       onChange([...latest, nb]);
 
-
-// just now deleted useeffect
-      const id = Math.random().toString(36).slice(2, 10);
-const nb: TextBlock = { id, x, y, width: 0, height: 0, html: "" };
-
-setEditingId(id);
-onChange([...latest, nb]);
-
-requestAnimationFrame(() => {
-    focusBlock(id, null);
-});
-
-});
+      requestAnimationFrame(() => {
+        focusBlock(id, null);
+      });
+    };
     surface.addEventListener("mousedown", onDown);
     return () => surface.removeEventListener("mousedown", onDown);
   }, [toolActive, surfaceRef, onChange, focusBlock]);
