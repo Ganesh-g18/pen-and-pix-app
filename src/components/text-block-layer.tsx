@@ -39,14 +39,22 @@ const MAX_WIDTH = 720;
 const DRAG_THRESHOLD = 4; // px before a click promotes to a drag
 
 export const TextBlockLayer = memo(function TextBlockLayer({
-  blocks, onChange, toolActive, surfaceRef, editingId: editingIdProp, onEditingChange,
+  blocks,
+  onChange,
+  toolActive,
+  surfaceRef,
+  editingId: editingIdProp,
+  onEditingChange,
 }: Props) {
   const editingIdRef = useRef<string | null>(null);
   const editingId = editingIdProp ?? editingIdRef.current;
-  const setEditingId = useCallback((id: string | null) => {
-    editingIdRef.current = id;
-    onEditingChange?.(id);
-  }, [onEditingChange]);
+  const setEditingId = useCallback(
+    (id: string | null) => {
+      editingIdRef.current = id;
+      onEditingChange?.(id);
+    },
+    [onEditingChange],
+  );
 
   const blocksRef = useRef(blocks);
   blocksRef.current = blocks;
@@ -54,41 +62,48 @@ export const TextBlockLayer = memo(function TextBlockLayer({
   const [draggingId, setDraggingId] = useState<string | null>(null);
 
   /** Focus a block and (optionally) place caret at a client-x/y point. */
-  const focusBlock = useCallback((id: string, clientPoint?: { x: number; y: number } | null) => {
-    setEditingId(id);
-    requestAnimationFrame(() => {
-      const el = document.querySelector<HTMLDivElement>(`[data-text-block="${id}"]`);
-      if (!el) return;
-      el.focus();
-      const sel = window.getSelection();
-      if (!sel) return;
-      sel.removeAllRanges();
-      let placed = false;
-      if (clientPoint) {
-        const doc = document as Document & {
-          caretRangeFromPoint?: (x: number, y: number) => Range | null;
-          caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null;
-        };
-        let range: Range | null = null;
-        if (typeof doc.caretRangeFromPoint === "function") {
-          range = doc.caretRangeFromPoint(clientPoint.x, clientPoint.y);
-        } else if (typeof doc.caretPositionFromPoint === "function") {
-          const pos = doc.caretPositionFromPoint(clientPoint.x, clientPoint.y);
-          if (pos) { range = document.createRange(); range.setStart(pos.offsetNode, pos.offset); range.collapse(true); }
+  const focusBlock = useCallback(
+    (id: string, clientPoint?: { x: number; y: number } | null) => {
+      setEditingId(id);
+      requestAnimationFrame(() => {
+        const el = document.querySelector<HTMLDivElement>(`[data-text-block="${id}"]`);
+        if (!el) return;
+        el.focus();
+        const sel = window.getSelection();
+        if (!sel) return;
+        sel.removeAllRanges();
+        let placed = false;
+        if (clientPoint) {
+          const doc = document as Document & {
+            caretRangeFromPoint?: (x: number, y: number) => Range | null;
+            caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null;
+          };
+          let range: Range | null = null;
+          if (typeof doc.caretRangeFromPoint === "function") {
+            range = doc.caretRangeFromPoint(clientPoint.x, clientPoint.y);
+          } else if (typeof doc.caretPositionFromPoint === "function") {
+            const pos = doc.caretPositionFromPoint(clientPoint.x, clientPoint.y);
+            if (pos) {
+              range = document.createRange();
+              range.setStart(pos.offsetNode, pos.offset);
+              range.collapse(true);
+            }
+          }
+          if (range && el.contains(range.startContainer)) {
+            sel.addRange(range);
+            placed = true;
+          }
         }
-        if (range && el.contains(range.startContainer)) {
-          sel.addRange(range);
-          placed = true;
+        if (!placed) {
+          const r = document.createRange();
+          r.selectNodeContents(el);
+          r.collapse(false);
+          sel.addRange(r);
         }
-      }
-      if (!placed) {
-        const r = document.createRange();
-        r.selectNodeContents(el);
-        r.collapse(false);
-        sel.addRange(r);
-      }
-    });
-  }, [setEditingId]);
+      });
+    },
+    [setEditingId],
+  );
 
   // Surface click in Text mode → create new block or focus existing at caret.
   useEffect(() => {
@@ -132,7 +147,11 @@ export const TextBlockLayer = memo(function TextBlockLayer({
             latest = latest.map((b) => (b.id === curId ? { ...b, html } : b));
           }
         }
-        try { (document.activeElement as HTMLElement | null)?.blur(); } catch { /* noop */ }
+        try {
+          (document.activeElement as HTMLElement | null)?.blur();
+        } catch {
+          /* noop */
+        }
       }
 
       const r = surface.getBoundingClientRect();
@@ -166,7 +185,7 @@ export const TextBlockLayer = memo(function TextBlockLayer({
   }, [toolActive, setEditingId, onChange]);
 
   const commitEdit = (id: string, html: string) => {
-    onChange(blocksRef.current.map((b) => b.id === id ? { ...b, html } : b));
+    onChange(blocksRef.current.map((b) => (b.id === id ? { ...b, html } : b)));
   };
 
   const removeEmpty = (id: string) => {
@@ -174,47 +193,62 @@ export const TextBlockLayer = memo(function TextBlockLayer({
   };
 
   /** Drag-to-move (Select tool). */
-  const beginDrag = useCallback((e: React.PointerEvent, id: string) => {
-    if (toolActive !== "select") return;
-    if (e.button !== 0) return;
-    const surface = surfaceRef.current;
-    if (!surface) return;
-    e.preventDefault();
-    e.stopPropagation();
-    const block = blocksRef.current.find((b) => b.id === id);
-    if (!block) return;
-    const startX = e.clientX;
-    const startY = e.clientY;
-    const originX = block.x;
-    const originY = block.y;
-    const pointerId = e.pointerId;
-    const targetEl = e.currentTarget as HTMLDivElement;
-    let dragging = false;
+  const beginDrag = useCallback(
+    (e: React.PointerEvent, id: string) => {
+      if (toolActive !== "select") return;
+      if (e.button !== 0) return;
+      const surface = surfaceRef.current;
+      if (!surface) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const block = blocksRef.current.find((b) => b.id === id);
+      if (!block) return;
+      const startX = e.clientX;
+      const startY = e.clientY;
+      const originX = block.x;
+      const originY = block.y;
+      const pointerId = e.pointerId;
+      const targetEl = e.currentTarget as HTMLDivElement;
+      let dragging = false;
 
-    const onMove = (ev: PointerEvent) => {
-      if (ev.pointerId !== pointerId) return;
-      const dx = ev.clientX - startX;
-      const dy = ev.clientY - startY;
-      if (!dragging && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
-      if (!dragging) {
-        dragging = true;
-        setDraggingId(id);
-        try { targetEl.setPointerCapture(pointerId); } catch { /* noop */ }
-      }
-      onChange(blocksRef.current.map((b) => b.id === id ? { ...b, x: Math.max(0, originX + dx), y: Math.max(0, originY + dy) } : b));
-    };
-    const onUp = (ev: PointerEvent) => {
-      if (ev.pointerId !== pointerId) return;
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-      window.removeEventListener("pointercancel", onUp);
-      try { targetEl.releasePointerCapture(pointerId); } catch { /* noop */ }
-      setDraggingId(null);
-    };
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-    window.addEventListener("pointercancel", onUp);
-  }, [toolActive, surfaceRef, onChange]);
+      const onMove = (ev: PointerEvent) => {
+        if (ev.pointerId !== pointerId) return;
+        const dx = ev.clientX - startX;
+        const dy = ev.clientY - startY;
+        if (!dragging && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+        if (!dragging) {
+          dragging = true;
+          setDraggingId(id);
+          try {
+            targetEl.setPointerCapture(pointerId);
+          } catch {
+            /* noop */
+          }
+        }
+        onChange(
+          blocksRef.current.map((b) =>
+            b.id === id ? { ...b, x: Math.max(0, originX + dx), y: Math.max(0, originY + dy) } : b,
+          ),
+        );
+      };
+      const onUp = (ev: PointerEvent) => {
+        if (ev.pointerId !== pointerId) return;
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+        window.removeEventListener("pointercancel", onUp);
+        try {
+          targetEl.releasePointerCapture(pointerId);
+        } catch {
+          /* noop */
+        }
+        setDraggingId(null);
+      };
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+      window.addEventListener("pointercancel", onUp);
+    },
+    [toolActive, surfaceRef, onChange],
+  );
 
   const edgeAutoScroll = useCallback(() => {
     const sel = window.getSelection();
@@ -230,7 +264,8 @@ export const TextBlockLayer = memo(function TextBlockLayer({
       const scrollable = /(auto|scroll)/.test(cs.overflowY) && node.scrollHeight > node.clientHeight;
       if (scrollable) {
         const nr = node.getBoundingClientRect();
-        if (rect.bottom > nr.bottom - margin) node.scrollBy({ top: rect.bottom - (nr.bottom - margin), behavior: "smooth" });
+        if (rect.bottom > nr.bottom - margin)
+          node.scrollBy({ top: rect.bottom - (nr.bottom - margin), behavior: "smooth" });
         else if (rect.top < nr.top + margin) node.scrollBy({ top: rect.top - (nr.top + margin), behavior: "smooth" });
         break;
       }
@@ -258,6 +293,7 @@ export const TextBlockLayer = memo(function TextBlockLayer({
             maxWidth={MAX_WIDTH}
             onPointerDown={selectMode ? (e) => beginDrag(e, b.id) : undefined}
             onFocus={() => setEditingId(b.id)}
+            onHtmlChange={(html) => commitEdit(b.id, html)}
             onBlurCommit={(html, text) => {
               if (isBlockEmpty(html, text)) {
                 removeEmpty(b.id);
@@ -284,13 +320,24 @@ interface EditableBlockProps {
   maxWidth: number;
   onPointerDown?: (e: React.PointerEvent) => void;
   onFocus: () => void;
+  onHtmlChange: (html: string) => void;
   onBlurCommit: (html: string, text: string) => void;
   onEdgeAutoScroll: () => void;
 }
 
 const EditableBlock = memo(function EditableBlock({
-  block: b, toolActive, interactive, selectMode, isEditing, isDragging, maxWidth,
-  onPointerDown, onFocus, onBlurCommit, onEdgeAutoScroll,
+  block: b,
+  toolActive,
+  interactive,
+  selectMode,
+  isEditing,
+  isDragging,
+  maxWidth,
+  onPointerDown,
+  onFocus,
+  onHtmlChange,
+  onBlurCommit,
+  onEdgeAutoScroll,
 }: EditableBlockProps) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -326,7 +373,7 @@ const EditableBlock = memo(function EditableBlock({
         minWidth: 8,
         whiteSpace: "pre-wrap",
         wordBreak: "break-word",
-        fontFamily: "var(--font-sans)",
+        fontFamily: "inherit",
         caretColor: "hsl(var(--primary))",
         zIndex: (b.zIndex ?? 0) + 1,
         userSelect: selectMode ? "none" : undefined,
@@ -338,7 +385,13 @@ const EditableBlock = memo(function EditableBlock({
         const el = e.currentTarget as HTMLDivElement;
         onBlurCommit(el.innerHTML, el.textContent ?? "");
       }}
-      onInput={() => onEdgeAutoScroll()}
+      onInput={(e) => {
+        const el = e.currentTarget;
+
+        onHtmlChange(el.innerHTML);
+
+        onEdgeAutoScroll();
+      }}
       onKeyDown={(e) => {
         e.stopPropagation();
         if (e.key === "Escape") {
@@ -355,4 +408,3 @@ const EditableBlock = memo(function EditableBlock({
     />
   );
 });
-
