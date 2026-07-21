@@ -145,11 +145,60 @@ const rect = surface.getBoundingClientRect();
 
     const pxPerMm = canvas.width / usableW;
     const pageSlicePx = Math.floor(usableH * pxPerMm);
+    const findPageBreak = (
+    ctx: CanvasRenderingContext2D,
+    startY: number,
+    idealY: number,
+    width: number,
+    maxHeight: number
+) => {
+    const search = 120;
 
+    const begin = Math.max(startY + 200, idealY - search);
+    const end = Math.min(maxHeight - 1, idealY + search);
+
+    let best = idealY;
+    let lowestInk = Number.MAX_SAFE_INTEGER;
+
+    for (let y = begin; y <= end; y++) {
+
+        const row = ctx.getImageData(0, y, width, 1).data;
+
+        let ink = 0;
+
+        for (let i = 3; i < row.length; i += 4) {
+            if (row[i] > 8) ink++;
+        }
+
+        if (ink < lowestInk) {
+            lowestInk = ink;
+            best = y;
+        }
+
+        if (ink === 0)
+            break;
+    }
+
+    return best;
+};
     let offsetY = 0;
+    const fullCtx = canvas.getContext("2d")!;
     let first = true;
     while (offsetY < canvas.height) {
-      const sliceH = Math.min(pageSlicePx, canvas.height - offsetY);
+      const idealEnd = Math.min(
+    offsetY + pageSlicePx,
+    canvas.height
+);
+
+const breakPoint = findPageBreak(
+    fullCtx,
+    offsetY,
+    idealEnd,
+    canvas.width,
+    canvas.height
+);
+
+const sliceH = breakPoint - offsetY;
       const slice = document.createElement("canvas");
       slice.width = canvas.width;
       slice.height = sliceH;
@@ -160,7 +209,7 @@ const rect = surface.getBoundingClientRect();
       const img = slice.toDataURL("image/png");
       if (!first) pdf.addPage();
       pdf.addImage(img, "PNG", margin, margin, usableW, sliceH / pxPerMm);
-      offsetY += sliceH;
+      offsetY = breakPoint;
       first = false;
     }
 
@@ -218,11 +267,60 @@ export async function exportNoteQuickPdf(note: Note) {
     const usableH = pageH - margin * 2;
     const pxPerMm = canvas.width / usableW;
     const pageSlicePx = Math.floor(usableH * pxPerMm);
+    const findPageBreak = (
+    ctx: CanvasRenderingContext2D,
+    startY: number,
+    idealY: number,
+    width: number,
+    maxHeight: number
+) => {
+    const search = 120;
 
+    const begin = Math.max(startY + 200, idealY - search);
+    const end = Math.min(maxHeight - 1, idealY + search);
+
+    let best = idealY;
+    let lowestInk = Number.MAX_SAFE_INTEGER;
+
+    for (let y = begin; y <= end; y++) {
+
+        const row = ctx.getImageData(0, y, width, 1).data;
+
+        let ink = 0;
+
+        for (let i = 3; i < row.length; i += 4) {
+            if (row[i] > 8) ink++;
+        }
+
+        if (ink < lowestInk) {
+            lowestInk = ink;
+            best = y;
+        }
+
+        if (ink === 0)
+            break;
+    }
+
+    return best;
+};
     let offsetY = 0;
+    const fullCtx = canvas.getContext("2d")!;
     let first = true;
     while (offsetY < canvas.height) {
-      const sliceH = Math.min(pageSlicePx, canvas.height - offsetY);
+      const idealEnd = Math.min(
+    offsetY + pageSlicePx,
+    canvas.height
+);
+
+const breakPoint = findPageBreak(
+    fullCtx,
+    offsetY,
+    idealEnd,
+    canvas.width,
+    canvas.height
+);
+
+const sliceH = breakPoint - offsetY;
       const slice = document.createElement("canvas");
       slice.width = canvas.width;
       slice.height = sliceH;
@@ -233,7 +331,7 @@ export async function exportNoteQuickPdf(note: Note) {
       const img = slice.toDataURL("image/png");
       if (!first) pdf.addPage();
       pdf.addImage(img, "PNG", margin, margin, usableW, sliceH / pxPerMm);
-      offsetY += sliceH;
+      offsetY = breakPoint;
       first = false;
     }
 
