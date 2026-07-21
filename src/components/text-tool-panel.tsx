@@ -400,29 +400,32 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
       onMouseDown={(e) => e.preventDefault()}
     >
       <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar px-2 py-1.5">
-        {/* Font family */}
-        <button
-          type="button"
-          data-menu-trigger="font"
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={(e) => openWith("font", e.currentTarget)}
-          className="inline-flex items-center h-8 rounded-md bg-transparent px-2 text-xs outline-none hover:bg-accent max-w-[8rem] truncate text-left text-muted-foreground hover:text-foreground"
-          title="Font family"
-        >
-          <Type className="mr-1 h-3.5 w-3.5" />
-          Font
-        </button>
+        {/* Font family + size — pinned to the start on mobile so they stay
+            reachable while the rest of the toolbar scrolls horizontally. */}
+        <div className="sticky left-0 z-10 flex shrink-0 items-center gap-0.5 bg-[var(--color-glass)]/80 backdrop-blur-xl pr-1 sm:static sm:bg-transparent sm:backdrop-blur-none sm:pr-0">
+          <button
+            type="button"
+            data-menu-trigger="font"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={(e) => openWith("font", e.currentTarget)}
+            className="inline-flex items-center h-8 shrink-0 rounded-md bg-transparent px-2 text-xs outline-none hover:bg-accent max-w-[8rem] truncate text-left text-muted-foreground hover:text-foreground"
+            title="Font family"
+          >
+            <Type className="mr-1 h-3.5 w-3.5" />
+            Font
+          </button>
 
-        {/* Font size */}
-        <select
-          onMouseDown={(e) => e.stopPropagation()}
-          onChange={(e) => applySize(parseInt(e.target.value, 10))}
-          defaultValue="16"
-          className="h-8 rounded-md bg-transparent px-1 text-xs outline-none hover:bg-accent"
-          title="Font size"
-        >
-          {SIZES.map((s) => <option key={s} value={s}>{s}</option>)}
-        </select>
+          {/* Font size */}
+          <select
+            onMouseDown={(e) => e.stopPropagation()}
+            onChange={(e) => applySize(parseInt(e.target.value, 10))}
+            defaultValue="16"
+            className="h-8 shrink-0 rounded-md bg-transparent px-1 text-xs outline-none hover:bg-accent"
+            title="Font size"
+          >
+            {SIZES.map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </div>
         <Btn title="Decrease size" onClick={() => adjustSize(-2)}><Minus className="h-3.5 w-3.5" /></Btn>
         <Btn title="Increase size" onClick={() => adjustSize(+2)}><Plus className="h-3.5 w-3.5" /></Btn>
 
