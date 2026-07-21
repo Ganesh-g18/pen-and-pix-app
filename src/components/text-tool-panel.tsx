@@ -63,6 +63,7 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
   const [openMenu, setOpenMenu] = useState<MenuKey>(null);
   const [fontQuery, setFontQuery] = useState("");
   const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
+  const [currentSize, setCurrentSize] = useState<number>(16);
   const rootRef = useRef<HTMLDivElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const savedRangeRef = useRef<Range | null>(null);
@@ -143,6 +144,25 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
       window.removeEventListener("resize", update);
     };
   }, [openMenu]);
+
+  // Track font size at caret / selection so the size indicator reflects the
+  // current text as the user moves between blocks or characters.
+  useEffect(() => {
+    const readSize = () => {
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0) return;
+      const range = sel.getRangeAt(0);
+      const node = range.startContainer;
+      const el = (node.nodeType === 1 ? node : node.parentElement) as HTMLElement | null;
+      if (!el || !el.closest("[contenteditable='true']")) return;
+      const px = parseFloat(getComputedStyle(el).fontSize);
+      if (!Number.isNaN(px)) setCurrentSize(Math.round(px));
+    };
+    readSize();
+    document.addEventListener("selectionchange", readSize);
+    return () => document.removeEventListener("selectionchange", readSize);
+  }, [editingId]);
+
 
   const editingBlock = editingId ? (blocks.find((b) => b.id === editingId) ?? null) : null;
 
@@ -254,6 +274,7 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
   const applySize = (px: number) => {
     const next = Math.max(8, Math.min(96, Math.round(px)));
     applyInlineStyle({ fontSize: `${next}px` });
+    setCurrentSize(next);
   };
 
   const adjustSize = (delta: number) => {
@@ -513,11 +534,11 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
           <select
             onMouseDown={(e) => e.stopPropagation()}
             onChange={(e) => applySize(parseInt(e.target.value, 10))}
-            defaultValue="16"
+            value={currentSize}
             className="h-8 shrink-0 rounded-md bg-transparent px-1 text-xs outline-none hover:bg-accent"
             title="Font size"
           >
-            {SIZES.map((s) => (
+            {(SIZES.includes(currentSize) ? SIZES : [...SIZES, currentSize].sort((a, b) => a - b)).map((s) => (
               <option key={s} value={s}>
                 {s}
               </option>
