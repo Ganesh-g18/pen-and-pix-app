@@ -179,7 +179,7 @@ export function CanvasEditor({ strokes, paper, onAddStroke, onUndo, onClear, onE
 
   return (
     <div
-      <div className="drawing-surface relative flex-1 overflow-hidden"
+      className="drawing-surface relative flex-1 overflow-hidden"
       style={{
         WebkitUserSelect: "none",
         userSelect: "none",
