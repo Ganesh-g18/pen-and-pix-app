@@ -503,22 +503,9 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
       onMouseDown={(e) => e.preventDefault()}
     >
       <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar px-2 py-1.5">
-        {/* Font family + size — pinned to the start on mobile so they stay
-            reachable while the rest of the toolbar scrolls horizontally. */}
+        {/* Font size — pinned to the start on mobile so it stays reachable
+            while the rest of the toolbar scrolls horizontally. */}
         <div className="sticky left-0 z-10 flex shrink-0 items-center gap-0.5 bg-[var(--color-glass)]/80 backdrop-blur-xl pr-1 sm:static sm:bg-transparent sm:backdrop-blur-none sm:pr-0">
-          <button
-            type="button"
-            data-menu-trigger="font"
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={(e) => openWith("font", e.currentTarget)}
-            className="inline-flex items-center h-8 shrink-0 rounded-md bg-transparent px-2 text-xs outline-none hover:bg-accent max-w-[8rem] truncate text-left text-muted-foreground hover:text-foreground"
-            title="Font family"
-          >
-            <Type className="mr-1 h-3.5 w-3.5" />
-            Font
-          </button>
-
-          {/* Font size */}
           <select
             onMouseDown={(e) => e.stopPropagation()}
             onChange={(e) => applySize(parseInt(e.target.value, 10))}
