@@ -169,7 +169,7 @@ export const TextBlockLayer = memo(function TextBlockLayer({
       setEditingId(id);
       onChange([...latest, nb]);
 
-setEditingId(id);
+
 useEffect(() => {
     if (!isEditing) return;
 
