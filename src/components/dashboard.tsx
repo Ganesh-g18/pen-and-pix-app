@@ -15,7 +15,7 @@ import {
   PenLine,
   Download,
 } from "lucide-react";
-import { exportNoteQuickPdf } from "@/lib/export-note";
+import { exportAsMarkdown, exportAsText } from "@/lib/export-note";
 import { toast } from "sonner";
 import { useMemo, useState } from "react";
 import { useStore } from "@/lib/store";
@@ -274,7 +274,7 @@ export function Dashboard() {
                               onClick={async (e) => {
                                 e.preventDefault();
                                 try {
-                                  await exportNoteQuickPdf(n);
+                                  toast.error("Open the note and use Export as PDF.");
                                   toast.success("PDF downloaded");
                                 } catch (err) {
                                   console.error(err);
