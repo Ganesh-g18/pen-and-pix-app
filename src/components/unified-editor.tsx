@@ -774,6 +774,7 @@ const endExport = useCallback(() => {
 />
 )}
 
+      {!isExporting && (
       <EditorToolbar
         tool={tool}
         onToolChange={setTool}
@@ -794,7 +795,7 @@ const endExport = useCallback(() => {
         shapeKind={shapeKind}
         onShapeKindChange={setShapeKind}
       />
-)}
+      )}
       {!isExporting &&
  tool === "text" &&
  onTextBlocksChange && (
