@@ -68,7 +68,9 @@ export const TextBlockLayer = memo(function TextBlockLayer({
       requestAnimationFrame(() => {
         const el = document.querySelector<HTMLDivElement>(`[data-text-block="${id}"]`);
         if (!el) return;
-        el.focus();
+        el.focus({
+    preventScroll: true,
+});
         const sel = window.getSelection();
         if (!sel) return;
         sel.removeAllRanges();
@@ -165,8 +167,12 @@ export const TextBlockLayer = memo(function TextBlockLayer({
       const id = Math.random().toString(36).slice(2, 10);
       const nb: TextBlock = { id, x, y, width: 0, height: 0, html: "" };
       onChange([...latest, nb]);
-      requestAnimationFrame(() => focusBlock(id, null));
-    };
+
+setEditingId(id);
+
+requestAnimationFrame(() => {
+    focusBlock(id, null);
+});
     surface.addEventListener("mousedown", onDown);
     return () => surface.removeEventListener("mousedown", onDown);
   }, [toolActive, surfaceRef, onChange, focusBlock]);
@@ -188,7 +194,19 @@ export const TextBlockLayer = memo(function TextBlockLayer({
       setEditingId(null);
     }
   }, [toolActive, setEditingId, onChange]);
+  useEffect(() => {
+    if (toolActive !== "text") return;
 
+    if (!editingIdRef.current) return;
+
+    requestAnimationFrame(() => {
+        const el = document.querySelector<HTMLDivElement>(
+            `[data-text-block="${editingIdRef.current}"]`
+        );
+
+        el?.focus({ preventScroll: true });
+    });
+}, [toolActive]);
   const commitEdit = (id: string, html: string) => {
     onChange(blocksRef.current.map((b) => (b.id === id ? { ...b, html } : b)));
   };
