@@ -145,6 +145,25 @@ export function TextToolPanel({ editingId, blocks, onBlocksChange }: Props) {
     };
   }, [openMenu]);
 
+  // Track font size at caret / selection so the size indicator reflects the
+  // current text as the user moves between blocks or characters.
+  useEffect(() => {
+    const readSize = () => {
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0) return;
+      const range = sel.getRangeAt(0);
+      const node = range.startContainer;
+      const el = (node.nodeType === 1 ? node : node.parentElement) as HTMLElement | null;
+      if (!el || !el.closest("[contenteditable='true']")) return;
+      const px = parseFloat(getComputedStyle(el).fontSize);
+      if (!Number.isNaN(px)) setCurrentSize(Math.round(px));
+    };
+    readSize();
+    document.addEventListener("selectionchange", readSize);
+    return () => document.removeEventListener("selectionchange", readSize);
+  }, [editingId]);
+
+
   const editingBlock = editingId ? (blocks.find((b) => b.id === editingId) ?? null) : null;
 
   const getEditableEl = (id: string | null) =>
