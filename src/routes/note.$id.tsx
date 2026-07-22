@@ -8,8 +8,20 @@ import { exportAsPdf, exportAsMarkdown, exportAsText } from "@/lib/export-note";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import {
-  ArrowLeft, Pin, Star, Trash2, Grid3x3, LayoutGrid, Rows3, Square,
-  Save, Check, Download, FileText, FileType, FileDown, Loader2, CloudOff, Sliders,
+  ArrowLeft,
+  Pin,
+  Star,
+  Trash2,
+  Grid3x3,
+  LayoutGrid,
+  Rows3,
+  Square,
+  Save,
+  Check,
+  Download,
+  Loader2,
+  CloudOff,
+  Sliders,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -102,8 +114,14 @@ function NotePage() {
     const onKey = (e: KeyboardEvent) => {
       if (!(e.metaKey || e.ctrlKey)) return;
       const k = e.key.toLowerCase();
-      if (k === "s") { e.preventDefault(); doSave(); }
-      if (k === "p") { e.preventDefault(); handleExport("pdf"); }
+      if (k === "s") {
+        e.preventDefault();
+        doSave();
+      }
+      if (k === "p") {
+        e.preventDefault();
+        handleExport("pdf");
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -150,7 +168,11 @@ function NotePage() {
 
       {/* Top bar */}
       <header className="glass-strong border-b border-border/60 px-3 py-2 flex items-center gap-2 sticky top-0 z-30">
-        <Link to="/" className="grid h-9 w-9 shrink-0 place-items-center rounded-xl hover:bg-accent transition" aria-label="Back">
+        <Link
+          to="/"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-xl hover:bg-accent transition"
+          aria-label="Back"
+        >
           <ArrowLeft className="h-4 w-4" />
         </Link>
 
@@ -162,7 +184,9 @@ function NotePage() {
               if (e) updateNote(id, { emoji: e });
             }}
             aria-label="Change emoji"
-          >{note.emoji || "📝"}</button>
+          >
+            {note.emoji || "📝"}
+          </button>
           <input
             value={note.title}
             onChange={(e) => updateNote(id, { title: e.target.value })}
@@ -178,15 +202,32 @@ function NotePage() {
         </div>
 
         <div className="hidden md:flex items-center rounded-xl bg-muted/60 p-0.5">
-          <PaperBtn active={note.paper === "blank"} onClick={() => updateNote(id, { paper: "blank" })} icon={<Square className="h-3.5 w-3.5" />} label="Blank" />
-          <PaperBtn active={note.paper === "grid"} onClick={() => updateNote(id, { paper: "grid" })} icon={<Grid3x3 className="h-3.5 w-3.5" />} label="Grid" />
-          <PaperBtn active={note.paper === "dots"} onClick={() => updateNote(id, { paper: "dots" })} icon={<LayoutGrid className="h-3.5 w-3.5" />} label="Dots" />
-          <PaperBtn active={note.paper === "lined"} onClick={() => updateNote(id, { paper: "lined" })} icon={<Rows3 className="h-3.5 w-3.5" />} label="Lined" />
+          <PaperBtn
+            active={note.paper === "blank"}
+            onClick={() => updateNote(id, { paper: "blank" })}
+            icon={<Square className="h-3.5 w-3.5" />}
+            label="Blank"
+          />
+          <PaperBtn
+            active={note.paper === "grid"}
+            onClick={() => updateNote(id, { paper: "grid" })}
+            icon={<Grid3x3 className="h-3.5 w-3.5" />}
+            label="Grid"
+          />
+          <PaperBtn
+            active={note.paper === "dots"}
+            onClick={() => updateNote(id, { paper: "dots" })}
+            icon={<LayoutGrid className="h-3.5 w-3.5" />}
+            label="Dots"
+          />
+          <PaperBtn
+            active={note.paper === "lined"}
+            onClick={() => updateNote(id, { paper: "lined" })}
+            icon={<Rows3 className="h-3.5 w-3.5" />}
+            label="Lined"
+          />
           {note.paper !== "blank" && (
-            <PaperOptionsMenu
-              options={note.paperOptions}
-              onChange={(opts) => updateNote(id, { paperOptions: opts })}
-            />
+            <PaperOptionsMenu options={note.paperOptions} onChange={(opts) => updateNote(id, { paperOptions: opts })} />
           )}
         </div>
 
@@ -224,28 +265,13 @@ function NotePage() {
           {/* Export menu */}
           <div className="relative" ref={exportMenuRef}>
             <button
-              onClick={() => setExportOpen((v) => !v)}
+              onClick={() => handleExport("pdf")}
               className="grid h-9 w-9 place-items-center rounded-xl text-muted-foreground hover:bg-accent transition"
-              title="Export"
-              aria-label="Export note"
+              title="Download PDF"
+              aria-label="Download PDF"
             >
               <Download className="h-4 w-4" />
             </button>
-            <AnimatePresence>
-              {exportOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: -4, scale: 0.98 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -4, scale: 0.98 }}
-                  transition={{ duration: 0.12 }}
-                  className="absolute right-0 top-11 z-40 w-52 rounded-xl border border-border bg-card text-card-foreground shadow-float p-1"
-                >
-                  <MenuItem icon={<FileDown className="h-4 w-4" />} label="Export as PDF" shortcut="⌘P" onClick={() => handleExport("pdf")} />
-                  <MenuItem icon={<FileType className="h-4 w-4" />} label="Export as Markdown" onClick={() => handleExport("md")} />
-                  <MenuItem icon={<FileText className="h-4 w-4" />} label="Export as Plain Text" onClick={() => handleExport("txt")} />
-                </motion.div>
-              )}
-            </AnimatePresence>
           </div>
 
           <button
@@ -263,7 +289,10 @@ function NotePage() {
             <Star className="h-4 w-4" />
           </button>
           <button
-            onClick={() => { deleteNote(id); navigate({ to: "/" }); }}
+            onClick={() => {
+              deleteNote(id);
+              navigate({ to: "/" });
+            }}
             className="grid h-9 w-9 place-items-center rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition"
             aria-label="Delete note"
           >
@@ -302,8 +331,14 @@ function NotePage() {
 }
 
 function getSaveStatus({
-  cloudActive, dirty, cloudStatus,
-}: { cloudActive: boolean; dirty: boolean; cloudStatus: CloudStatus }) {
+  cloudActive,
+  dirty,
+  cloudStatus,
+}: {
+  cloudActive: boolean;
+  dirty: boolean;
+  cloudStatus: CloudStatus;
+}) {
   if (!cloudActive) {
     return { label: "Saved locally", Icon: Check, color: "text-emerald-500", spin: false };
   }
@@ -315,8 +350,16 @@ function getSaveStatus({
 }
 
 function MenuItem({
-  icon, label, shortcut, onClick,
-}: { icon: React.ReactNode; label: string; shortcut?: string; onClick: () => void }) {
+  icon,
+  label,
+  shortcut,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  shortcut?: string;
+  onClick: () => void;
+}) {
   return (
     <button
       onClick={onClick}
@@ -329,7 +372,17 @@ function MenuItem({
   );
 }
 
-function PaperBtn({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string }) {
+function PaperBtn({
+  active,
+  onClick,
+  icon,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+}) {
   return (
     <button
       onClick={onClick}
@@ -341,10 +394,7 @@ function PaperBtn({ active, onClick, icon, label }: { active: boolean; onClick: 
   );
 }
 
-function PaperOptionsMenu({
-  options,
-  onChange,
-}: { options?: PaperOptions; onChange: (opts: PaperOptions) => void }) {
+function PaperOptionsMenu({ options, onChange }: { options?: PaperOptions; onChange: (opts: PaperOptions) => void }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const opts: Required<PaperOptions> = {
@@ -375,39 +425,64 @@ function PaperOptionsMenu({
         <div className="absolute right-0 top-9 z-40 w-64 rounded-xl border border-border bg-card text-card-foreground shadow-float p-3 space-y-3">
           <div>
             <div className="flex items-center justify-between text-xs mb-1">
-              <span>Thickness</span><span className="text-muted-foreground">{opts.thickness}px</span>
+              <span>Thickness</span>
+              <span className="text-muted-foreground">{opts.thickness}px</span>
             </div>
-            <input type="range" min={0.5} max={4} step={0.5} value={opts.thickness}
+            <input
+              type="range"
+              min={0.5}
+              max={4}
+              step={0.5}
+              value={opts.thickness}
               onChange={(e) => onChange({ ...opts, thickness: Number(e.target.value) })}
-              className="w-full" />
+              className="w-full"
+            />
           </div>
           <div>
             <div className="flex items-center justify-between text-xs mb-1">
-              <span>Spacing</span><span className="text-muted-foreground">{opts.spacing}px</span>
+              <span>Spacing</span>
+              <span className="text-muted-foreground">{opts.spacing}px</span>
             </div>
-            <input type="range" min={12} max={64} step={2} value={opts.spacing}
+            <input
+              type="range"
+              min={12}
+              max={64}
+              step={2}
+              value={opts.spacing}
               onChange={(e) => onChange({ ...opts, spacing: Number(e.target.value) })}
-              className="w-full" />
+              className="w-full"
+            />
           </div>
           <div>
             <div className="flex items-center justify-between text-xs mb-1">
-              <span>Margin ruler</span><span className="text-muted-foreground">{opts.margin}px</span>
+              <span>Margin ruler</span>
+              <span className="text-muted-foreground">{opts.margin}px</span>
             </div>
-            <input type="range" min={0} max={80} step={4} value={opts.margin}
+            <input
+              type="range"
+              min={0}
+              max={80}
+              step={4}
+              value={opts.margin}
               onChange={(e) => onChange({ ...opts, margin: Number(e.target.value) })}
-              className="w-full" />
+              className="w-full"
+            />
           </div>
           <div className="flex items-center justify-between text-xs">
             <span>Line color</span>
-            <input type="color"
+            <input
+              type="color"
               value={/^#[0-9a-f]{6}$/i.test(opts.color) ? opts.color : "#94a3b8"}
               onChange={(e) => onChange({ ...opts, color: e.target.value })}
-              className="h-6 w-8 cursor-pointer rounded" />
+              className="h-6 w-8 cursor-pointer rounded"
+            />
           </div>
           <button
             onClick={() => onChange({})}
             className="w-full rounded-lg border border-border text-xs py-1.5 hover:bg-accent"
-          >Reset to default</button>
+          >
+            Reset to default
+          </button>
         </div>
       )}
     </div>
