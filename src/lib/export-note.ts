@@ -1,43 +1,199 @@
 import type { Note } from "@/lib/store";
+import jsPDF from "jspdf";
 
-/** Serialize freeform text blocks as HTML for export. */
-function blocksToHtml(note: Note): string {
-  if (!note.textBlocks?.length) return "";
-  return note.textBlocks.map((b) => `<div style="margin:0.6em 0;">${b.html || ""}</div>`).join("\n");
+/* -------------------------------------------------------------------------- */
+/*                                   Helpers                                  */
+/* -------------------------------------------------------------------------- */
+
+function safeName(name: string) {
+  return (
+    (name || "note")
+      .replace(/[^a-z0-9-_ ]/gi, "")
+      .trim()
+      .slice(0, 60) || "note"
+  );
 }
 
-/** Extract plain text from text blocks. */
-function blocksToText(note: Note): string {
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function escapeHtml(text: string) {
+  return text.replace(/[&<>"']/g, (m) => {
+    switch (m) {
+      case "&":
+        return "&amp;";
+      case "<":
+        return "&lt;";
+      case ">":
+        return "&gt;";
+      case '"':
+        return "&quot;";
+      case "'":
+        return "&#39;";
+      default:
+        return m;
+    }
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/*                              Text Block Utils                              */
+/* -------------------------------------------------------------------------- */
+
+function blocksToHtml(note: Note) {
   if (!note.textBlocks?.length) return "";
+
   return note.textBlocks
-    .map((b) => {
-      const doc = new DOMParser().parseFromString(b.html || "", "text/html");
+    .map(
+      (block) =>
+        `<div style="margin:8px 0;">${block.html || ""}</div>`
+    )
+    .join("");
+}
+
+function blocksToPlainText(note: Note) {
+  if (!note.textBlocks?.length) return "";
+
+  return note.textBlocks
+    .map((block) => {
+      const doc = new DOMParser().parseFromString(
+        block.html || "",
+        "text/html"
+      );
+
       return (doc.body.textContent || "").trim();
     })
     .filter(Boolean)
     .join("\n\n");
 }
 
-/** Export a note as a plain-text file. */
-export function exportAsText(note: Note) {
-  const doc = new DOMParser().parseFromString(note.content || "", "text/html");
-  const mainText = (doc.body.textContent || "").trim();
-  const blockText = blocksToText(note);
-  const combined = [mainText, blockText].filter(Boolean).join("\n\n");
-  const body = `${note.title}\n${"=".repeat(note.title.length)}\n\n${combined}\n`;
-  downloadBlob(new Blob([body], { type: "text/plain" }), `${safeName(note.title)}.txt`);
+/* -------------------------------------------------------------------------- */
+/*                           SVG → Canvas Helpers                             */
+/* -------------------------------------------------------------------------- */
+
+async function svgElementToCanvas(svg: SVGSVGElement): Promise<HTMLCanvasElement> {
+  const rect = svg.getBoundingClientRect();
+
+  const width = Math.max(rect.width, svg.viewBox.baseVal.width || 1);
+  const height = Math.max(rect.height, svg.viewBox.baseVal.height || 1);
+
+  const clone = svg.cloneNode(true) as SVGSVGElement;
+
+  clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  clone.setAttribute("width", `${width}`);
+  clone.setAttribute("height", `${height}`);
+
+  const svgString = new XMLSerializer().serializeToString(clone);
+
+  const blob = new Blob([svgString], {
+    type: "image/svg+xml;charset=utf-8",
+  });
+
+  const url = URL.createObjectURL(blob);
+
+  try {
+    const img = new Image();
+
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = reject;
+      img.src = url;
+    });
+
+    const canvas = document.createElement("canvas");
+
+    canvas.width = width;
+    canvas.height = height;
+
+    const ctx = canvas.getContext("2d")!;
+
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, width, height);
+
+    ctx.drawImage(img, 0, 0);
+
+    return canvas;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
 }
 
-/** Export a note as Markdown. */
-export async function exportAsMarkdown(note: Note) {
-  const { default: TurndownService } = await import("turndown");
-  const td = new TurndownService({ headingStyle: "atx", codeBlockStyle: "fenced", bulletListMarker: "-" });
-  const html = [note.content || "", blocksToHtml(note)].filter(Boolean).join("\n");
-  const md = td.turndown(html);
-  const body = `# ${note.title}\n\n${md}\n`;
-  downloadBlob(new Blob([body], { type: "text/markdown" }), `${safeName(note.title)}.md`);
-}
+/* -------------------------------------------------------------------------- */
 
+function addCanvasToPdf(
+  pdf: jsPDF,
+  canvas: HTMLCanvasElement,
+  margin = 10
+) {
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+
+  const usableWidth = pageWidth - margin * 2;
+  const usableHeight = pageHeight - margin * 2;
+
+  const imageWidth = usableWidth;
+  const imageHeight = (canvas.height * imageWidth) / canvas.width;
+
+  let remaining = imageHeight;
+  let offset = 0;
+
+  while (remaining > 0) {
+    if (offset > 0) {
+      pdf.addPage();
+    }
+
+    const pageCanvas = document.createElement("canvas");
+
+    pageCanvas.width = canvas.width;
+
+    const sliceHeightPx = Math.min(
+      canvas.height - offset,
+      Math.round((usableHeight * canvas.width) / usableWidth)
+    );
+
+    pageCanvas.height = sliceHeightPx;
+
+    const ctx = pageCanvas.getContext("2d")!;
+
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+
+    ctx.drawImage(
+      canvas,
+      0,
+      offset,
+      canvas.width,
+      sliceHeightPx,
+      0,
+      0,
+      canvas.width,
+      sliceHeightPx
+    );
+
+    pdf.addImage(
+      pageCanvas.toDataURL("PNG"),
+      "PNG",
+      margin,
+      margin,
+      usableWidth,
+      (sliceHeightPx * usableWidth) / canvas.width
+    );
+
+    offset += sliceHeightPx;
+    remaining -= (sliceHeightPx * usableWidth) / canvas.width;
+  }
+}
 /** Export a note as a WYSIWYG PDF snapshot of the editor surface. */
 export async function exportAsPdf(surface: HTMLElement, note: Note) {
   const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([import("html2canvas"), import("jspdf")]);
