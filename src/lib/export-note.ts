@@ -139,13 +139,16 @@ surface.querySelectorAll<HTMLElement>("*").forEach((el) => {
           clonedSurface.style.maxHeight = "none";
         }
       },
-    })clonedStyles.forEach(({ element, style }) => {
-  if (style === null) {
-    element.removeAttribute("style");
-  } else {
-    element.setAttribute("style", style);
-  }
-});
+    });
+
+    clonedStyles.forEach(({ element, style }) => {
+      if (style === null) {
+        element.removeAttribute("style");
+      } else {
+        element.setAttribute("style", style);
+      }
+    });
+
 
     // A4 portrait in mm at 72dpi baseline.
     const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
@@ -257,7 +260,8 @@ export async function exportNoteQuickPdf(note: Note) {
 
 const clonedStyles: Array<{ element: HTMLElement; style: string | null }> = [];
 
-surface.querySelectorAll<HTMLElement>("*").forEach((el) => {
+container.querySelectorAll<HTMLElement>("*").forEach((el) => {
+
   const style = el.getAttribute("style");
 
   clonedStyles.push({
