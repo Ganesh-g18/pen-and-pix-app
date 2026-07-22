@@ -146,20 +146,26 @@ function NotePage() {
 
   const handleExport = async (kind: "pdf" | "md" | "txt") => {
     setExportOpen(false);
+    const surface = editorRootRef.current;
+    if (!surface) return;
     try {
-  toast.loading("Rendering PDF…", { id: "pdf-export" });
+      if (kind === "pdf") {
+        toast.loading("Rendering PDF…", { id: "pdf-export" });
+        await exportAsPdf(surface, note);
+        toast.success("PDF exported", { id: "pdf-export" });
+      } else if (kind === "md") {
+        exportAsMarkdown(note);
+        toast.success("Markdown exported");
+      } else {
+        exportAsText(note);
+        toast.success("Text exported");
+      }
+    } catch (error) {
+      console.error("Export Error:", error);
+      toast.error(error instanceof Error ? error.message : "Export failed", { id: "pdf-export" });
+    }
+  };
 
-  await exportAsPdf(surface, note);
-
-  toast.success("PDF exported", { id: "pdf-export" });
-} catch (error) {
-  console.error("PDF Export Error:", error);
-
-  toast.error(
-    error instanceof Error ? error.message : "Export failed",
-    { id: "pdf-export" }
-  );
-}
 
   const saveStatus = getSaveStatus({ cloudActive: isCloudActive() && !!user, dirty, cloudStatus });
 
