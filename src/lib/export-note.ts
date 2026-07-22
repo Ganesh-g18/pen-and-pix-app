@@ -260,7 +260,8 @@ export async function exportNoteQuickPdf(note: Note) {
 
 const clonedStyles: Array<{ element: HTMLElement; style: string | null }> = [];
 
-surface.querySelectorAll<HTMLElement>("*").forEach((el) => {
+container.querySelectorAll<HTMLElement>("*").forEach((el) => {
+
   const style = el.getAttribute("style");
 
   clonedStyles.push({
