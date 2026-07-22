@@ -126,6 +126,22 @@ export const TextBlockLayer = memo(function TextBlockLayer({
             return;
           }
 
+          // If another block is currently being edited and it's empty, drop it
+          // before moving focus (blur won't fire because we preventDefault below).
+          const curId = editingIdRef.current;
+          if (curId && curId !== id) {
+            const curEl = document.querySelector<HTMLDivElement>(`[data-text-block="${curId}"]`);
+            if (curEl) {
+              const html = curEl.innerHTML;
+              const text = curEl.textContent ?? "";
+              if (isBlockEmpty(html, text)) {
+                onChange(blocksRef.current.filter((b) => b.id !== curId));
+              } else {
+                onChange(blocksRef.current.map((b) => (b.id === curId ? { ...b, html } : b)));
+              }
+            }
+          }
+
           e.preventDefault();
           focusBlock(id, { x: e.clientX, y: e.clientY });
         }
