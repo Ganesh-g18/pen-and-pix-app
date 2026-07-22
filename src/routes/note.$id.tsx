@@ -241,26 +241,7 @@ function NotePage() {
             }`}
             title="Save (⌘S)"
             aria-label="Save note"
-          >
-            <AnimatePresence mode="wait">
-              {savedFlash ? (
-                <motion.span
-                  key="ok"
-                  initial={{ scale: 0.5, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0.6, opacity: 0 }}
-                  transition={{ type: "spring", stiffness: 500, damping: 24 }}
-                  className="text-emerald-500"
-                >
-                  <Check className="h-4 w-4" />
-                </motion.span>
-              ) : (
-                <motion.span key="save" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                  <Save className="h-4 w-4" />
-                </motion.span>
-              )}
-            </AnimatePresence>
-          </button>
+          ></button>
 
           {/* Export menu */}
           <div className="relative" ref={exportMenuRef}>
