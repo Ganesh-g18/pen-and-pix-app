@@ -69,7 +69,34 @@ export async function exportAsPdf(surface: HTMLElement, note: Note) {
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
     const rect = surface.getBoundingClientRect();
+    // html2canvas cannot parse Tailwind v4 OKLCH colors.
+// Temporarily convert them to RGB-compatible values.
 
+const clonedStyles: Array<{ element: HTMLElement; style: string | null }> = [];
+
+surface.querySelectorAll<HTMLElement>("*").forEach((el) => {
+  const style = el.getAttribute("style");
+
+  clonedStyles.push({
+    element: el,
+    style,
+  });
+
+  const computed = window.getComputedStyle(el);
+
+  const apply = (property: string) => {
+    const value = computed.getPropertyValue(property);
+
+    if (value.includes("oklch(")) {
+      el.style.setProperty(property, computed[property as any]);
+    }
+  };
+
+  apply("color");
+  apply("background-color");
+  apply("border-color");
+  apply("outline-color");
+});
     const canvas = await html2canvas(surface, {
       scale: 2,
 
@@ -112,7 +139,13 @@ export async function exportAsPdf(surface: HTMLElement, note: Note) {
           clonedSurface.style.maxHeight = "none";
         }
       },
-    });
+    })clonedStyles.forEach(({ element, style }) => {
+  if (style === null) {
+    element.removeAttribute("style");
+  } else {
+    element.setAttribute("style", style);
+  }
+});
 
     // A4 portrait in mm at 72dpi baseline.
     const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
@@ -219,6 +252,34 @@ export async function exportNoteQuickPdf(note: Note) {
   try {
     const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([import("html2canvas"), import("jspdf")]);
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    // html2canvas cannot parse Tailwind v4 OKLCH colors.
+// Temporarily convert them to RGB-compatible values.
+
+const clonedStyles: Array<{ element: HTMLElement; style: string | null }> = [];
+
+surface.querySelectorAll<HTMLElement>("*").forEach((el) => {
+  const style = el.getAttribute("style");
+
+  clonedStyles.push({
+    element: el,
+    style,
+  });
+
+  const computed = window.getComputedStyle(el);
+
+  const apply = (property: string) => {
+    const value = computed.getPropertyValue(property);
+
+    if (value.includes("oklch(")) {
+      el.style.setProperty(property, computed[property as any]);
+    }
+  };
+
+  apply("color");
+  apply("background-color");
+  apply("border-color");
+  apply("outline-color");
+});
     const canvas = await html2canvas(container, {
       scale: 2,
       backgroundColor: "#ffffff",
@@ -226,7 +287,14 @@ export async function exportNoteQuickPdf(note: Note) {
       logging: false,
       windowWidth: container.scrollWidth,
       windowHeight: container.scrollHeight,
-    });
+    })
+      clonedStyles.forEach(({ element, style }) => {
+  if (style === null) {
+    element.removeAttribute("style");
+  } else {
+    element.setAttribute("style", style);
+  }
+});
 
     const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
     const pageW = pdf.internal.pageSize.getWidth();
