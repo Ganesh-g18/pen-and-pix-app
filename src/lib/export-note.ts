@@ -60,65 +60,59 @@ export async function exportAsPdf(surface: HTMLElement, note: Note) {
 
   try {
     // Wait for the editor to become visually stable
-if ("fonts" in document) {
-  try {
-    await (document as any).fonts.ready;
-  } catch {}
-}
+    if ("fonts" in document) {
+      try {
+        await (document as any).fonts.ready;
+      } catch {}
+    }
 
-await new Promise((resolve) =>
-  requestAnimationFrame(() =>
-    requestAnimationFrame(resolve)
-  )
-);
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
-const rect = surface.getBoundingClientRect();
+    const rect = surface.getBoundingClientRect();
 
     const canvas = await html2canvas(surface, {
-    scale: Math.max(window.devicePixelRatio || 1, 3),
+      scale: 2,
 
-    backgroundColor: "#ffffff",
+      backgroundColor: "#ffffff",
 
-    useCORS: true,
+      useCORS: true,
 
-    allowTaint: true,
+      allowTaint: false,
 
-    foreignObjectRendering: true,
+      foreignObjectRendering: false,
 
-    removeContainer: true,
+      removeContainer: true,
 
-    logging: false,
+      logging: false,
 
-    imageTimeout: 0,
+      imageTimeout: 0,
 
-    width: Math.max(surface.scrollWidth, rect.width),
+      width: Math.max(surface.scrollWidth, rect.width),
 
-    height: Math.max(surface.scrollHeight, rect.height),
+      height: Math.max(surface.scrollHeight, rect.height),
 
-    windowWidth: Math.max(surface.scrollWidth, rect.width),
+      windowWidth: Math.max(surface.scrollWidth, rect.width),
 
-    windowHeight: Math.max(surface.scrollHeight, rect.height),
+      windowHeight: Math.max(surface.scrollHeight, rect.height),
 
-    scrollX: 0,
+      scrollX: 0,
 
-    scrollY: 0,
+      scrollY: 0,
 
-    x: 0,
+      x: 0,
 
-    y: 0,
+      y: 0,
 
-    onclone(doc) {
-        const clonedSurface =
-            doc.querySelector("[data-editor-surface]");
+      onclone(doc) {
+        const clonedSurface = doc.querySelector("[data-editor-surface]");
 
         if (clonedSurface instanceof HTMLElement) {
-            clonedSurface.style.overflow = "visible";
-            clonedSurface.style.height = "auto";
-            clonedSurface.style.maxHeight = "none";
+          clonedSurface.style.overflow = "visible";
+          clonedSurface.style.height = "auto";
+          clonedSurface.style.maxHeight = "none";
         }
-    },
-});
-
+      },
+    });
 
     // A4 portrait in mm at 72dpi baseline.
     const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
@@ -131,59 +125,48 @@ const rect = surface.getBoundingClientRect();
     const pxPerMm = canvas.width / usableW;
     const pageSlicePx = Math.floor(usableH * pxPerMm);
     const findPageBreak = (
-    ctx: CanvasRenderingContext2D,
-    startY: number,
-    idealY: number,
-    width: number,
-    maxHeight: number
-) => {
-    const search = 120;
+      ctx: CanvasRenderingContext2D,
+      startY: number,
+      idealY: number,
+      width: number,
+      maxHeight: number,
+    ) => {
+      const search = 120;
 
-    const begin = Math.max(startY + 200, idealY - search);
-    const end = Math.min(maxHeight - 1, idealY + search);
+      const begin = Math.max(startY + 200, idealY - search);
+      const end = Math.min(maxHeight - 1, idealY + search);
 
-    let best = idealY;
-    let lowestInk = Number.MAX_SAFE_INTEGER;
+      let best = idealY;
+      let lowestInk = Number.MAX_SAFE_INTEGER;
 
-    for (let y = begin; y <= end; y++) {
-
+      for (let y = begin; y <= end; y++) {
         const row = ctx.getImageData(0, y, width, 1).data;
 
         let ink = 0;
 
         for (let i = 3; i < row.length; i += 4) {
-            if (row[i] > 8) ink++;
+          if (row[i] > 8) ink++;
         }
 
         if (ink < lowestInk) {
-            lowestInk = ink;
-            best = y;
+          lowestInk = ink;
+          best = y;
         }
 
-        if (ink === 0)
-            break;
-    }
+        if (ink === 0) break;
+      }
 
-    return best;
-};
+      return best;
+    };
     let offsetY = 0;
     const fullCtx = canvas.getContext("2d")!;
     let first = true;
     while (offsetY < canvas.height) {
-      const idealEnd = Math.min(
-    offsetY + pageSlicePx,
-    canvas.height
-);
+      const idealEnd = Math.min(offsetY + pageSlicePx, canvas.height);
 
-const breakPoint = findPageBreak(
-    fullCtx,
-    offsetY,
-    idealEnd,
-    canvas.width,
-    canvas.height
-);
+      const breakPoint = findPageBreak(fullCtx, offsetY, idealEnd, canvas.width, canvas.height);
 
-const sliceH = breakPoint - offsetY;
+      const sliceH = breakPoint - offsetY;
       const slice = document.createElement("canvas");
       slice.width = canvas.width;
       slice.height = sliceH;
@@ -198,7 +181,8 @@ const sliceH = breakPoint - offsetY;
       first = false;
     }
 
-    const blob = pdf.output("blob");  downloadBlob(     blob,     `${safeName(note.title)}.pdf` );
+    const blob = pdf.output("blob");
+    downloadBlob(blob, `${safeName(note.title)}.pdf`);
   } finally {
     restores.forEach((fn) => fn());
   }
@@ -253,59 +237,48 @@ export async function exportNoteQuickPdf(note: Note) {
     const pxPerMm = canvas.width / usableW;
     const pageSlicePx = Math.floor(usableH * pxPerMm);
     const findPageBreak = (
-    ctx: CanvasRenderingContext2D,
-    startY: number,
-    idealY: number,
-    width: number,
-    maxHeight: number
-) => {
-    const search = 120;
+      ctx: CanvasRenderingContext2D,
+      startY: number,
+      idealY: number,
+      width: number,
+      maxHeight: number,
+    ) => {
+      const search = 120;
 
-    const begin = Math.max(startY + 200, idealY - search);
-    const end = Math.min(maxHeight - 1, idealY + search);
+      const begin = Math.max(startY + 200, idealY - search);
+      const end = Math.min(maxHeight - 1, idealY + search);
 
-    let best = idealY;
-    let lowestInk = Number.MAX_SAFE_INTEGER;
+      let best = idealY;
+      let lowestInk = Number.MAX_SAFE_INTEGER;
 
-    for (let y = begin; y <= end; y++) {
-
+      for (let y = begin; y <= end; y++) {
         const row = ctx.getImageData(0, y, width, 1).data;
 
         let ink = 0;
 
         for (let i = 3; i < row.length; i += 4) {
-            if (row[i] > 8) ink++;
+          if (row[i] > 8) ink++;
         }
 
         if (ink < lowestInk) {
-            lowestInk = ink;
-            best = y;
+          lowestInk = ink;
+          best = y;
         }
 
-        if (ink === 0)
-            break;
-    }
+        if (ink === 0) break;
+      }
 
-    return best;
-};
+      return best;
+    };
     let offsetY = 0;
     const fullCtx = canvas.getContext("2d")!;
     let first = true;
     while (offsetY < canvas.height) {
-      const idealEnd = Math.min(
-    offsetY + pageSlicePx,
-    canvas.height
-);
+      const idealEnd = Math.min(offsetY + pageSlicePx, canvas.height);
 
-const breakPoint = findPageBreak(
-    fullCtx,
-    offsetY,
-    idealEnd,
-    canvas.width,
-    canvas.height
-);
+      const breakPoint = findPageBreak(fullCtx, offsetY, idealEnd, canvas.width, canvas.height);
 
-const sliceH = breakPoint - offsetY;
+      const sliceH = breakPoint - offsetY;
       const slice = document.createElement("canvas");
       slice.width = canvas.width;
       slice.height = sliceH;
@@ -320,7 +293,8 @@ const sliceH = breakPoint - offsetY;
       first = false;
     }
 
-    const blob = pdf.output("blob");  downloadBlob(     blob,     `${safeName(note.title)}.pdf` );
+    const blob = pdf.output("blob");
+    downloadBlob(blob, `${safeName(note.title)}.pdf`);
   } finally {
     container.remove();
   }
