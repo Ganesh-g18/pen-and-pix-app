@@ -33,6 +33,8 @@ export interface PaperOptions {
   margin?: number;    // left margin ruler width in px (0 = none)
 }
 
+export type PageOrientation = "portrait" | "landscape";
+
 export interface Note {
   id: string;
   title: string;
@@ -40,6 +42,7 @@ export interface Note {
   mode: NoteMode;
   paper: PaperType;
   paperOptions?: PaperOptions;
+  pageOrientation?: PageOrientation;
   content: string; // tiptap HTML
   strokes: Stroke[];
   textBlocks?: TextBlock[];
