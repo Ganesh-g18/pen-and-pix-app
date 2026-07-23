@@ -322,6 +322,7 @@ function NotePage() {
           strokes={note.strokes}
           paper={note.paper}
           paperOptions={note.paperOptions}
+          pageOrientation={note.pageOrientation}
           textBlocks={note.textBlocks}
           onContentChange={(html) => updateNote(id, { content: html })}
           onTextBlocksChange={(blocks) => updateNote(id, { textBlocks: blocks })}
