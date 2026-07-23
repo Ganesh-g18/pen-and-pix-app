@@ -15,6 +15,7 @@ interface Props {
   strokes: Stroke[];
   paper: PaperType;
   paperOptions?: PaperOptions;
+  pageOrientation?: PageOrientation;
   textBlocks?: TextBlock[];
   onContentChange: (html: string) => void;
   onTextBlocksChange?: (blocks: TextBlock[]) => void;
@@ -27,7 +28,10 @@ interface Props {
   onCommitErase?: (prev: Stroke[], next: Stroke[]) => void;
 }
 
-const MIN_DOC_HEIGHT = 2400;
+const PAGE_SIZES = {
+  A4: { portrait: { w: 794, h: 1123 }, landscape: { w: 1123, h: 794 } },
+} as const;
+const PAGE_GAP = 24;
 
 const FALLBACK_PRESET: ToolPreset = {
   color: "#0b0b0f",
