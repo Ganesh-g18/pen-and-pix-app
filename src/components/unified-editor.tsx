@@ -4,7 +4,7 @@ import Placeholder from "@tiptap/extension-placeholder";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
-import type { Stroke, PaperType, PenStyle, PinnedPen, ToolPreset, TextBlock, PaperOptions } from "@/lib/store";
+import type { Stroke, PaperType, PenStyle, PinnedPen, ToolPreset, TextBlock, PaperOptions, PageOrientation } from "@/lib/store";
 import { useStore } from "@/lib/store";
 import { EditorToolbar, type EditorTool, type EraserMode, type ToolConfigKey, type ShapeKind } from "./editor-toolbar";
 import { TextBlockLayer } from "./text-block-layer";
@@ -15,6 +15,7 @@ interface Props {
   strokes: Stroke[];
   paper: PaperType;
   paperOptions?: PaperOptions;
+  pageOrientation?: PageOrientation;
   textBlocks?: TextBlock[];
   onContentChange: (html: string) => void;
   onTextBlocksChange?: (blocks: TextBlock[]) => void;
@@ -27,7 +28,10 @@ interface Props {
   onCommitErase?: (prev: Stroke[], next: Stroke[]) => void;
 }
 
-const MIN_DOC_HEIGHT = 2400;
+const PAGE_SIZES = {
+  A4: { portrait: { w: 794, h: 1123 }, landscape: { w: 1123, h: 794 } },
+} as const;
+const PAGE_GAP = 24;
 
 const FALLBACK_PRESET: ToolPreset = {
   color: "#0b0b0f",
@@ -50,6 +54,7 @@ export function UnifiedEditor({
   strokes,
   paper,
   paperOptions,
+  pageOrientation,
   textBlocks,
   onContentChange,
   onTextBlocksChange,
@@ -152,7 +157,11 @@ const endExport = useCallback(() => {
   const eraseSessionRef = useRef<{ prev: Stroke[]; working: Stroke[]; changed: boolean } | null>(null);
   const [erasePreview, setErasePreview] = useState<Stroke[] | null>(null);
   const [, force] = useState(0);
-  const [docHeight, setDocHeight] = useState(MIN_DOC_HEIGHT);
+  const orientation: PageOrientation = pageOrientation ?? "portrait";
+  const pageDims = PAGE_SIZES.A4[orientation];
+  const pageW = pageDims.w;
+  const pageH = pageDims.h;
+  const [pageCount, setPageCount] = useState(1);
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
   const [selectDrag, setSelectDrag] = useState<{ ids: Set<string>; dx: number; dy: number } | null>(null);
 
@@ -166,7 +175,7 @@ const endExport = useCallback(() => {
     content,
     editorProps: {
       attributes: {
-        class: "tiptap focus:outline-none text-[15px] leading-relaxed max-w-3xl mx-auto px-6 py-10 min-h-[400px]",
+        class: "tiptap focus:outline-none text-[15px] leading-relaxed px-12 py-14 min-h-[200px]",
       },
     },
     onUpdate: ({ editor }) => onContentChange(editor.getHTML()),
@@ -187,10 +196,19 @@ const endExport = useCallback(() => {
         if (s.points[i] > maxY) maxY = s.points[i];
       }
     }
+    for (const b of textBlocks ?? []) {
+      const by = (b.y ?? 0) + (b.height ?? 0);
+      if (by > maxY) maxY = by;
+    }
     const textEl = surfaceRef.current?.querySelector(".tiptap") as HTMLElement | null;
     const textH = textEl ? textEl.offsetTop + textEl.offsetHeight : 0;
-    setDocHeight(Math.max(MIN_DOC_HEIGHT, maxY + 600, textH + 600));
-  }, [strokes, content]);
+    const contentBottom = Math.max(maxY, textH);
+    // Grow to fit; auto-append a fresh page when nearing the bottom.
+    const needed = Math.max(1, Math.ceil((contentBottom + 40) / pageH));
+    setPageCount((prev) => (needed > prev ? needed : prev));
+  }, [strokes, content, textBlocks, pageH]);
+
+  const surfaceHeight = pageCount * pageH + Math.max(0, pageCount - 1) * PAGE_GAP;
 
   const paperClass =
     paper === "grid" ? "paper-grid" : paper === "dots" ? "paper-dots" : paper === "lined" ? "paper-lined" : "";
@@ -620,16 +638,30 @@ const endExport = useCallback(() => {
     <div className="relative flex-1 min-h-0">
       <div
         ref={scrollRef}
-        className="absolute inset-0 overflow-y-auto"
+        className="absolute inset-0 overflow-y-auto overflow-x-auto"
         style={{ touchAction: inkActive ? "pinch-zoom" : "pan-y pinch-zoom" }}
       >
-        <div
-          ref={surfaceRef}
-    data-editor-surface
-    data-exporting={isExporting}
-          className={`relative w-full ${paperClass}`}
-          style={{ height: docHeight, minHeight: "100%", cursor: tool === "text" ? "text" : undefined, ...paperStyle }}
-        >
+        <div className="mx-auto" style={{ width: pageW, paddingTop: 24, paddingBottom: 48 }}>
+          <div
+            ref={surfaceRef}
+            data-editor-surface
+            data-exporting={isExporting}
+            className="relative"
+            style={{ width: pageW, height: surfaceHeight, cursor: tool === "text" ? "text" : undefined, ...paperStyle }}
+          >
+            {/* Paper pages (background layer) */}
+            {Array.from({ length: pageCount }).map((_, i) => (
+              <div
+                key={i}
+                data-page-index={i}
+                className={`absolute left-0 right-0 rounded-lg shadow-float bg-white ${paperClass}`}
+                style={{
+                  top: i * (pageH + PAGE_GAP),
+                  height: pageH,
+                }}
+              />
+            ))}
+
           <div className="absolute inset-0" style={{ pointerEvents: tool === "select" ? "auto" : "none" }}>
             {editor && <EditorContent editor={editor} />}
           </div>
@@ -648,8 +680,8 @@ const endExport = useCallback(() => {
 
           <svg
             ref={svgRef}
-            width="100%"
-            height={docHeight}
+            width={pageW}
+            height={surfaceHeight}
             className="absolute inset-0 select-none"
             style={{
               cursor,
@@ -759,8 +791,10 @@ const endExport = useCallback(() => {
                 );
               })()}
           </svg>
+          </div>
         </div>
       </div>
+
 
       {/* Cursor preview overlay */}
       {!isExporting && (
