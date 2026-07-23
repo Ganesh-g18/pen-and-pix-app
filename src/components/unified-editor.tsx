@@ -791,8 +791,10 @@ const endExport = useCallback(() => {
                 );
               })()}
           </svg>
+          </div>
         </div>
       </div>
+
 
       {/* Cursor preview overlay */}
       {!isExporting && (
