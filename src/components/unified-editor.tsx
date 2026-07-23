@@ -54,6 +54,7 @@ export function UnifiedEditor({
   strokes,
   paper,
   paperOptions,
+  pageOrientation,
   textBlocks,
   onContentChange,
   onTextBlocksChange,
