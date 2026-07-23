@@ -240,6 +240,24 @@ function NotePage() {
           )}
         </div>
 
+        {/* Paper size + orientation */}
+        <div className="hidden md:flex items-center rounded-xl bg-muted/60 p-0.5">
+          <div className="px-2 text-[11px] text-muted-foreground select-none">A4</div>
+          <div className="w-px h-4 bg-border mx-0.5" />
+          <PaperBtn
+            active={(note.pageOrientation ?? "portrait") === "portrait"}
+            onClick={() => updateNote(id, { pageOrientation: "portrait" })}
+            icon={<RectangleVertical className="h-3.5 w-3.5" />}
+            label="Portrait"
+          />
+          <PaperBtn
+            active={note.pageOrientation === "landscape"}
+            onClick={() => updateNote(id, { pageOrientation: "landscape" })}
+            icon={<RectangleHorizontal className="h-3.5 w-3.5" />}
+            label="Landscape"
+          />
+        </div>
+
         <div className="flex shrink-0 items-center gap-1">
           {/* Save */}
           <button
