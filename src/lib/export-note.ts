@@ -104,7 +104,7 @@ export async function exportAsMarkdown(note: Note) {
   downloadBlob(new Blob([body], { type: "text/markdown" }), `${safeName(note.title)}.md`);
 }
 
-/** Export a note as a WYSIWYG PDF snapshot of the editor surface. */
+/** Export a note as a WYSIWYG PDF — one PDF page per notebook page, at native A4 scale. */
 export async function exportAsPdf(surface: HTMLElement, note: Note) {
   const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
     import("html2canvas-pro"),
@@ -119,9 +119,28 @@ export async function exportAsPdf(surface: HTMLElement, note: Note) {
 
   await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
-  const rect = surface.getBoundingClientRect();
-  const canvas = await html2canvas(surface, {
-    scale: 2,
+  // Collect every notebook page element in DOM order.
+  const pageEls = Array.from(
+    surface.querySelectorAll<HTMLElement>("[data-page-index]"),
+  ).sort(
+    (a, b) =>
+      Number(a.dataset.pageIndex ?? 0) - Number(b.dataset.pageIndex ?? 0),
+  );
+
+  if (pageEls.length === 0) {
+    throw new Error("No notebook pages found to export.");
+  }
+
+  const surfaceRect = surface.getBoundingClientRect();
+  const surfaceWidth = Math.max(surface.scrollWidth, surfaceRect.width);
+  const surfaceHeight = Math.max(surface.scrollHeight, surfaceRect.height);
+
+  const SCALE = 2;
+
+  // Render the whole surface ONCE at 2x, then slice per-page. This preserves
+  // absolutely-positioned strokes/text that span pages and keeps 1:1 scale.
+  const fullCanvas = await html2canvas(surface, {
+    scale: SCALE,
     backgroundColor: "#ffffff",
     useCORS: true,
     allowTaint: false,
@@ -129,95 +148,63 @@ export async function exportAsPdf(surface: HTMLElement, note: Note) {
     removeContainer: true,
     logging: false,
     imageTimeout: 0,
-    width: Math.max(surface.scrollWidth, rect.width),
-    height: Math.max(surface.scrollHeight, rect.height),
-    windowWidth: Math.max(surface.scrollWidth, rect.width),
-    windowHeight: Math.max(surface.scrollHeight, rect.height),
+    width: surfaceWidth,
+    height: surfaceHeight,
+    windowWidth: surfaceWidth,
+    windowHeight: surfaceHeight,
     scrollX: 0,
     scrollY: 0,
     x: 0,
     y: 0,
     onclone(clonedDocument) {
       inlineRgbColors(clonedDocument);
-
-      let clonedNode = clonedDocument.querySelector<HTMLElement>("[data-editor-surface]");
-      while (clonedNode && clonedNode !== clonedDocument.body) {
-        clonedNode.style.overflow = "visible";
-        clonedNode.style.height = "auto";
-        clonedNode.style.maxHeight = "none";
-        clonedNode = clonedNode.parentElement;
+      let node = clonedDocument.querySelector<HTMLElement>("[data-editor-surface]");
+      while (node && node !== clonedDocument.body) {
+        node.style.overflow = "visible";
+        node.style.height = "auto";
+        node.style.maxHeight = "none";
+        node = node.parentElement;
       }
     },
   });
 
-  // A4 portrait in mm at 72dpi baseline.
-  const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-  const pageW = pdf.internal.pageSize.getWidth();
-  const pageH = pdf.internal.pageSize.getHeight();
-  const margin = 8;
-  const usableW = pageW - margin * 2;
-  const usableH = pageH - margin * 2;
+  // Use the first page's CSS dimensions to size the PDF (A4 portrait/landscape).
+  const firstRect = pageEls[0].getBoundingClientRect();
+  const pageCssW = firstRect.width;
+  const pageCssH = firstRect.height;
+  const isLandscape = pageCssW > pageCssH;
 
-  const pxPerMm = canvas.width / usableW;
-  const pageSlicePx = Math.floor(usableH * pxPerMm);
-  const findPageBreak = (
-    ctx: CanvasRenderingContext2D,
-    startY: number,
-    idealY: number,
-    width: number,
-    maxHeight: number,
-  ) => {
-    const search = 120;
+  const pdf = new jsPDF({
+    orientation: isLandscape ? "landscape" : "portrait",
+    unit: "mm",
+    format: "a4",
+  });
+  const pdfW = pdf.internal.pageSize.getWidth();
+  const pdfH = pdf.internal.pageSize.getHeight();
 
-    const begin = Math.max(startY + 200, idealY - search);
-    const end = Math.min(maxHeight - 1, idealY + search);
+  for (let i = 0; i < pageEls.length; i++) {
+    const rect = pageEls[i].getBoundingClientRect();
+    // Position within the (unscaled) surface, in CSS px.
+    const relX = rect.left - surfaceRect.left;
+    const relY = rect.top - surfaceRect.top;
 
-    let best = idealY;
-    let lowestInk = Number.MAX_SAFE_INTEGER;
+    const sx = Math.max(0, Math.round(relX * SCALE));
+    const sy = Math.max(0, Math.round(relY * SCALE));
+    const sw = Math.min(fullCanvas.width - sx, Math.round(rect.width * SCALE));
+    const sh = Math.min(fullCanvas.height - sy, Math.round(rect.height * SCALE));
 
-    for (let y = begin; y <= end; y++) {
-      const row = ctx.getImageData(0, y, width, 1).data;
-
-      let ink = 0;
-
-      for (let i = 3; i < row.length; i += 4) {
-        if (row[i] > 8) ink++;
-      }
-
-      if (ink < lowestInk) {
-        lowestInk = ink;
-        best = y;
-      }
-
-      if (ink === 0) break;
-    }
-
-    return best;
-  };
-
-  let offsetY = 0;
-  const fullCtx = canvas.getContext("2d")!;
-  let first = true;
-
-  while (offsetY < canvas.height) {
-    const idealEnd = Math.min(offsetY + pageSlicePx, canvas.height);
-    const breakPoint = findPageBreak(fullCtx, offsetY, idealEnd, canvas.width, canvas.height);
-
-    const sliceH = breakPoint - offsetY;
     const slice = document.createElement("canvas");
-    slice.width = canvas.width;
-    slice.height = sliceH;
+    slice.width = sw;
+    slice.height = sh;
     const ctx = slice.getContext("2d")!;
     ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, slice.width, slice.height);
-    ctx.drawImage(canvas, 0, offsetY, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+    ctx.fillRect(0, 0, sw, sh);
+    ctx.drawImage(fullCanvas, sx, sy, sw, sh, 0, 0, sw, sh);
 
     const img = slice.toDataURL("image/png");
-    if (!first) pdf.addPage();
-    pdf.addImage(img, "PNG", margin, margin, usableW, sliceH / pxPerMm);
-
-    offsetY = breakPoint;
-    first = false;
+    if (i > 0) pdf.addPage("a4", isLandscape ? "landscape" : "portrait");
+    // Fill the entire A4 page — 1:1 mapping from notebook page → PDF page.
+    pdf.addImage(img, "PNG", 0, 0, pdfW, pdfH);
   }
 
   const blob = pdf.output("blob");
