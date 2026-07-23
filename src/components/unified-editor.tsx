@@ -157,7 +157,11 @@ const endExport = useCallback(() => {
   const eraseSessionRef = useRef<{ prev: Stroke[]; working: Stroke[]; changed: boolean } | null>(null);
   const [erasePreview, setErasePreview] = useState<Stroke[] | null>(null);
   const [, force] = useState(0);
-  const [docHeight, setDocHeight] = useState(MIN_DOC_HEIGHT);
+  const orientation: PageOrientation = pageOrientation ?? "portrait";
+  const pageDims = PAGE_SIZES.A4[orientation];
+  const pageW = pageDims.w;
+  const pageH = pageDims.h;
+  const [pageCount, setPageCount] = useState(1);
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
   const [selectDrag, setSelectDrag] = useState<{ ids: Set<string>; dx: number; dy: number } | null>(null);
 
@@ -171,7 +175,7 @@ const endExport = useCallback(() => {
     content,
     editorProps: {
       attributes: {
-        class: "tiptap focus:outline-none text-[15px] leading-relaxed max-w-3xl mx-auto px-6 py-10 min-h-[400px]",
+        class: "tiptap focus:outline-none text-[15px] leading-relaxed px-12 py-14 min-h-[200px]",
       },
     },
     onUpdate: ({ editor }) => onContentChange(editor.getHTML()),
@@ -192,10 +196,19 @@ const endExport = useCallback(() => {
         if (s.points[i] > maxY) maxY = s.points[i];
       }
     }
+    for (const b of textBlocks ?? []) {
+      const by = (b.y ?? 0) + (b.height ?? 0);
+      if (by > maxY) maxY = by;
+    }
     const textEl = surfaceRef.current?.querySelector(".tiptap") as HTMLElement | null;
     const textH = textEl ? textEl.offsetTop + textEl.offsetHeight : 0;
-    setDocHeight(Math.max(MIN_DOC_HEIGHT, maxY + 600, textH + 600));
-  }, [strokes, content]);
+    const contentBottom = Math.max(maxY, textH);
+    // Grow to fit; auto-append a fresh page when nearing the bottom.
+    const needed = Math.max(1, Math.ceil((contentBottom + 40) / pageH));
+    setPageCount((prev) => (needed > prev ? needed : prev));
+  }, [strokes, content, textBlocks, pageH]);
+
+  const surfaceHeight = pageCount * pageH + Math.max(0, pageCount - 1) * PAGE_GAP;
 
   const paperClass =
     paper === "grid" ? "paper-grid" : paper === "dots" ? "paper-dots" : paper === "lined" ? "paper-lined" : "";
