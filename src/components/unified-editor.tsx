@@ -638,16 +638,30 @@ const endExport = useCallback(() => {
     <div className="relative flex-1 min-h-0">
       <div
         ref={scrollRef}
-        className="absolute inset-0 overflow-y-auto"
+        className="absolute inset-0 overflow-y-auto overflow-x-auto"
         style={{ touchAction: inkActive ? "pinch-zoom" : "pan-y pinch-zoom" }}
       >
-        <div
-          ref={surfaceRef}
-    data-editor-surface
-    data-exporting={isExporting}
-          className={`relative w-full ${paperClass}`}
-          style={{ height: docHeight, minHeight: "100%", cursor: tool === "text" ? "text" : undefined, ...paperStyle }}
-        >
+        <div className="mx-auto" style={{ width: pageW, paddingTop: 24, paddingBottom: 48 }}>
+          <div
+            ref={surfaceRef}
+            data-editor-surface
+            data-exporting={isExporting}
+            className="relative"
+            style={{ width: pageW, height: surfaceHeight, cursor: tool === "text" ? "text" : undefined, ...paperStyle }}
+          >
+            {/* Paper pages (background layer) */}
+            {Array.from({ length: pageCount }).map((_, i) => (
+              <div
+                key={i}
+                data-page-index={i}
+                className={`absolute left-0 right-0 rounded-lg shadow-float bg-white ${paperClass}`}
+                style={{
+                  top: i * (pageH + PAGE_GAP),
+                  height: pageH,
+                }}
+              />
+            ))}
+
           <div className="absolute inset-0" style={{ pointerEvents: tool === "select" ? "auto" : "none" }}>
             {editor && <EditorContent editor={editor} />}
           </div>
@@ -666,8 +680,8 @@ const endExport = useCallback(() => {
 
           <svg
             ref={svgRef}
-            width="100%"
-            height={docHeight}
+            width={pageW}
+            height={surfaceHeight}
             className="absolute inset-0 select-none"
             style={{
               cursor,
