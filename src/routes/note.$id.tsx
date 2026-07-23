@@ -22,6 +22,8 @@ import {
   Loader2,
   CloudOff,
   Sliders,
+  RectangleVertical,
+  RectangleHorizontal,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
