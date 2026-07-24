@@ -201,6 +201,7 @@ export function CanvasEditor({ strokes, paper, onAddStroke, onUndo, onClear, onE
       <div className={`absolute inset-0 ${paperClass}`}>
         <svg
           ref={svgRef}
+          data-editor-surface
           className="w-full h-full select-none"
           style={{
             cursor: "crosshair",
