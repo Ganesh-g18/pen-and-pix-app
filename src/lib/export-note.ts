@@ -104,7 +104,7 @@ export async function exportAsMarkdown(note: Note) {
   downloadBlob(new Blob([body], { type: "text/markdown" }), `${safeName(note.title)}.md`);
 }
 
-/** Export a note as a WYSIWYG PDF — one PDF page per notebook page, at native A4 scale. */
+/** Export a note as a WYSIWYG PDF snapshot of the editor surface. */
 export async function exportAsPdf(surface: HTMLElement, note: Note) {
   const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
     import("html2canvas-pro"),
@@ -119,92 +119,127 @@ export async function exportAsPdf(surface: HTMLElement, note: Note) {
 
   await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
-  // Collect every notebook page element in DOM order.
-  const pageEls = Array.from(
-    surface.querySelectorAll<HTMLElement>("[data-page-index]"),
-  ).sort(
-    (a, b) =>
-      Number(a.dataset.pageIndex ?? 0) - Number(b.dataset.pageIndex ?? 0),
-  );
+  // The exportable page is ONLY the paper surface (`[data-editor-surface]`) —
+  // never the floating toolbar, the text-tool panel, the cursor overlay, or
+  // any other editor chrome. `surface` may be that element itself, or an
+  // ancestor of it (e.g. the route's editor-root wrapper); resolve to the
+  // real paper element either way so callers don't need to change.
+  const pageEl = surface.hasAttribute("data-editor-surface")
+    ? surface
+    : (surface.querySelector<HTMLElement>("[data-editor-surface]") ?? surface);
 
-  if (pageEls.length === 0) {
-    throw new Error("No notebook pages found to export.");
-  }
+  const rect = pageEl.getBoundingClientRect();
+  const contentWidth = Math.max(pageEl.scrollWidth, rect.width);
+  const contentHeight = Math.max(pageEl.scrollHeight, rect.height);
 
-  const surfaceRect = surface.getBoundingClientRect();
-  const surfaceWidth = Math.max(surface.scrollWidth, surfaceRect.width);
-  const surfaceHeight = Math.max(surface.scrollHeight, surfaceRect.height);
+  // A4 portrait in mm, matching the app's existing export layout.
+  const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const pageW = pdf.internal.pageSize.getWidth();
+  const pageH = pdf.internal.pageSize.getHeight();
+  const margin = 8;
+  const usableW = pageW - margin * 2;
+  const usableH = pageH - margin * 2;
 
-  const SCALE = 2;
+  // Map the paper's full CSS width onto the usable page width so every PDF
+  // page reproduces the notebook page at its true, undistorted proportions —
+  // no squeezing/scaling to force extra content onto one page.
+  const mmPerCssPx = usableW / contentWidth;
+  const pageHeightCss = usableH / mmPerCssPx;
 
-  // Render the whole surface ONCE at 2x, then slice per-page. This preserves
-  // absolutely-positioned strokes/text that span pages and keeps 1:1 scale.
-  const fullCanvas = await html2canvas(surface, {
-    scale: SCALE,
-    backgroundColor: "#ffffff",
-    useCORS: true,
-    allowTaint: false,
-    foreignObjectRendering: false,
-    removeContainer: true,
-    logging: false,
-    imageTimeout: 0,
-    width: surfaceWidth,
-    height: surfaceHeight,
-    windowWidth: surfaceWidth,
-    windowHeight: surfaceHeight,
-    scrollX: 0,
-    scrollY: 0,
-    x: 0,
-    y: 0,
-    onclone(clonedDocument) {
-      inlineRgbColors(clonedDocument);
-      let node = clonedDocument.querySelector<HTMLElement>("[data-editor-surface]");
-      while (node && node !== clonedDocument.body) {
-        node.style.overflow = "visible";
-        node.style.height = "auto";
-        node.style.maxHeight = "none";
-        node = node.parentElement;
+  const RENDER_SCALE = 2; // resolution multiplier only — does not affect pagination.
+  const BREAK_SEARCH_CSS = 70; // CSS px of look-ahead used to dodge cutting through ink/text.
+
+  const findPageBreak = (ctx: CanvasRenderingContext2D, idealY: number, width: number, maxHeight: number) => {
+    const search = 120;
+    const begin = Math.max(0, idealY - search);
+    const end = Math.min(maxHeight - 1, idealY + search);
+
+    let best = idealY;
+    let lowestInk = Number.MAX_SAFE_INTEGER;
+
+    for (let y = begin; y <= end; y++) {
+      const row = ctx.getImageData(0, y, width, 1).data;
+      let ink = 0;
+      for (let i = 3; i < row.length; i += 4) {
+        if (row[i] > 8) ink++;
       }
-    },
-  });
+      if (ink < lowestInk) {
+        lowestInk = ink;
+        best = y;
+      }
+      if (ink === 0) break;
+    }
 
-  // Use the first page's CSS dimensions to size the PDF (A4 portrait/landscape).
-  const firstRect = pageEls[0].getBoundingClientRect();
-  const pageCssW = firstRect.width;
-  const pageCssH = firstRect.height;
-  const isLandscape = pageCssW > pageCssH;
+    return best;
+  };
 
-  const pdf = new jsPDF({
-    orientation: isLandscape ? "landscape" : "portrait",
-    unit: "mm",
-    format: "a4",
-  });
-  const pdfW = pdf.internal.pageSize.getWidth();
-  const pdfH = pdf.internal.pageSize.getHeight();
+  const prepareClone = (clonedDocument: Document, clonedElement: HTMLElement) => {
+    inlineRgbColors(clonedDocument);
+    let node: HTMLElement | null = clonedElement;
+    while (node && node !== clonedDocument.body) {
+      node.style.overflow = "visible";
+      node.style.height = "auto";
+      node.style.maxHeight = "none";
+      node = node.parentElement;
+    }
+  };
 
-  for (let i = 0; i < pageEls.length; i++) {
-    const rect = pageEls[i].getBoundingClientRect();
-    // Position within the (unscaled) surface, in CSS px.
-    const relX = rect.left - surfaceRect.left;
-    const relY = rect.top - surfaceRect.top;
+  // Walk the notebook content one A4 page at a time. Each iteration renders
+  // only a page-sized (plus a small look-ahead) window of the paper via
+  // html2canvas's own x/y/width/height clipping — never the whole document —
+  // so memory use and canvas size stay bounded no matter how long the note
+  // is. There is no cap on the number of iterations/pages produced.
+  let offsetCss = 0;
+  let pageIndex = 0;
 
-    const sx = Math.max(0, Math.round(relX * SCALE));
-    const sy = Math.max(0, Math.round(relY * SCALE));
-    const sw = Math.min(fullCanvas.width - sx, Math.round(rect.width * SCALE));
-    const sh = Math.min(fullCanvas.height - sy, Math.round(rect.height * SCALE));
+  while (offsetCss < contentHeight - 0.5) {
+    const idealEndCss = Math.min(offsetCss + pageHeightCss, contentHeight);
+    const isLastPage = idealEndCss >= contentHeight - 0.5;
+    const captureEndCss = isLastPage ? idealEndCss : Math.min(idealEndCss + BREAK_SEARCH_CSS, contentHeight);
+    const sliceHeightCss = captureEndCss - offsetCss;
 
-    const slice = document.createElement("canvas");
-    slice.width = sw;
-    slice.height = sh;
-    const ctx = slice.getContext("2d")!;
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, sw, sh);
-    ctx.drawImage(fullCanvas, sx, sy, sw, sh, 0, 0, sw, sh);
+    const sliceCanvas = await html2canvas(pageEl, {
+      scale: RENDER_SCALE,
+      backgroundColor: "#ffffff",
+      useCORS: true,
+      allowTaint: false,
+      foreignObjectRendering: false,
+      removeContainer: true,
+      logging: false,
+      imageTimeout: 0,
+      x: 0,
+      y: offsetCss,
+      width: contentWidth,
+      height: sliceHeightCss,
+      windowWidth: contentWidth,
+      windowHeight: contentHeight,
+      scrollX: 0,
+      scrollY: 0,
+      onclone(clonedDocument, clonedElement) {
+        prepareClone(clonedDocument, clonedElement);
+      },
+    });
 
-    const img = slice.toDataURL("image/png");
-    if (i > 0) pdf.addPage("a4", isLandscape ? "landscape" : "portrait");
-    // Fill the entire A4 page — 1:1 mapping from notebook page → PDF page.
-    pdf.addImage(img, "PNG", 0, 0, pdfW, pdfH);
+    const idealBreakPx = Math.round((idealEndCss - offsetCss) * RENDER_SCALE);
+    const breakPx = isLastPage
+      ? sliceCanvas.height
+      : findPageBreak(sliceCanvas.getContext("2d")!, idealBreakPx, sliceCanvas.width, sliceCanvas.height);
+    const safeBreakPx = Math.max(1, Math.min(breakPx, sliceCanvas.height));
+
+    const outCanvas = document.createElement("canvas");
+    outCanvas.width = sliceCanvas.width;
+    outCanvas.height = safeBreakPx;
+    const outCtx = outCanvas.getContext("2d")!;
+    outCtx.fillStyle = "#ffffff";
+    outCtx.fillRect(0, 0, outCanvas.width, outCanvas.height);
+    outCtx.drawImage(sliceCanvas, 0, 0, sliceCanvas.width, safeBreakPx, 0, 0, sliceCanvas.width, safeBreakPx);
+
+    const img = outCanvas.toDataURL("image/png");
+    if (pageIndex > 0) pdf.addPage();
+    pdf.addImage(img, "PNG", margin, margin, usableW, (safeBreakPx / RENDER_SCALE) * mmPerCssPx);
+
+    offsetCss += safeBreakPx / RENDER_SCALE;
+    pageIndex++;
   }
 
   const blob = pdf.output("blob");
